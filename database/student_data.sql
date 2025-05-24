@@ -3,6 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS student_data (
     student_id uuid not null default gen_random_uuid(),
+    student_id_number varchar not null,
     created_at timestamp not null default now(),
     gender text,
     date_of_birth date,
@@ -15,5 +16,7 @@ CREATE TABLE IF NOT EXISTS student_data (
     mother_number varchar,
     first_name text,
     last_name text,
-    email varchar
+    email varchar,
+    division text,
+    batch text,
 );

@@ -108,6 +108,7 @@ interface Faculty_Subjects {
 }
 
 interface Student_data {
+  student_id_number: string;
   gender: string;
   date_of_birth: string;
   ph_number: string;
@@ -120,6 +121,8 @@ interface Student_data {
   first_name: string;
   last_name: string;
   email: string;
+  division: string;
+  batch: string;
 }
 
 export type {
