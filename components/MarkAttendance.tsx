@@ -5,8 +5,9 @@ import Image from "next/image";
 import { students } from "@/services/studentDummyData";
 import { Button } from "@/components/ui/button";
 import { Check, Save } from "lucide-react";
+import { DummyLecture } from "@/services/dummyTypes";
 
-const MarkAttendance = ({ lecture }: any) => {
+const MarkAttendance = ({ lecture }: { lecture: DummyLecture }) => {
   const [attendanceData, setAttendanceData] = useState(students);
 
   const toggleAttendance = (studentId: number) => {
@@ -20,7 +21,7 @@ const MarkAttendance = ({ lecture }: any) => {
   };
 
   const handleSave = () => {
-    console.log("Saving attendance:", attendanceData);
+    console.log("Saving attendance for ", lecture.name, " :", attendanceData);
     // Here you would typically send the data to an API
   };
 
@@ -58,7 +59,7 @@ const MarkAttendance = ({ lecture }: any) => {
                   height={64}
                   onError={(e) => {
                     // Fallback to a user placeholder if image fails to load
-                    (e.target as any).src =
+                    (e.target as HTMLImageElement).src =
                       "https://via.placeholder.com/64?text=User";
                   }}
                   className="object-cover"

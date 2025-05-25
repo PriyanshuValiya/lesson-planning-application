@@ -1,4 +1,6 @@
-export const lectures = [
+import { DummyLecture } from "./dummyTypes";
+
+export const lectures: DummyLecture[] = [
   {
     _id: "1",
     name: "Programming in C++",

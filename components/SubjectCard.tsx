@@ -1,9 +1,10 @@
+import { DummyLecture } from "@/services/dummyTypes";
 import { Edit, Eye } from "lucide-react";
 import Image from "next/image";
 
 interface SubjectCardProps {
-  lecture: any;
-  setLecture: (lecture: any) => void;
+  lecture: DummyLecture;
+  setLecture: (lecture: DummyLecture) => void;
   setShowList: (show: boolean) => void;
   setFillAttendance?: (fill: boolean) => void;
 }

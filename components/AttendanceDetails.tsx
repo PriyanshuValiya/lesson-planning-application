@@ -1,4 +1,6 @@
-const AttendanceDetails = ({ lecture }: any) => {
+import { DummyLecture } from "@/services/dummyTypes";
+
+const AttendanceDetails = ({ lecture }: { lecture: DummyLecture }) => {
   return (
     <div className="bg-white shadow-sm rounded-lg p-6 w-full">
       <div className="border-b pb-3 mb-6">
