@@ -1,7 +1,14 @@
 import { Edit, Eye } from "lucide-react";
 import Image from "next/image";
 
-const SubjectCard = ({lecture}:any) => {
+interface SubjectCardProps {
+  lecture: any;
+  setLecture: (lecture: any) => void;
+  setShowList: (show: boolean) => void;
+  setFillAttendance?: (fill: boolean) => void;
+}
+
+const SubjectCard = ({ lecture, setLecture, setShowList, setFillAttendance }: SubjectCardProps) => {
   return (
     <div className="flex flex-col gap-2 bg-white p-4 rounded-[20px] border-2 w-[340px] h-[239px]">
       <div className="flex flex-row gap-2 justify-between">
@@ -41,17 +48,24 @@ const SubjectCard = ({lecture}:any) => {
             <p className="text-xs font-semibold">{lecture.fromTime} to {lecture.toTime}</p>
           </div>
         </div>
-      </div>
-
-      <div className="flex gap-2">
-        <div className="flex border-2 rounded-lg h-10 w-36 justify-center items-center gap-1.5">
+      </div>      <div className="flex gap-2">
+        <div className="flex border-2 rounded-lg h-10 w-36 justify-center items-center gap-1.5 cursor-pointer">
           <Eye className="h-5 w-5" />
           <p className="text-xs font-semibold">View Attendance</p>
         </div>
-        <div className="flex border-2 rounded-lg h-10 w-36 justify-center items-center gap-1.5">
+        <button 
+          className="flex border-2 rounded-lg h-10 w-36 justify-center items-center gap-1.5 cursor-pointer hover:bg-gray-50"
+          onClick={() => { 
+            setLecture(lecture); 
+            setShowList(false); 
+            if (setFillAttendance) {
+              setFillAttendance(true);
+            }
+          }}
+        >
           <Edit className="h-3.5 w-3.5" />
           <p className="text-xs font-semibold">Fill Attendance</p>
-        </div>
+        </button>
       </div>
     </div>
   )
