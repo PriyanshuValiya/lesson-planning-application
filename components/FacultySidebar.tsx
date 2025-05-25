@@ -2,11 +2,12 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Home, LogOut, ChevronLeft, FileText } from "lucide-react"
+import { Home, LogOut, ChevronLeft, FileText, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Image from "next/image"
 import { useDashboardContext } from "@/context/DashboardContext"
+import { useRouter, usePathname } from "next/navigation"
 
 interface FacultySidebarProps {
   signOut: () => void
@@ -14,7 +15,9 @@ interface FacultySidebarProps {
 
 export default function FacultySidebar({ signOut }: FacultySidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const { userData, currentRole } = useDashboardContext()
+  const { userData, roleData, currentRole, setCurrentRole } = useDashboardContext()
+  const router = useRouter()
+  const pathname = usePathname()
 
   // Get initials for avatar fallback
   const getInitials = (name: string) => {
@@ -22,6 +25,38 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
       .split(" ")
       .map((n) => n[0])
       .join("")
+  }
+
+  // Check if user has HOD role
+  const hasHODRole = roleData?.some((role) => role.role_name === "HOD")
+  const hasFacultyRole = roleData?.some((role) => role.role_name === "Faculty")
+
+  // Determine current role display
+  const getCurrentRoleDisplay = () => {
+    if (hasFacultyRole && hasHODRole) {
+      return currentRole?.role_name || "Faculty & HOD"
+    } else if (hasHODRole) {
+      return "HOD"
+    } else if (hasFacultyRole) {
+      return "Subject Teacher"
+    }
+    return "User"
+  }
+
+  const handleHODDashboard = () => {
+    const hodRole = roleData?.find((role) => role.role_name === "HOD")
+    if (hodRole) {
+      setCurrentRole(hodRole)
+      router.push("/dashboard/hod")
+    }
+  }
+
+  const handleHomeDashboard = () => {
+    const facultyRole = roleData?.find((role) => role.role_name === "Faculty")
+    if (facultyRole) {
+      setCurrentRole(facultyRole)
+    }
+    router.push("/dashboard")
   }
 
   return (
@@ -49,7 +84,7 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
           {!isCollapsed && (
             <div className="pt-1">
               <p className="text-[#1A5CA1] font-bold text-xl">{userData.name}</p>
-              <p className="text-gray-600">Subject Teacher</p>
+              <p className="text-gray-600">{getCurrentRoleDisplay()}</p>
             </div>
           )}
         </div>
@@ -65,21 +100,61 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
 
       {/* Navigation */}
       <nav className="mt-5 px-2 flex-grow">
-        <Link
-          href="/dashboard"
-          className="group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50 focus:outline-none focus:bg-blue-100 transition ease-in-out duration-150 mb-2"
+        <button
+          onClick={handleHomeDashboard}
+          className={`group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left ${
+            pathname === "/dashboard" && currentRole?.role_name === "Faculty"
+              ? "text-[#1A5CA1] bg-blue-50"
+              : "text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50"
+          }`}
         >
-          <Home className="h-5 w-5 text-gray-500 group-hover:text-[#1A5CA1] mr-3" />
+          <Home
+            className={`h-5 w-5 mr-3 ${
+              pathname === "/dashboard" && currentRole?.role_name === "Faculty"
+                ? "text-[#1A5CA1]"
+                : "text-gray-500 group-hover:text-[#1A5CA1]"
+            }`}
+          />
           {!isCollapsed && <span>Home</span>}
-        </Link>
+        </button>
 
-        <Link
-          href="/dashboard/lesson-plans"
-          className="group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50 focus:outline-none focus:bg-blue-100 transition ease-in-out duration-150 mb-2"
-        >
-          <FileText className="h-5 w-5 text-gray-500 group-hover:text-[#1A5CA1] mr-3" />
-          {!isCollapsed && <span>Lesson Planning (LP)</span>}
-        </Link>
+        {hasFacultyRole && (
+          <Link
+            href="/dashboard/lesson-plans"
+            className={`group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 ${
+              pathname.startsWith("/dashboard/lesson-plans")
+                ? "text-[#1A5CA1] bg-blue-50"
+                : "text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50"
+            }`}
+          >
+            <FileText
+              className={`h-5 w-5 mr-3 ${
+                pathname.startsWith("/dashboard/lesson-plans")
+                  ? "text-[#1A5CA1]"
+                  : "text-gray-500 group-hover:text-[#1A5CA1]"
+              }`}
+            />
+            {!isCollapsed && <span>Lesson Planning (LP)</span>}
+          </Link>
+        )}
+
+        {hasHODRole && (
+          <button
+            onClick={handleHODDashboard}
+            className={`group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left ${
+              pathname.startsWith("/dashboard/hod")
+                ? "text-[#1A5CA1] bg-blue-50"
+                : "text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50"
+            }`}
+          >
+            <Users
+              className={`h-5 w-5 mr-3 ${
+                pathname.startsWith("/dashboard/hod") ? "text-[#1A5CA1]" : "text-gray-500 group-hover:text-[#1A5CA1]"
+              }`}
+            />
+            {!isCollapsed && <span>HOD Dashboard</span>}
+          </button>
+        )}
       </nav>
 
       {/* Footer */}

@@ -2,11 +2,24 @@
 
 import type React from "react"
 import { useState } from "react"
+import { useForm, useFieldArray } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Plus, Trash2 } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Plus, Trash2, Save, InfoIcon, X, AlertCircle } from "lucide-react"
+import { toast } from "sonner"
+import {
+  unitPlanningSchema,
+  type UnitPlanningFormValues,
+  teachingPedagogyOptions,
+  skillMappingOptions,
+} from "@/utils/schema"
+import { saveUnitPlanningForm } from "@/app/dashboard/actions/saveUnitPlanningForm"
+import { useDashboardContext } from "@/context/DashboardContext"
 
 interface UnitPlanningFormProps {
   lessonPlan: any
@@ -14,64 +27,322 @@ interface UnitPlanningFormProps {
 }
 
 export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlanningFormProps) {
+  const { userData } = useDashboardContext()
+  const [isSaving, setIsSaving] = useState(false)
   const [activeUnit, setActiveUnit] = useState(0)
+  const [showInstructions, setShowInstructions] = useState(false)
+  const [validationDialog, setValidationDialog] = useState<{
+    isOpen: boolean
+    errors: string[]
+  }>({
+    isOpen: false,
+    errors: [],
+  })
 
-  const handleUnitChange = (index: number, field: string, value: string) => {
-    const updatedUnits = [...lessonPlan.units]
-    updatedUnits[index] = {
-      ...updatedUnits[index],
-      [field]: value,
-    }
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = useForm<UnitPlanningFormValues>({
+    resolver: zodResolver(unitPlanningSchema),
+    defaultValues: {
+      faculty_id: userData?.id || "",
+      subject_id: lessonPlan?.subject?.id || "",
+      units: lessonPlan?.units || [
+        {
+          id: crypto.randomUUID(),
+          unit_name: "",
+          unit_topics: "",
+          probable_start_date: "",
+          probable_end_date: "",
+          no_of_lectures: 1,
+          self_study_topics: "",
+          self_study_materials: "",
+          unit_materials: "",
+          teaching_pedagogy: [],
+          other_pedagogy: "",
+          co_mapping: [],
+          skill_mapping: [],
+          skill_objectives: "",
+          interlink_topics: "",
+          topics_beyond_unit: "",
+          isNew: true,
+        },
+      ],
+      remarks: lessonPlan?.unit_remarks || "",
+    },
+  })
 
-    setLessonPlan((prev: any) => ({
-      ...prev,
-      units: updatedUnits,
-    }))
-  }
+  const {
+    fields: unitFields,
+    append: appendUnit,
+    remove: removeUnit,
+  } = useFieldArray({
+    control,
+    name: "units",
+  })
 
   const addUnit = () => {
-    const newUnitNumber = lessonPlan.units.length + 1
-    const newUnit = {
-      id: `unit${newUnitNumber}`,
-      name: "",
-      lectures: 0,
-      topics: "",
+    appendUnit({
+      id: crypto.randomUUID(),
+      unit_name: "",
+      unit_topics: "",
+      probable_start_date: "",
+      probable_end_date: "",
+      no_of_lectures: 1,
       self_study_topics: "",
       self_study_materials: "",
-      materials: "",
-    }
-
-    setLessonPlan((prev: any) => ({
-      ...prev,
-      units: [...prev.units, newUnit],
-    }))
-
-    setActiveUnit(lessonPlan.units.length)
+      unit_materials: "",
+      teaching_pedagogy: [],
+      other_pedagogy: "",
+      co_mapping: [],
+      skill_mapping: [],
+      skill_objectives: "",
+      interlink_topics: "",
+      topics_beyond_unit: "",
+      isNew: true,
+    })
+    setActiveUnit(unitFields.length)
   }
 
-  const removeUnit = (index: number) => {
-    if (lessonPlan.units.length <= 1) {
-      return // Don't remove the last unit
+  const removeUnitHandler = (index: number) => {
+    if (unitFields.length === 1) {
+      toast.error("You must have at least one unit")
+      return
     }
-
-    const updatedUnits = lessonPlan.units.filter((_: any, i: number) => i !== index)
-    setLessonPlan((prev: any) => ({
-      ...prev,
-      units: updatedUnits,
-    }))
-
+    removeUnit(index)
     if (activeUnit >= index && activeUnit > 0) {
       setActiveUnit(activeUnit - 1)
     }
   }
 
+  const handlePedagogyChange = (unitIndex: number, pedagogy: string, checked: boolean) => {
+    const currentPedagogies = getValues(`units.${unitIndex}.teaching_pedagogy`) || []
+    if (checked) {
+      setValue(`units.${unitIndex}.teaching_pedagogy`, [...currentPedagogies, pedagogy])
+    } else {
+      setValue(
+        `units.${unitIndex}.teaching_pedagogy`,
+        currentPedagogies.filter((p) => p !== pedagogy),
+      )
+    }
+  }
+
+  const handleCOMapping = (unitIndex: number, co: string, checked: boolean) => {
+    const currentCOs = getValues(`units.${unitIndex}.co_mapping`) || []
+    if (checked) {
+      setValue(`units.${unitIndex}.co_mapping`, [...currentCOs, co])
+    } else {
+      setValue(
+        `units.${unitIndex}.co_mapping`,
+        currentCOs.filter((c) => c !== co),
+      )
+    }
+  }
+
+  const handleSkillMapping = (unitIndex: number, skill: string, checked: boolean) => {
+    const currentSkills = getValues(`units.${unitIndex}.skill_mapping`) || []
+    if (checked) {
+      setValue(`units.${unitIndex}.skill_mapping`, [...currentSkills, skill])
+    } else {
+      setValue(
+        `units.${unitIndex}.skill_mapping`,
+        currentSkills.filter((s) => s !== skill),
+      )
+    }
+  }
+
+  const onSubmit = async (data: UnitPlanningFormValues) => {
+    setIsSaving(true)
+    try {
+      const result = await saveUnitPlanningForm({
+        faculty_id: userData?.id || "",
+        subject_id: lessonPlan?.subject?.id || "",
+        formData: data,
+      })
+
+      if (result.success) {
+        toast.success("Unit planning saved successfully!")
+        setLessonPlan((prev: any) => ({
+          ...prev,
+          units: data.units,
+          unit_remarks: data.remarks,
+        }))
+      } else {
+        // Show validation dialog
+        if (result.error?.includes("Dear Professor")) {
+          showValidationDialog(result.error)
+        } else {
+          toast.error(result.error || "Failed to save unit planning")
+        }
+      }
+    } catch (error) {
+      console.error("Error saving unit planning:", error)
+      toast.error("An unexpected error occurred")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const showValidationDialog = (message: string) => {
+    // Parse the validation message to extract individual errors
+    const lines = message.split("\n")
+    const errors: string[] = []
+
+    lines.forEach((line) => {
+      if (line.trim().startsWith("•")) {
+        errors.push(line.trim().substring(1).trim())
+      }
+    })
+
+    setValidationDialog({
+      isOpen: true,
+      errors: errors,
+    })
+  }
+
+  // Generate CO options based on course outcomes
+  const courseOutcomes = lessonPlan?.courseOutcomes || []
+  const coOptions = courseOutcomes.map((_: any, index: number) => `CO${index + 1}`)
+
   return (
-    <div className="p-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+      {/* Instructions Modal */}
+      {showInstructions && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-4xl h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Unit Planning Guidelines</h3>
+              <Button variant="ghost" size="icon" onClick={() => setShowInstructions(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="flex-1 p-6 overflow-auto">
+              <h2 className="text-xl font-bold mb-4">Guidelines for Unit Planning</h2>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold">Teaching Pedagogy Requirements:</h3>
+                  <p>
+                    At least two alternative pedagogies (items 3-15) must be selected across different units to ensure
+                    diverse teaching methods.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold">CO Mapping:</h3>
+                  <p>
+                    All Course Outcomes (COs) entered in General Details must be covered across all units to ensure
+                    complete curriculum coverage.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold">Lecture Count:</h3>
+                  <p>
+                    Total number of lectures across all units must equal Credits × 15 to maintain academic standards.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold">Skill Mapping:</h3>
+                  <p>
+                    Skills should be mentioned in measurable terms (e.g., "Ability to build and deploy a basic web
+                    application using Flask framework" instead of just "web development skills").
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 border-t flex justify-end">
+              <Button variant="outline" onClick={() => setShowInstructions(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Validation Dialog */}
+      {validationDialog.isOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] overflow-auto">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertCircle className="h-6 w-6 text-red-500" />
+                <h3 className="text-lg font-semibold text-red-500">Dialog Box Title: Validation Required</h3>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-red-500 font-medium">Message:</p>
+
+                <p className="text-red-500 font-medium">Dear Professor,</p>
+
+                <p className="text-black">Kindly review the following requirements before saving the form:</p>
+
+                <div className="space-y-2">
+                  {validationDialog.errors.map((error, index) => (
+                    <div key={index}>
+                      <div className="flex items-start gap-2">
+                        <span className="text-red-500 font-bold">•</span>
+                        <span className="text-red-500 font-medium">{error}</span>
+                      </div>
+                      {index < validationDialog.errors.length - 1 && (
+                        <p className="text-red-500 font-medium text-center my-2">or</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-black mt-4">
+                  These above condition should be checked and applicable condition does not meet, those message should
+                  be displayed.
+                </p>
+
+                <p className="text-red-500 font-medium mt-4">
+                  We appreciate your attention to detail in maintaining the academic integrity of your course design.
+                </p>
+              </div>
+
+              <div className="flex justify-end mt-6">
+                <Button
+                  onClick={() => setValidationDialog({ isOpen: false, errors: [] })}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  OK
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold">Unit Planning Details</h3>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-blue-600"
+            onClick={() => setShowInstructions(true)}
+          >
+            <InfoIcon className="h-4 w-4 mr-1" />
+            View Guidelines
+          </Button>
+        </div>
+        <Button type="submit" disabled={isSaving} className="bg-[#1A5CA1] hover:bg-[#154A80]">
+          <Save className="mr-2 h-4 w-4" />
+          {isSaving ? "Saving..." : "Save Unit Details"}
+        </Button>
+      </div>
+
+      {/* Unit Tabs */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex space-x-2">
-          {lessonPlan.units.map((unit: any, index: number) => (
+        <div className="flex space-x-2 flex-wrap">
+          {unitFields.map((unit, index) => (
             <Button
               key={unit.id}
+              type="button"
               variant={activeUnit === index ? "default" : "outline"}
               className={activeUnit === index ? "bg-[#1A5CA1] hover:bg-[#154A80]" : ""}
               onClick={() => setActiveUnit(index)}
@@ -79,16 +350,17 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
               Unit {index + 1}
             </Button>
           ))}
-          <Button variant="outline" onClick={addUnit}>
+          <Button type="button" variant="outline" onClick={addUnit}>
             <Plus className="h-4 w-4 mr-1" />
             Add Unit
           </Button>
         </div>
-        {lessonPlan.units.length > 1 && (
+        {unitFields.length > 1 && (
           <Button
+            type="button"
             variant="ghost"
             className="text-red-500 hover:text-red-700 hover:bg-red-50"
-            onClick={() => removeUnit(activeUnit)}
+            onClick={() => removeUnitHandler(activeUnit)}
           >
             <Trash2 className="h-4 w-4 mr-1" />
             Remove Unit
@@ -96,75 +368,287 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
         )}
       </div>
 
-      <div className="space-y-6">
-        <h3 className="text-xl font-semibold">Unit {activeUnit + 1}</h3>
+      {/* Unit Form */}
+      {unitFields[activeUnit] && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Unit {activeUnit + 1}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Basic Unit Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor={`unit-name-${activeUnit}`}>
+                  Unit Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id={`unit-name-${activeUnit}`}
+                  {...register(`units.${activeUnit}.unit_name`)}
+                  placeholder="Enter unit name"
+                />
+                {errors.units?.[activeUnit]?.unit_name && (
+                  <p className="text-red-500 text-sm mt-1">{errors.units[activeUnit]?.unit_name?.message}</p>
+                )}
+              </div>
 
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <Label htmlFor="unit-name">Unit Name</Label>
-            <Input
-              id="unit-name"
-              value={lessonPlan.units[activeUnit]?.name || ""}
-              onChange={(e) => handleUnitChange(activeUnit, "name", e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="no-of-lecture">No. of Lecture</Label>
-            <Input
-              id="no-of-lecture"
-              type="number"
-              value={lessonPlan.units[activeUnit]?.lectures || ""}
-              onChange={(e) => handleUnitChange(activeUnit, "lectures", e.target.value)}
-              className="mt-1"
-            />
-          </div>
-        </div>
+              <div>
+                <Label htmlFor={`no-of-lectures-${activeUnit}`}>
+                  No. of Lectures <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id={`no-of-lectures-${activeUnit}`}
+                  type="number"
+                  min="1"
+                  {...register(`units.${activeUnit}.no_of_lectures`)}
+                  placeholder="Enter number of lectures"
+                />
+                {errors.units?.[activeUnit]?.no_of_lectures && (
+                  <p className="text-red-500 text-sm mt-1">{errors.units[activeUnit]?.no_of_lectures?.message}</p>
+                )}
+              </div>
+            </div>
 
-        <div>
-          <Label htmlFor="unit-topics">Unit Topics</Label>
-          <Textarea
-            id="unit-topics"
-            value={lessonPlan.units[activeUnit]?.topics || ""}
-            onChange={(e) => handleUnitChange(activeUnit, "topics", e.target.value)}
-            className="mt-1"
-            rows={4}
-          />
-        </div>
+            {/* Unit Topics */}
+            <div>
+              <Label htmlFor={`unit-topics-${activeUnit}`}>
+                Unit Topics <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id={`unit-topics-${activeUnit}`}
+                {...register(`units.${activeUnit}.unit_topics`)}
+                placeholder="Enter unit topics"
+                rows={4}
+              />
+              {errors.units?.[activeUnit]?.unit_topics && (
+                <p className="text-red-500 text-sm mt-1">{errors.units[activeUnit]?.unit_topics?.message}</p>
+              )}
+            </div>
 
-        <div>
-          <Label htmlFor="self-study-topics">Self-Study Topics</Label>
-          <Textarea
-            id="self-study-topics"
-            value={lessonPlan.units[activeUnit]?.self_study_topics || ""}
-            onChange={(e) => handleUnitChange(activeUnit, "self_study_topics", e.target.value)}
-            className="mt-1"
-            rows={4}
-          />
-        </div>
+            {/* Dates */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor={`start-date-${activeUnit}`}>
+                  Probable Start Date <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id={`start-date-${activeUnit}`}
+                  type="date"
+                  {...register(`units.${activeUnit}.probable_start_date`)}
+                />
+                {errors.units?.[activeUnit]?.probable_start_date && (
+                  <p className="text-red-500 text-sm mt-1">{errors.units[activeUnit]?.probable_start_date?.message}</p>
+                )}
+              </div>
 
-        <div>
-          <Label htmlFor="self-study-materials">Self-Study Materials</Label>
-          <Textarea
-            id="self-study-materials"
-            value={lessonPlan.units[activeUnit]?.self_study_materials || ""}
-            onChange={(e) => handleUnitChange(activeUnit, "self_study_materials", e.target.value)}
-            className="mt-1"
-            rows={3}
-          />
-        </div>
+              <div>
+                <Label htmlFor={`end-date-${activeUnit}`}>
+                  Probable End Date <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id={`end-date-${activeUnit}`}
+                  type="date"
+                  {...register(`units.${activeUnit}.probable_end_date`)}
+                />
+                {errors.units?.[activeUnit]?.probable_end_date && (
+                  <p className="text-red-500 text-sm mt-1">{errors.units[activeUnit]?.probable_end_date?.message}</p>
+                )}
+              </div>
+            </div>
 
-        <div>
-          <Label htmlFor="unit-materials">Unit Materials</Label>
-          <Textarea
-            id="unit-materials"
-            value={lessonPlan.units[activeUnit]?.materials || ""}
-            onChange={(e) => handleUnitChange(activeUnit, "materials", e.target.value)}
-            className="mt-1"
-            rows={3}
-          />
-        </div>
+            {/* Self-Study Topics and Materials */}
+            <div className="grid grid-cols-1 gap-6">
+              <div>
+                <Label htmlFor={`self-study-topics-${activeUnit}`}>Self-Study Topics (Optional)</Label>
+                <Textarea
+                  id={`self-study-topics-${activeUnit}`}
+                  {...register(`units.${activeUnit}.self_study_topics`)}
+                  placeholder="Enter self-study topics"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor={`self-study-materials-${activeUnit}`}>
+                  Self-Study Materials (Optional)
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-blue-600 ml-2"
+                    onClick={() => setShowInstructions(true)}
+                  >
+                    <InfoIcon className="h-4 w-4" />
+                  </Button>
+                </Label>
+                <Textarea
+                  id={`self-study-materials-${activeUnit}`}
+                  {...register(`units.${activeUnit}.self_study_materials`)}
+                  placeholder="Enter self-study materials with specific references"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor={`unit-materials-${activeUnit}`}>
+                  Unit Materials <span className="text-red-500">*</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-blue-600 ml-2"
+                    onClick={() => setShowInstructions(true)}
+                  >
+                    <InfoIcon className="h-4 w-4" />
+                  </Button>
+                </Label>
+                <Textarea
+                  id={`unit-materials-${activeUnit}`}
+                  {...register(`units.${activeUnit}.unit_materials`)}
+                  placeholder="Enter unit materials with specific references"
+                  rows={3}
+                />
+                {errors.units?.[activeUnit]?.unit_materials && (
+                  <p className="text-red-500 text-sm mt-1">{errors.units[activeUnit]?.unit_materials?.message}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Teaching Pedagogy */}
+            <div>
+              <Label>
+                Teaching Pedagogy <span className="text-red-500">*</span> (Select at least 2)
+              </Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
+                {teachingPedagogyOptions.map((pedagogy) => (
+                  <div key={pedagogy} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`pedagogy-${activeUnit}-${pedagogy}`}
+                      checked={watch(`units.${activeUnit}.teaching_pedagogy`)?.includes(pedagogy) || false}
+                      onCheckedChange={(checked) => handlePedagogyChange(activeUnit, pedagogy, checked as boolean)}
+                    />
+                    <Label htmlFor={`pedagogy-${activeUnit}-${pedagogy}`} className="text-sm">
+                      {pedagogy}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              {watch(`units.${activeUnit}.teaching_pedagogy`)?.includes("Other") && (
+                <div className="mt-3">
+                  <Label htmlFor={`other-pedagogy-${activeUnit}`}>Other Pedagogy</Label>
+                  <Input
+                    id={`other-pedagogy-${activeUnit}`}
+                    {...register(`units.${activeUnit}.other_pedagogy`)}
+                    placeholder="Specify other pedagogy"
+                  />
+                </div>
+              )}
+              {errors.units?.[activeUnit]?.teaching_pedagogy && (
+                <p className="text-red-500 text-sm mt-1">{errors.units[activeUnit]?.teaching_pedagogy?.message}</p>
+              )}
+            </div>
+
+            {/* CO Mapping */}
+            <div>
+              <Label>
+                CO Mapping <span className="text-red-500">*</span>
+              </Label>
+              <div className="grid grid-cols-4 md:grid-cols-6 gap-3 mt-2">
+                {coOptions.map((co) => (
+                  <div key={co} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`co-${activeUnit}-${co}`}
+                      checked={watch(`units.${activeUnit}.co_mapping`)?.includes(co) || false}
+                      onCheckedChange={(checked) => handleCOMapping(activeUnit, co, checked as boolean)}
+                    />
+                    <Label htmlFor={`co-${activeUnit}-${co}`} className="text-sm">
+                      {co}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              {errors.units?.[activeUnit]?.co_mapping && (
+                <p className="text-red-500 text-sm mt-1">{errors.units[activeUnit]?.co_mapping?.message}</p>
+              )}
+            </div>
+
+            {/* Skill Mapping */}
+            <div>
+              <Label>
+                Skill Mapping <span className="text-red-500">*</span>
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                {skillMappingOptions.map((skill) => (
+                  <div key={skill} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`skill-${activeUnit}-${skill}`}
+                      checked={watch(`units.${activeUnit}.skill_mapping`)?.includes(skill) || false}
+                      onCheckedChange={(checked) => handleSkillMapping(activeUnit, skill, checked as boolean)}
+                    />
+                    <Label htmlFor={`skill-${activeUnit}-${skill}`} className="text-sm">
+                      {skill}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              {errors.units?.[activeUnit]?.skill_mapping && (
+                <p className="text-red-500 text-sm mt-1">{errors.units[activeUnit]?.skill_mapping?.message}</p>
+              )}
+            </div>
+
+            {/* Skill Objectives */}
+            <div>
+              <Label htmlFor={`skill-objectives-${activeUnit}`}>
+                Objective for Selected Skills <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id={`skill-objectives-${activeUnit}`}
+                {...register(`units.${activeUnit}.skill_objectives`)}
+                placeholder="Skills should be mentioned in measurable terms (e.g., 'Ability to build and deploy a basic web application using Flask framework.' instead of just 'web development skills')."
+                rows={3}
+              />
+              {errors.units?.[activeUnit]?.skill_objectives && (
+                <p className="text-red-500 text-sm mt-1">{errors.units[activeUnit]?.skill_objectives?.message}</p>
+              )}
+            </div>
+
+            {/* Optional Fields */}
+            <div className="grid grid-cols-1 gap-6">
+              <div>
+                <Label htmlFor={`interlink-topics-${activeUnit}`}>
+                  Interlink of this unit topic(s) with other subject's topic (Optional)
+                </Label>
+                <Textarea
+                  id={`interlink-topics-${activeUnit}`}
+                  {...register(`units.${activeUnit}.interlink_topics`)}
+                  placeholder="Describe connections with other subjects"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor={`topics-beyond-unit-${activeUnit}`}>
+                  Topic beyond Unit Topics <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  id={`topics-beyond-unit-${activeUnit}`}
+                  {...register(`units.${activeUnit}.topics_beyond_unit`)}
+                  placeholder="Enter topics beyond the unit syllabus"
+                  rows={3}
+                />
+                {errors.units?.[activeUnit]?.topics_beyond_unit && (
+                  <p className="text-red-500 text-sm mt-1">{errors.units[activeUnit]?.topics_beyond_unit?.message}</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Remarks */}
+      <div>
+        <Label htmlFor="remarks">Remarks (Optional)</Label>
+        <Textarea id="remarks" {...register("remarks")} placeholder="Any additional remarks for all units" rows={3} />
       </div>
-    </div>
+    </form>
   )
 }

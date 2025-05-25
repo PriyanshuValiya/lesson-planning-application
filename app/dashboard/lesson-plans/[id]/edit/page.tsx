@@ -15,6 +15,7 @@ import AdditionalInfoForm from "@/components/lesson-plan/AdditionalInfoForm"
 import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useDashboardContext } from "@/context/DashboardContext"
+import { isSubjectTheoryOnly, isSubjectPracticalOnly, isSubjectBoth } from "@/utils/dateUtils"
 
 export default function EditLessonPlanPage() {
   const router = useRouter()
@@ -42,6 +43,8 @@ export default function EditLessonPlanPage() {
           lab_hours: 2,
           abbreviation_name: "C++",
           credits: 4,
+          is_theory: true,
+          is_practical: true,
           department: {
             id: "d76a381e-0f08-464c-8eea-e2529db86a32",
             name: "Computer Science and Engineering",
@@ -65,26 +68,26 @@ export default function EditLessonPlanPage() {
         units: [
           {
             id: "unit1",
-            name: "Introduction to C++",
-            lectures: 8,
-            topics: "History of C++, Basic syntax, Data types, Variables, Operators",
+            unit_name: "Introduction to C++",
+            no_of_lectures: 8,
+            unit_topics: "History of C++, Basic syntax, Data types, Variables, Operators",
             self_study_topics: "Evolution of programming languages, Comparison with C",
             self_study_materials: "Online articles about programming language history",
-            materials: "C++ Primer textbook, Chapter 1-3",
+            unit_materials: "C++ Primer textbook, Chapter 1-3",
           },
         ],
         practicals: [
           {
             id: "practical1",
-            aim: "Implement basic C++ programs using variables and operators",
+            practical_aim: "Implement basic C++ programs using variables and operators",
             lab_hours: 2,
-            probable_week: "Week 2",
-            associated_unit: "unit1",
+            probable_week: "week-2",
+            associated_units: ["unit1"],
             software_hardware_requirements: "C++ compiler (GCC/G++), Visual Studio Code",
-            tasks: "Write a program to calculate simple interest, Create a calculator program",
-            evaluation_method: "Code review and demonstration",
-            pedagogy: "Guided practice",
-            blooms_taxonomy: "Apply",
+            practical_tasks: "Write a program to calculate simple interest, Create a calculator program",
+            evaluation_methods: ["Code Review", "Lab Performance"],
+            practical_pedagogy: "Problem-Based/Case Study Learning",
+            blooms_taxonomy: ["Apply"],
             reference_material: "Lab manual pages 5-10",
           },
         ],
@@ -146,6 +149,10 @@ export default function EditLessonPlanPage() {
     )
   }
 
+  // Determine which tabs to show based on subject type
+  const showUnitPlanning = !isSubjectPracticalOnly(lessonPlan?.subject)
+  const showPracticalPlanning = !isSubjectTheoryOnly(lessonPlan?.subject)
+
   return (
     <div className="p-8">
       {/* PDF Viewer Modal */}
@@ -197,6 +204,15 @@ export default function EditLessonPlanPage() {
           </Link>
           <h2 className="text-xl font-semibold">{lessonPlan?.subject?.name}</h2>
           <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm">{lessonPlan?.subject?.code}</span>
+          {isSubjectTheoryOnly(lessonPlan?.subject) && (
+            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">Theory Only</span>
+          )}
+          {isSubjectPracticalOnly(lessonPlan?.subject) && (
+            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">Practical Only</span>
+          )}
+          {isSubjectBoth(lessonPlan?.subject) && (
+            <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">Theory + Practical</span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Button onClick={handleSave} disabled={isSaving} className="bg-[#1A5CA1] hover:bg-[#154A80]">
@@ -208,10 +224,12 @@ export default function EditLessonPlanPage() {
 
       <Card className="mb-6">
         <Tabs defaultValue="general-details" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList
+            className={`grid w-full ${showUnitPlanning && showPracticalPlanning ? "grid-cols-5" : showUnitPlanning || showPracticalPlanning ? "grid-cols-4" : "grid-cols-3"}`}
+          >
             <TabsTrigger value="general-details">General Details</TabsTrigger>
-            <TabsTrigger value="unit-planning">Unit Planning</TabsTrigger>
-            <TabsTrigger value="practical-planning">Practical Planning</TabsTrigger>
+            {showUnitPlanning && <TabsTrigger value="unit-planning">Unit Planning</TabsTrigger>}
+            {showPracticalPlanning && <TabsTrigger value="practical-planning">Practical Planning</TabsTrigger>}
             <TabsTrigger value="cie-planning">CIE Planning</TabsTrigger>
             <TabsTrigger value="additional-info">Additional Information</TabsTrigger>
           </TabsList>
@@ -220,13 +238,17 @@ export default function EditLessonPlanPage() {
             <GeneralDetailsForm lessonPlan={lessonPlan} setLessonPlan={setLessonPlan} openPdfViewer={openPdfViewer} />
           </TabsContent>
 
-          <TabsContent value="unit-planning">
-            <UnitPlanningForm lessonPlan={lessonPlan} setLessonPlan={setLessonPlan} />
-          </TabsContent>
+          {showUnitPlanning && (
+            <TabsContent value="unit-planning">
+              <UnitPlanningForm lessonPlan={lessonPlan} setLessonPlan={setLessonPlan} />
+            </TabsContent>
+          )}
 
-          <TabsContent value="practical-planning">
-            <PracticalPlanningForm lessonPlan={lessonPlan} setLessonPlan={setLessonPlan} />
-          </TabsContent>
+          {showPracticalPlanning && (
+            <TabsContent value="practical-planning">
+              <PracticalPlanningForm lessonPlan={lessonPlan} setLessonPlan={setLessonPlan} />
+            </TabsContent>
+          )}
 
           <TabsContent value="cie-planning">
             <CIEPlanningForm lessonPlan={lessonPlan} setLessonPlan={setLessonPlan} />

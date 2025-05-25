@@ -27,6 +27,74 @@ export const generalDetailsSchema = z.object({
 
 export type GeneralDetailsFormValues = z.infer<typeof generalDetailsSchema>
 
+// Unit Planning Schema
+export const unitPlanningSchema = z.object({
+  faculty_id: z.string().uuid(),
+  subject_id: z.string().uuid(),
+  units: z
+    .array(
+      z.object({
+        id: z.string(),
+        unit_name: z.string().min(1, "Unit name is required"),
+        unit_topics: z.string().min(1, "Unit topics are required"),
+        probable_start_date: z.string().min(1, "Probable start date is required"),
+        probable_end_date: z.string().min(1, "Probable end date is required"),
+        no_of_lectures: z.coerce.number().min(1, "Number of lectures must be at least 1"),
+        self_study_topics: z.string().optional(),
+        self_study_materials: z.string().optional(),
+        unit_materials: z.string().min(1, "Unit materials are required"),
+        teaching_pedagogy: z.array(z.string()).min(2, "At least two teaching pedagogies must be selected"),
+        other_pedagogy: z.string().optional(),
+        co_mapping: z.array(z.string()).min(1, "At least one CO must be mapped"),
+        skill_mapping: z.array(z.string()).min(1, "At least one skill must be mapped"),
+        skill_objectives: z.string().min(1, "Skill objectives are required"),
+        interlink_topics: z.string().optional(),
+        topics_beyond_unit: z.string().min(1, "Topics beyond unit are required"),
+        isNew: z.boolean().optional(),
+        isDeleted: z.boolean().optional(),
+      }),
+    )
+    .min(1, "At least one unit is required"),
+  remarks: z.string().optional(),
+})
+
+export type UnitPlanningFormValues = z.infer<typeof unitPlanningSchema>
+
+// Practical Planning Schema
+export const practicalPlanningSchema = z.object({
+  faculty_id: z.string().uuid(),
+  subject_id: z.string().uuid(),
+  practicals: z
+    .array(
+      z.object({
+        id: z.string(),
+        practical_aim: z.string().min(1, "Practical aim is required"),
+        associated_units: z.array(z.string()).min(1, "At least one associated unit must be selected"),
+        probable_week: z.string().min(1, "Probable week is required"),
+        lab_hours: z.coerce.number().min(1, "Lab hours must be at least 1"),
+        software_hardware_requirements: z.string().min(1, "Software/Hardware requirements are required"),
+        practical_tasks: z.string().min(1, "Practical tasks/problem statement is required"),
+        evaluation_methods: z.array(z.string()).min(1, "At least one evaluation method must be selected"),
+        other_evaluation_method: z.string().optional(),
+        practical_pedagogy: z.string().min(1, "Practical pedagogy is required"),
+        other_pedagogy: z.string().optional(),
+        reference_material: z.string().min(1, "Reference material is required"),
+        co_mapping: z.array(z.string()).min(1, "At least one CO must be mapped"),
+        pso_mapping: z.array(z.string()).optional(),
+        peo_mapping: z.array(z.string()).optional(),
+        blooms_taxonomy: z.array(z.string()).min(1, "At least one Bloom's taxonomy level must be selected"),
+        skill_mapping: z.array(z.string()).min(1, "At least one skill must be mapped"),
+        skill_objectives: z.string().min(1, "Skill objectives are required"),
+        isNew: z.boolean().optional(),
+        isDeleted: z.boolean().optional(),
+      }),
+    )
+    .min(1, "At least one practical is required"),
+  remarks: z.string().optional(),
+})
+
+export type PracticalPlanningFormValues = z.infer<typeof practicalPlanningSchema>
+
 // Additional Information Form Schema
 export const additionalInfoSchema = z.object({
   faculty_id: z.string().uuid(),
@@ -102,9 +170,93 @@ export const saveGeneralDetailsSchema = z.object({
   formData: generalDetailsSchema,
 })
 
+// Action to save unit planning form
+export const saveUnitPlanningSchema = z.object({
+  faculty_id: z.string().uuid(),
+  subject_id: z.string().uuid(),
+  formData: unitPlanningSchema,
+})
+
+// Action to save practical planning form
+export const savePracticalPlanningSchema = z.object({
+  faculty_id: z.string().uuid(),
+  subject_id: z.string().uuid(),
+  formData: practicalPlanningSchema,
+})
+
 // Action to save additional info form
 export const saveAdditionalInfoSchema = z.object({
   faculty_id: z.string().uuid(),
   subject_id: z.string().uuid(),
   formData: additionalInfoSchema,
 })
+
+// Teaching Pedagogy Options
+export const teachingPedagogyOptions = [
+  "Chalk and Talk",
+  "ICT based learning",
+  "Active Learning",
+  "Blended Learning",
+  "Concept/Mind Mapping",
+  "Demonstration/Simulation-Based Learning",
+  "Experiential Learning",
+  "Flipped Classroom",
+  "Collaborative Learning",
+  "Peer Learning",
+  "Problem-Based Learning",
+  "Project-Based Learning",
+  "Reflective Learning",
+  "Role Play",
+  "Storytelling/Narrative Pedagogy",
+  "Other",
+]
+
+// Practical Pedagogy Options
+export const practicalPedagogyOptions = [
+  "Problem-Based/Case Study Learning",
+  "Project-Based Learning",
+  "Collaborative Learning",
+  "Code Walkthroughs",
+  "Self-Learning with Guidance",
+  "Experiential Learning",
+  "Flipped Laboratory",
+  "Pair Programming",
+  "Peer Learning",
+  "Research-Oriented Practical",
+  "Other",
+]
+
+// Evaluation Method Options
+export const evaluationMethodOptions = [
+  "Viva",
+  "Lab Performance",
+  "File Submission",
+  "Mini-Project",
+  "Code Review",
+  "Peer Evaluation",
+  "Presentation",
+  "Other",
+]
+
+// Bloom's Taxonomy Options
+export const bloomsTaxonomyOptions = ["Apply", "Analyze", "Evaluate", "Create"]
+
+// Skill Mapping Options
+export const skillMappingOptions = [
+  "Technical Skills",
+  "Cognitive Skills",
+  "Professional Skills",
+  "Research and Innovation Skills",
+  "Entrepreneurial or Managerial Skills",
+  "Communication Skills",
+  "Leadership and Teamwork Skills",
+  "Creativity and Design Thinking Skills",
+  "Ethical, Social, and Environmental Awareness Skills",
+  "Other",
+]
+
+// PSO Options (Program Specific Outcomes)
+export const psoOptions = ["PSO1", "PSO2", "PSO3", "PSO4", "PSO5"]
+
+// PEO Options (Program Educational Objectives)
+export const peoOptions = ["PEO1", "PEO2", "PEO3", "PEO4", "PEO5"]
