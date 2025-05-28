@@ -17,13 +17,13 @@ export async function createClient() {
             cookiesToSet.forEach(({ name, value, options }) => {
               const cookieOptions = {
                 ...options,
-                maxAge: 7 * 24 * 60 * 60, 
+                maxAge: 7 * 24 * 60 * 60, // 7 days
                 path: '/',
               }
               cookieStore.set(name, value, cookieOptions)
             })
           } catch {
-            console.log('Error setting cookies:', cookiesToSet)
+            console.error('Error setting cookies:', cookiesToSet)
           }
         },
       },
