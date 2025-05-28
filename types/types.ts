@@ -24,6 +24,8 @@ interface Departments {
 }
 
 interface User_Role {
+  depart_id: string | undefined;
+  
   id: string;
   users: {
     id: string;
@@ -43,6 +45,31 @@ interface User_Role {
       abbreviation_insti: string;
     };
   };
+  subjects: {
+    // join(arg0: string): import("react").ReactNode;
+    id: string;
+    code: string;
+    name: string;
+    semester: number;
+    lecture_hours: number;
+    lab_hours: number;
+    abbreviation_name: string;
+    credites: number;
+    departments: {
+      id: string;
+      name: string;
+      abbreviation_depart: string;
+      institues: {
+        id: string;
+        name: string;
+        abbreviation_insti: string;
+      };
+    };
+    is_practical: boolean;
+    is_theory: boolean;
+  };
+  academic_year: string | null;
+  division: string | null;
 }
 
 interface Subjects {
@@ -68,43 +95,50 @@ interface Subjects {
   is_theory: boolean;
 }
 
-interface Faculty_Subjects {
-  id: string;
-  faculty_id: string;
-  departments: {
-    id: string;
-    name: string;
-    abbreviation_depart: string;
-    institues: {
-      id: string;
-      name: string;
-      abbreviation_insti: string;
-    };
-  };
-  subjects: {
-    id: string;
-    code: string;
-    name: string;
-    semester: number;
-    lecture_hours: number;
-    lab_hours: number;
-    abbreviation_name: string;
-    credites: number;
-    departments: {
-      id: string;
-      name: string;
-      abbreviation_depart: string;
-      institues: {
-        id: string;
-        name: string;
-        abbreviation_insti: string;
-      };
-    };
-    is_practical: boolean;
-    is_theory: boolean;
-    academic_year: string;
-    divison: string;
-  };
-}
+// interface Faculty_Subjects {
+//   id: string;
+//   faculty_id: string;
+//   departments: {
+//     id: string;
+//     name: string;
+//     abbreviation_depart: string;
+//     institues: {
+//       id: string;
+//       name: string;
+//       abbreviation_insti: string;
+//     };
+//   };
+//   subjects: {
+//     id: string;
+//     code: string;
+//     name: string;
+//     semester: number;
+//     lecture_hours: number;
+//     lab_hours: number;
+//     abbreviation_name: string;
+//     credites: number;
+//     departments: {
+//       id: string;
+//       name: string;
+//       abbreviation_depart: string;
+//       institues: {
+//         id: string;
+//         name: string;
+//         abbreviation_insti: string;
+//       };
+//     };
+//     is_practical: boolean;
+//     is_theory: boolean;
+//     academic_year: string;
+//     divison: string;
+//   };
+// }
 
-export type { Users, Institues, Departments, User_Role, Subjects, Faculty_Subjects };
+export type {
+  Users,
+  Institues,
+  Departments,
+  User_Role,
+  Subjects,
+  // Faculty_Subjects,
+};

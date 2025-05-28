@@ -3,6 +3,7 @@ import { DashboardProvider } from "@/context/DashboardContext";
 import { createClient } from "@/utils/supabase/server";
 import { signOut } from "../actions/auth";
 import CollapsibleSidebar from "@/components/CollapsibleSidebar";
+import { redirect } from "next/navigation"; // ✅ Use this in server components
 
 export default async function DashboardLayout({
   children,
@@ -17,8 +18,7 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    console.error("Authentication error or user not found:", authError);
-    return null;
+    redirect("/auth/login"); 
   }
 
   const { data: userData, error: userError } = await supabase
@@ -27,9 +27,8 @@ export default async function DashboardLayout({
     .eq("auth_id", user.id)
     .single();
 
-  if (userError || !userData) {
+  if (userError) {
     console.error("Error fetching user data:", userError);
-    return null;
   }
 
   const { data: roleData, error: roleError } = await supabase
@@ -39,8 +38,8 @@ export default async function DashboardLayout({
 
   if (roleError || !roleData) {
     console.error("Error fetching role data:", roleError);
-    return null;
-  } 
+    redirect("/auth/login");
+  }
 
   return (
     <AuthProvider>
