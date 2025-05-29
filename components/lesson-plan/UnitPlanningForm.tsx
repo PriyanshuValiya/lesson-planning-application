@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Input } from "@/components/ui/input"
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Trash2, Save, InfoIcon, X, AlertCircle } from "lucide-react"
+import { Plus, Trash2, Save, InfoIcon, X, Users } from "lucide-react"
 import { toast } from "sonner"
 import {
   unitPlanningSchema,
@@ -19,7 +19,10 @@ import {
   skillMappingOptions,
 } from "@/utils/schema"
 import { saveUnitPlanningForm } from "@/app/dashboard/actions/saveUnitPlanningForm"
+import { checkFacultySharing } from "@/app/dashboard/actions/checkFacultySharing"
 import { useDashboardContext } from "@/context/DashboardContext"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 
 interface UnitPlanningFormProps {
   lessonPlan: any
@@ -31,13 +34,10 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
   const [isSaving, setIsSaving] = useState(false)
   const [activeUnit, setActiveUnit] = useState(0)
   const [showInstructions, setShowInstructions] = useState(false)
-  const [validationDialog, setValidationDialog] = useState<{
-    isOpen: boolean
-    errors: string[]
-  }>({
-    isOpen: false,
-    errors: [],
-  })
+  const [isSharing, setIsSharing] = useState(false)
+  const [allFaculty, setAllFaculty] = useState<any[]>([])
+  const [primaryFaculty, setPrimaryFaculty] = useState<any>(null)
+  const [secondaryFaculty, setSecondaryFaculty] = useState<any[]>([])
 
   const {
     register,
@@ -70,6 +70,7 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
           skill_objectives: "",
           interlink_topics: "",
           topics_beyond_unit: "",
+          assigned_faculty_id: userData?.id || "",
           isNew: true,
         },
       ],
@@ -85,6 +86,34 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
     control,
     name: "units",
   })
+
+  // Check for faculty sharing when component mounts
+  useEffect(() => {
+    const loadFacultySharing = async () => {
+      if (!lessonPlan?.subject?.id) return
+
+      try {
+        const result = await checkFacultySharing(lessonPlan.subject.id)
+
+        if (result.success) {
+          setIsSharing(result.isSharing)
+          setAllFaculty(result.allFaculty)
+          setPrimaryFaculty(result.primaryFaculty)
+          setSecondaryFaculty(result.secondaryFaculty)
+
+          // If sharing is detected, update form state
+          if (result.isSharing) {
+            setValue("is_sharing", true)
+            setValue("sharing_faculty", result.allFaculty)
+          }
+        }
+      } catch (error) {
+        console.error("Error loading faculty sharing:", error)
+      }
+    }
+
+    loadFacultySharing()
+  }, [lessonPlan?.subject?.id, setValue])
 
   const addUnit = () => {
     appendUnit({
@@ -104,6 +133,7 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
       skill_objectives: "",
       interlink_topics: "",
       topics_beyond_unit: "",
+      assigned_faculty_id: userData?.id || "",
       isNew: true,
     })
     setActiveUnit(unitFields.length)
@@ -156,13 +186,24 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
     }
   }
 
+  const handleFacultyAssignment = (unitIndex: number, facultyId: string) => {
+    setValue(`units.${unitIndex}.assigned_faculty_id`, facultyId)
+  }
+
   const onSubmit = async (data: UnitPlanningFormValues) => {
     setIsSaving(true)
     try {
+      // Add sharing information to the form data
+      const formDataWithSharing = {
+        ...data,
+        is_sharing: isSharing,
+        sharing_faculty: allFaculty,
+      }
+
       const result = await saveUnitPlanningForm({
         faculty_id: userData?.id || "",
         subject_id: lessonPlan?.subject?.id || "",
-        formData: data,
+        formData: formDataWithSharing,
       })
 
       if (result.success) {
@@ -171,6 +212,8 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
           ...prev,
           units: data.units,
           unit_remarks: data.remarks,
+          is_sharing: isSharing,
+          sharing_faculty: allFaculty,
         }))
       } else {
         // Show validation dialog
@@ -189,25 +232,46 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
   }
 
   const showValidationDialog = (message: string) => {
-    // Parse the validation message to extract individual errors
-    const lines = message.split("\n")
-    const errors: string[] = []
+    // Create a custom dialog for validation messages
+    const dialog = document.createElement("div")
+    dialog.className = "fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+    dialog.innerHTML = `
+    <div class="bg-white rounded-lg w-full max-w-2xl shadow-xl">
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <h3 class="text-xl font-semibold text-red-600">Validation Required</h3>
+        <button class="text-gray-400 hover:text-gray-600 text-2xl font-bold" onclick="this.closest('.fixed').remove()">
+          ×
+        </button>
+      </div>
+      <div class="p-6">
+        <div class="text-sm leading-relaxed whitespace-pre-line text-gray-700">${message}</div>
+      </div>
+      <div class="flex justify-end p-6 border-t border-gray-200 bg-gray-50">
+        <button class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium" onclick="this.closest('.fixed').remove()">
+          OK
+        </button>
+      </div>
+    </div>
+  `
+    document.body.appendChild(dialog)
 
-    lines.forEach((line) => {
-      if (line.trim().startsWith("•")) {
-        errors.push(line.trim().substring(1).trim())
+    // Add click outside to close
+    dialog.addEventListener("click", (e) => {
+      if (e.target === dialog) {
+        dialog.remove()
       }
-    })
-
-    setValidationDialog({
-      isOpen: true,
-      errors: errors,
     })
   }
 
   // Generate CO options based on course outcomes
   const courseOutcomes = lessonPlan?.courseOutcomes || []
   const coOptions = courseOutcomes.map((_: any, index: number) => `CO${index + 1}`)
+
+  // Get faculty name by ID
+  const getFacultyName = (facultyId: string) => {
+    const faculty = allFaculty.find((f) => f.id === facultyId)
+    return faculty ? faculty.name : "Unknown Faculty"
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
@@ -262,61 +326,8 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
         </div>
       )}
 
-      {/* Validation Dialog */}
-      {validationDialog.isOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] overflow-auto">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <AlertCircle className="h-6 w-6 text-red-500" />
-                <h3 className="text-lg font-semibold text-red-500">Dialog Box Title: Validation Required</h3>
-              </div>
-
-              <div className="space-y-4">
-                <p className="text-red-500 font-medium">Message:</p>
-
-                <p className="text-red-500 font-medium">Dear Professor,</p>
-
-                <p className="text-black">Kindly review the following requirements before saving the form:</p>
-
-                <div className="space-y-2">
-                  {validationDialog.errors.map((error, index) => (
-                    <div key={index}>
-                      <div className="flex items-start gap-2">
-                        <span className="text-red-500 font-bold">•</span>
-                        <span className="text-red-500 font-medium">{error}</span>
-                      </div>
-                      {index < validationDialog.errors.length - 1 && (
-                        <p className="text-red-500 font-medium text-center my-2">or</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <p className="text-black mt-4">
-                  These above condition should be checked and applicable condition does not meet, those message should
-                  be displayed.
-                </p>
-
-                <p className="text-red-500 font-medium mt-4">
-                  We appreciate your attention to detail in maintaining the academic integrity of your course design.
-                </p>
-              </div>
-
-              <div className="flex justify-end mt-6">
-                <Button
-                  onClick={() => setValidationDialog({ isOpen: false, errors: [] })}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  OK
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="flex justify-between items-center">
+      {/* Faculty Sharing Information */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-semibold">Unit Planning Details</h3>
           <Button
@@ -330,10 +341,26 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
             View Guidelines
           </Button>
         </div>
-        <Button type="submit" disabled={isSaving} className="bg-[#1A5CA1] hover:bg-[#154A80]">
-          <Save className="mr-2 h-4 w-4" />
-          {isSaving ? "Saving..." : "Save Unit Details"}
-        </Button>
+
+        <div className="flex items-center gap-4">
+          {/* Faculty Sharing Status */}
+          {isSharing && (
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-green-600" />
+              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                Sharing Enabled
+              </Badge>
+              <div className="text-sm text-gray-600">
+                {allFaculty.length} Faculty: {allFaculty.map((f) => f.name).join(", ")}
+              </div>
+            </div>
+          )}
+
+          <Button type="submit" disabled={isSaving} className="bg-[#1A5CA1] hover:bg-[#154A80]">
+            <Save className="mr-2 h-4 w-4" />
+            {isSaving ? "Saving..." : "Save Unit Details"}
+          </Button>
+        </div>
       </div>
 
       {/* Unit Tabs */}
@@ -348,6 +375,11 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
               onClick={() => setActiveUnit(index)}
             >
               Unit {index + 1}
+              {isSharing && watch(`units.${index}.assigned_faculty_id`) && (
+                <Badge variant="outline" className="ml-2 text-xs">
+                  {getFacultyName(watch(`units.${index}.assigned_faculty_id`))}
+                </Badge>
+              )}
             </Button>
           ))}
           <Button type="button" variant="outline" onClick={addUnit}>
@@ -372,7 +404,31 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
       {unitFields[activeUnit] && (
         <Card>
           <CardHeader>
-            <CardTitle>Unit {activeUnit + 1}</CardTitle>
+            <CardTitle className="flex justify-between items-center">
+              <span>Unit {activeUnit + 1}</span>
+
+              {/* Faculty Assignment Dropdown - Only visible when sharing is enabled */}
+              {isSharing && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-normal text-gray-600">Assigned Faculty:</span>
+                  <Select
+                    value={watch(`units.${activeUnit}.assigned_faculty_id`) || userData?.id}
+                    onValueChange={(value) => handleFacultyAssignment(activeUnit, value)}
+                  >
+                    <SelectTrigger className="w-[200px] h-8 text-sm">
+                      <SelectValue placeholder="Select Faculty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allFaculty.map((faculty) => (
+                        <SelectItem key={faculty.id} value={faculty.id}>
+                          {faculty.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Basic Unit Information */}

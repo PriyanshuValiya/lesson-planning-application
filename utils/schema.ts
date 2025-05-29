@@ -95,6 +95,51 @@ export const practicalPlanningSchema = z.object({
 
 export type PracticalPlanningFormValues = z.infer<typeof practicalPlanningSchema>
 
+// CIE Planning Schema
+export const ciePlanningSchema = z.object({
+  faculty_id: z.string().uuid(),
+  subject_id: z.string().uuid(),
+  cies: z
+    .array(
+      z.object({
+        id: z.string(),
+        cie_number: z.coerce.number().min(1, "CIE number is required"),
+        type: z.enum([
+          "Lecture CIE",
+          "Course Prerequisites CIE",
+          "Mid-term/Internal Exam",
+          "Practical CIE",
+          "Internal Practical",
+        ]),
+        units_covered: z.array(z.string()).optional(),
+        practicals_covered: z.array(z.string()).optional(),
+        date: z.string().min(1, "Date is required"),
+        marks: z.coerce.number().min(1, "Marks must be at least 1"),
+        duration: z.coerce.number().min(1, "Duration must be at least 1 minute"),
+        blooms_taxonomy: z.array(z.string()).min(1, "At least one Bloom's taxonomy level must be selected"),
+        evaluation_pedagogy: z.string().min(1, "Evaluation pedagogy is required"),
+        other_pedagogy: z.string().optional(),
+        co_mapping: z.array(z.string()).min(1, "At least one CO must be mapped"),
+        pso_mapping: z.array(z.string()).optional(),
+        peo_mapping: z.array(z.string()).optional(),
+        skill_mapping: z
+          .array(
+            z.object({
+              skill: z.string().min(1, "Skill is required"),
+              details: z.string().min(1, "Skill details are required"),
+            }),
+          )
+          .min(1, "At least one skill must be mapped"),
+        isNew: z.boolean().optional(),
+        isDeleted: z.boolean().optional(),
+      }),
+    )
+    .min(3, "Minimum 3 CIEs are required for theory subjects"),
+  remarks: z.string().optional(),
+})
+
+export type CIEPlanningFormValues = z.infer<typeof ciePlanningSchema>
+
 // Additional Information Form Schema
 export const additionalInfoSchema = z.object({
   faculty_id: z.string().uuid(),
@@ -163,28 +208,31 @@ export const additionalInfoSchema = z.object({
 
 export type AdditionalInfoFormValues = z.infer<typeof additionalInfoSchema>
 
-// Action to save general details form
+// Action Schemas
 export const saveGeneralDetailsSchema = z.object({
   faculty_id: z.string().uuid(),
   subject_id: z.string().uuid(),
   formData: generalDetailsSchema,
 })
 
-// Action to save unit planning form
 export const saveUnitPlanningSchema = z.object({
   faculty_id: z.string().uuid(),
   subject_id: z.string().uuid(),
   formData: unitPlanningSchema,
 })
 
-// Action to save practical planning form
 export const savePracticalPlanningSchema = z.object({
   faculty_id: z.string().uuid(),
   subject_id: z.string().uuid(),
   formData: practicalPlanningSchema,
 })
 
-// Action to save additional info form
+export const saveCIEPlanningSchema = z.object({
+  faculty_id: z.string().uuid(),
+  subject_id: z.string().uuid(),
+  formData: ciePlanningSchema,
+})
+
 export const saveAdditionalInfoSchema = z.object({
   faculty_id: z.string().uuid(),
   subject_id: z.string().uuid(),
@@ -238,8 +286,53 @@ export const evaluationMethodOptions = [
   "Other",
 ]
 
-// Bloom's Taxonomy Options
-export const bloomsTaxonomyOptions = ["Apply", "Analyze", "Evaluate", "Create"]
+// CIE Type Options
+export const cieTypeOptions = [
+  "Lecture CIE",
+  "Course Prerequisites CIE",
+  "Mid-term/Internal Exam",
+  "Practical CIE",
+  "Internal Practical",
+]
+
+// Evaluation Pedagogy Options for CIE
+export const evaluationPedagogyOptions = {
+  traditional: [
+    "Objective-Based Assessment (Quiz/MCQ)",
+    "Short/Descriptive Evaluation",
+    "Oral/Visual Communication-Based Evaluation (Presentation/Public Speaking/Viva)",
+    "Assignment-Based Evaluation (Homework/Take-home assignments)",
+  ],
+  alternative: [
+    "Problem-Based Evaluation",
+    "Open Book Assessment",
+    "Peer Assessment",
+    "Case Study-Based Evaluation",
+    "Concept Mapping Evaluation",
+    "Analytical Reasoning Test",
+    "Critical Thinking Assessment",
+    "Project-Based Assessment",
+    "Group/Team Assessment",
+    "Certification-Based Evaluation",
+  ],
+  other: ["Other"],
+}
+
+// All Evaluation Pedagogy Options (flattened)
+export const allEvaluationPedagogyOptions = [
+  ...evaluationPedagogyOptions.traditional,
+  ...evaluationPedagogyOptions.alternative,
+  ...evaluationPedagogyOptions.other,
+]
+
+// Bloom's Taxonomy Options for Practicals
+export const bloomsTaxonomyPracticalOptions = ["Apply", "Analyze", "Evaluate", "Create"]
+
+// Bloom's Taxonomy Options for CIE (includes Remember and Understand)
+export const bloomsTaxonomyCIEOptions = ["Remember", "Understand", "Apply", "Analyze", "Evaluate", "Create"]
+
+// Backward compatibility
+export const bloomsTaxonomyOptions = bloomsTaxonomyPracticalOptions
 
 // Skill Mapping Options
 export const skillMappingOptions = [

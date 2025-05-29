@@ -67,21 +67,7 @@ export interface WeekOption {
     return new Date(dateString)
   }
   
-  export function isSubjectTheoryOnly(subject: any): boolean {
-    if (!subject) return false
-    return subject?.is_theory === true && subject?.is_practical !== true
-  }
-  
-  export function isSubjectPracticalOnly(subject: any): boolean {
-    if (!subject) return false
-    return subject?.is_practical === true && subject?.is_theory !== true
-  }
-  
-  export function isSubjectBoth(subject: any): boolean {
-    if (!subject) return false
-    return subject?.is_theory === true && subject?.is_practical === true
-  }
-  
+ 
   export function getSubjectType(subject: any): "theory" | "practical" | "both" | "unknown" {
     if (!subject) return "unknown"
   
@@ -98,5 +84,53 @@ export interface WeekOption {
   
   export function shouldShowPracticalPlanning(subject: any): boolean {
     return !isSubjectTheoryOnly(subject)
+  }
+  
+export function isSubjectTheoryOnly(subject: any): boolean {
+    return subject?.is_theory === true && subject?.is_practical === false
+  }
+  
+  export function isSubjectPracticalOnly(subject: any): boolean {
+    return subject?.is_theory === false && subject?.is_practical === true
+  }
+  
+  export function isSubjectBoth(subject: any): boolean {
+    return subject?.is_theory === true && subject?.is_practical === true
+  }
+  
+
+  
+  export function calculateWeeksBetween(startDate: string, endDate: string): number {
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    const diffTime = Math.abs(end.getTime() - start.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return Math.ceil(diffDays / 7)
+  }
+  
+  export function validateDateRange(startDate: string, endDate: string): boolean {
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    return start < end
+  }
+  
+  export function isDateWithinRange(date: string, startDate: string, endDate: string): boolean {
+    const checkDate = new Date(date)
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    return checkDate >= start && checkDate <= end
+  }
+  
+  export function addDays(date: string, days: number): string {
+    const result = new Date(date)
+    result.setDate(result.getDate() + days)
+    return result.toISOString().split("T")[0]
+  }
+  
+  export function getDaysDifference(date1: string, date2: string): number {
+    const d1 = new Date(date1)
+    const d2 = new Date(date2)
+    const diffTime = Math.abs(d2.getTime() - d1.getTime())
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   }
   

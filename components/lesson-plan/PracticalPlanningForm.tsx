@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Trash2, Save, InfoIcon, X } from "lucide-react"
+import { Plus, Trash2, Save, InfoIcon, X, Users } from "lucide-react"
 import { toast } from "sonner"
 import {
   practicalPlanningSchema,
@@ -25,7 +25,9 @@ import {
 } from "@/utils/schema"
 import { generateWeekOptions } from "@/utils/dateUtils"
 import { savePracticalPlanningForm } from "@/app/dashboard/actions/savePracticalPlanningForm"
+import { checkFacultySharing } from "@/app/dashboard/actions/checkFacultySharing"
 import { useDashboardContext } from "@/context/DashboardContext"
+import { Badge } from "@/components/ui/badge"
 
 interface PracticalPlanningFormProps {
   lessonPlan: any
@@ -37,6 +39,8 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan }: Pra
   const [isSaving, setIsSaving] = useState(false)
   const [activePractical, setActivePractical] = useState(0)
   const [showInstructions, setShowInstructions] = useState(false)
+  const [isSharing, setIsSharing] = useState(false)
+  const [allFaculty, setAllFaculty] = useState<any[]>([])
 
   // Generate week options from term dates
   const weekOptions = generateWeekOptions(lessonPlan?.term_start_date || "", lessonPlan?.term_end_date || "")
@@ -74,6 +78,7 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan }: Pra
           blooms_taxonomy: [],
           skill_mapping: [],
           skill_objectives: "",
+          assigned_faculty_id: userData?.id || "",
           isNew: true,
         },
       ],
@@ -89,6 +94,26 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan }: Pra
     control,
     name: "practicals",
   })
+
+  // Check for faculty sharing when component mounts
+  useEffect(() => {
+    const loadFacultySharing = async () => {
+      if (!lessonPlan?.subject?.id) return
+
+      try {
+        const result = await checkFacultySharing(lessonPlan.subject.id)
+
+        if (result.success) {
+          setIsSharing(result.isSharing)
+          setAllFaculty(result.allFaculty)
+        }
+      } catch (error) {
+        console.error("Error loading faculty sharing:", error)
+      }
+    }
+
+    loadFacultySharing()
+  }, [lessonPlan?.subject?.id])
 
   const addPractical = () => {
     appendPractical({
@@ -110,6 +135,7 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan }: Pra
       blooms_taxonomy: [],
       skill_mapping: [],
       skill_objectives: "",
+      assigned_faculty_id: userData?.id || "",
       isNew: true,
     })
     setActivePractical(practicalFields.length)
@@ -210,6 +236,10 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan }: Pra
     }
   }
 
+  const handleFacultyAssignment = (practicalIndex: number, facultyId: string) => {
+    setValue(`practicals.${practicalIndex}.assigned_faculty_id`, facultyId)
+  }
+
   const onSubmit = async (data: PracticalPlanningFormValues) => {
     setIsSaving(true)
     try {
@@ -278,6 +308,12 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan }: Pra
   // Get units for associated units dropdown
   const units = lessonPlan?.units || []
 
+  // Get faculty name by ID
+  const getFacultyName = (facultyId: string) => {
+    const faculty = allFaculty.find((f) => f.id === facultyId)
+    return faculty ? faculty.name : "Unknown Faculty"
+  }
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
       {/* Instructions Modal */}
@@ -328,6 +364,7 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan }: Pra
         </div>
       )}
 
+      {/* Faculty Sharing Information */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-semibold">Practical Planning Details</h3>
@@ -342,10 +379,23 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan }: Pra
             View Guidelines
           </Button>
         </div>
-        <Button type="submit" disabled={isSaving} className="bg-[#1A5CA1] hover:bg-[#154A80]">
-          <Save className="mr-2 h-4 w-4" />
-          {isSaving ? "Saving..." : "Save Practical Details"}
-        </Button>
+
+        <div className="flex items-center gap-4">
+          {/* Faculty Sharing Status */}
+          {isSharing && (
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-green-600" />
+              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                Sharing Enabled
+              </Badge>
+            </div>
+          )}
+
+          <Button type="submit" disabled={isSaving} className="bg-[#1A5CA1] hover:bg-[#154A80]">
+            <Save className="mr-2 h-4 w-4" />
+            {isSaving ? "Saving..." : "Save Practical Details"}
+          </Button>
+        </div>
       </div>
 
       {/* Practical Tabs */}
@@ -360,6 +410,11 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan }: Pra
               onClick={() => setActivePractical(index)}
             >
               Practical {index + 1}
+              {isSharing && watch(`practicals.${index}.assigned_faculty_id`) && (
+                <Badge variant="outline" className="ml-2 text-xs">
+                  {getFacultyName(watch(`practicals.${index}.assigned_faculty_id`))}
+                </Badge>
+              )}
             </Button>
           ))}
           <Button type="button" variant="outline" onClick={addPractical}>
@@ -384,9 +439,34 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan }: Pra
       {practicalFields[activePractical] && (
         <Card>
           <CardHeader>
-            <CardTitle>Practical {activePractical + 1}</CardTitle>
+            <CardTitle className="flex justify-between items-center">
+              <span>Practical {activePractical + 1}</span>
+
+              {/* Faculty Assignment Dropdown - Only visible when sharing is enabled */}
+              {isSharing && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-normal text-gray-600">Assigned Faculty:</span>
+                  <Select
+                    value={watch(`practicals.${activePractical}.assigned_faculty_id`) || userData?.id}
+                    onValueChange={(value) => handleFacultyAssignment(activePractical, value)}
+                  >
+                    <SelectTrigger className="w-[200px] h-8 text-sm">
+                      <SelectValue placeholder="Select Faculty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allFaculty.map((faculty) => (
+                        <SelectItem key={faculty.id} value={faculty.id}>
+                          {faculty.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Rest of the practical form content remains the same */}
             {/* Practical Aim */}
             <div>
               <Label htmlFor={`practical-aim-${activePractical}`}>
