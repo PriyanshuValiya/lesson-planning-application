@@ -1,53 +1,3 @@
-// "use server"
-
-// import { createClient } from "@/utils/supabase/server"
-
-// export const fetchLessonPlanById = async (id: string) => {
-//   const supabase = await createClient()
-
-//   const { data, error } = await supabase
-//     .from("lesson_plans")
-//     .select(`
-//       id,
-//       faculty_id,
-//       subject_id,
-//       academic_year,
-//       division,
-//       status,
-//       created_at,
-//       updated_at,
-//       subjects(
-//         id,
-//         code,
-//         name,
-//         semester,
-//         lecture_hours,
-//         lab_hours,
-//         abbreviation_name,
-//         credits,
-//         is_practical,
-//         is_theory
-//       ),
-//       lesson_plan_topics(
-//         id,
-//         title,
-//         description,
-//         hours,
-//         order,
-//         is_completed
-//       )
-//     `)
-//     .eq("id", id)
-//     .single()
-
-//   if (error) {
-//     console.error("Error fetching lesson plan:", error)
-//     throw new Error(`Failed to fetch lesson plan: ${error.message}`)
-//   }
-
-//   return data
-// }
-
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
@@ -123,8 +73,8 @@ export async function fetchLessonPlanById(lessonPlanId: string) {
       .eq("faculty_id", userData.id)
       .single()
 
-    // Check for faculty sharing
-    const { data: sharingFaculty, error: sharingError } = await supabase
+    // Check for faculty sharing - UPDATED LOGIC FOR SAME DIVISION ONLY
+    const { data: allFacultyAssignments, error: sharingError } = await supabase
       .from("user_role")
       .select(`
         *,
@@ -133,13 +83,62 @@ export async function fetchLessonPlanById(lessonPlanId: string) {
       .eq("subject_id", assignment.subjects.id)
       .eq("role_name", "Faculty")
 
-    const isSharing = sharingFaculty && sharingFaculty.length > 1
-    const allFaculty =
-      sharingFaculty?.map((sf) => ({
-        id: sf.users.id,
-        name: sf.users.name,
-        email: sf.users.email,
-      })) || []
+    let isSharing = false
+    let allFaculty: any[] = []
+
+    if (allFacultyAssignments && allFacultyAssignments.length > 0) {
+      // Group by division to check for sharing within same division
+      const divisionGroups = allFacultyAssignments.reduce(
+        (acc, facultyAssignment) => {
+          const division = facultyAssignment.division || "default"
+          if (!acc[division]) {
+            acc[division] = []
+          }
+          acc[division].push(facultyAssignment)
+          return acc
+        },
+        {} as Record<string, any[]>,
+      )
+
+      // Check if any division has multiple faculty (sharing within same division)
+      for (const [division, assignments] of Object.entries(divisionGroups)) {
+        if (assignments.length > 1) {
+          isSharing = true
+          // Get unique faculty for this division
+          const uniqueFaculty = assignments.reduce((acc, facultyAssignment) => {
+            const facultyId = facultyAssignment.users?.id
+            if (facultyId && !acc.find((f: any) => f.id === facultyId)) {
+              acc.push({
+                id: facultyId,
+                name: facultyAssignment.users.name,
+                email: facultyAssignment.users.email,
+                division: division,
+              })
+            }
+            return acc
+          }, [])
+
+          allFaculty = [...allFaculty, ...uniqueFaculty]
+          break // We found sharing in at least one division, that's enough
+        }
+      }
+
+      // If no sharing within same division, still get all faculty for reference
+      if (!isSharing) {
+        allFaculty = allFacultyAssignments.reduce((acc, facultyAssignment) => {
+          const facultyId = facultyAssignment.users?.id
+          if (facultyId && !acc.find((f: any) => f.id === facultyId)) {
+            acc.push({
+              id: facultyId,
+              name: facultyAssignment.users.name,
+              email: facultyAssignment.users.email,
+              division: facultyAssignment.division || "default",
+            })
+          }
+          return acc
+        }, [])
+      }
+    }
 
     // Extract saved form data
     const savedFormData = existingForm?.form || {}
@@ -189,7 +188,7 @@ export async function fetchLessonPlanById(lessonPlanId: string) {
       practical_remarks: savedFormData.practical_remarks || "",
       cie_remarks: savedFormData.cie_remarks || "",
       status: lessonPlanData?.status || assignment.status || "Draft",
-      is_sharing: isSharing,
+      is_sharing: isSharing, // Updated logic - only true for same division sharing
       sharing_faculty: allFaculty,
       general_details_completed: lessonPlanData?.general_details_completed || false,
       unit_planning_completed: lessonPlanData?.unit_planning_completed || false,
