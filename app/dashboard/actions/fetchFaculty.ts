@@ -7,7 +7,7 @@ export const fetchFaculty = async () => {
 
     const { data: facultyData, error } = await supabase
         .from("user_role")
-        .select("*, users(*)");
+        .select("*, users(*), subjects(*)");
 
     if (error) {
         console.error("Error fetching faculty data:", error);

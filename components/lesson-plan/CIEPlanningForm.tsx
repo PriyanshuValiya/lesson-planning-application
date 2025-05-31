@@ -95,7 +95,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         cies: [initialCIE],
       }))
     }
-  }, [lessonPlan.cies, setLessonPlan])
+}, [lessonPlan?.cies, setLessonPlan])
 
   const handleCIEChange = (index: number, field: string, value: any) => {
     const updatedCIEs = [...(lessonPlan.cies || [])]
@@ -747,3 +747,5 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
     </div>
   )
 }
+
+

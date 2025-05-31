@@ -154,3 +154,4 @@ const TabsWithContext = React.forwardRef<HTMLDivElement, TabsProps>((props, ref)
 TabsWithContext.displayName = "Tabs"
 
 export { TabsWithContext as Tabs, TabsList, TabsTrigger, TabsContent }
+
