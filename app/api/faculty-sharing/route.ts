@@ -71,7 +71,7 @@
 //       {} as Record<string, any[]>,
 //     )
 
-//     // Check if any division has multiple faculty (sharing)
+//     // Check if any division has multiple faculty (sharing within same division)
 //     let isSharing = false
 //     let sharedFaculty: any[] = []
 
@@ -95,7 +95,38 @@
 //         }, [])
 
 //         sharedFaculty = [...sharedFaculty, ...uniqueFaculty]
+//         break // We found sharing in at least one division, that's enough
 //       }
+//     }
+
+//     // If no sharing within same division found, check if there are faculty in different divisions
+//     // but don't mark as sharing (this is the key change)
+//     if (!isSharing) {
+//       // Just return all faculty for informational purposes, but not as "sharing"
+//       const allFaculty = facultyAssignments.reduce((acc, assignment) => {
+//         const facultyId = assignment.users?.id
+//         if (facultyId && !acc.find((f: any) => f.id === facultyId)) {
+//           acc.push({
+//             id: facultyId,
+//             name: assignment.users.name,
+//             email: assignment.users.email,
+//             profile_photo: assignment.users.profile_photo,
+//             division: assignment.division || "default",
+//             assignment_id: assignment.id,
+//           })
+//         }
+//         return acc
+//       }, [])
+
+//       console.log("No sharing detected - faculty in different divisions:", allFaculty)
+
+//       return NextResponse.json({
+//         success: true,
+//         isSharing: false,
+//         allFaculty: allFaculty,
+//         primaryFaculty: allFaculty[0] || null,
+//         secondaryFaculty: allFaculty.slice(1),
+//       })
 //     }
 
 //     // Remove duplicates from sharedFaculty
@@ -106,8 +137,7 @@
 //       return acc
 //     }, [])
 
-//     console.log("Sharing detected:", isSharing)
-//     console.log("All faculty:", allFaculty)
+//     console.log("Sharing detected within same division:", allFaculty)
 
 //     const primaryFaculty = allFaculty[0] || null
 //     const secondaryFaculty = allFaculty.slice(1)
@@ -134,6 +164,16 @@
 
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
+
+// Define a type for faculty member
+interface FacultyMember {
+  id: string;
+  name: string;
+  email: string;
+  profile_photo: string | null;
+  division: string;
+  assignment_id: string;
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -207,26 +247,34 @@ export async function GET(request: NextRequest) {
 
     // Check if any division has multiple faculty (sharing within same division)
     let isSharing = false
-    let sharedFaculty: any[] = []
+    let sharedFaculty: FacultyMember[] = []
 
     for (const [division, assignments] of Object.entries(divisionGroups)) {
       if (assignments.length > 1) {
         isSharing = true
         // Get unique faculty for this division
-        const uniqueFaculty = assignments.reduce((acc, assignment) => {
-          const facultyId = assignment.users?.id
-          if (facultyId && !acc.find((f: any) => f.id === facultyId)) {
+        const uniqueFaculty = assignments.reduce((acc: FacultyMember[], assignment: any) => {
+          const facultyUser = assignment.users as {
+            id: string;
+            name: string;
+            email: string;
+            profile_photo: string | null;
+          }
+        
+          const facultyId = facultyUser?.id;
+          if (facultyId && !acc.find((f) => f.id === facultyId)) {
             acc.push({
               id: facultyId,
-              name: assignment.users.name,
-              email: assignment.users.email,
-              profile_photo: assignment.users.profile_photo,
+              name: facultyUser.name,
+              email: facultyUser.email,
+              profile_photo: facultyUser.profile_photo,
               division: division,
               assignment_id: assignment.id,
             })
           }
-          return acc
+          return acc;
         }, [])
+        
 
         sharedFaculty = [...sharedFaculty, ...uniqueFaculty]
         break // We found sharing in at least one division, that's enough
@@ -237,20 +285,28 @@ export async function GET(request: NextRequest) {
     // but don't mark as sharing (this is the key change)
     if (!isSharing) {
       // Just return all faculty for informational purposes, but not as "sharing"
-      const allFaculty = facultyAssignments.reduce((acc, assignment) => {
-        const facultyId = assignment.users?.id
-        if (facultyId && !acc.find((f: any) => f.id === facultyId)) {
+      const allFaculty = facultyAssignments.reduce((acc: FacultyMember[], assignment: any) => {
+        const facultyUser = assignment.users as {
+          id: string;
+          name: string;
+          email: string;
+          profile_photo: string | null;
+        }
+      
+        const facultyId = facultyUser?.id;
+        if (facultyId && !acc.find((f) => f.id === facultyId)) {
           acc.push({
             id: facultyId,
-            name: assignment.users.name,
-            email: assignment.users.email,
-            profile_photo: assignment.users.profile_photo,
+            name: facultyUser.name,
+            email: facultyUser.email,
+            profile_photo: facultyUser.profile_photo,
             division: assignment.division || "default",
             assignment_id: assignment.id,
           })
         }
-        return acc
-      }, [])
+        return acc;
+      }, []);
+      
 
       console.log("No sharing detected - faculty in different divisions:", allFaculty)
 
@@ -264,8 +320,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Remove duplicates from sharedFaculty
-    const allFaculty = sharedFaculty.reduce((acc, faculty) => {
-      if (!acc.find((f: any) => f.id === faculty.id)) {
+    const allFaculty = sharedFaculty.reduce((acc: FacultyMember[], faculty) => {
+      if (!acc.find((f) => f.id === faculty.id)) {
         acc.push(faculty)
       }
       return acc

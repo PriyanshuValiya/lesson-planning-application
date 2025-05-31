@@ -56,6 +56,7 @@ export const fetchFacultyWithSubjects = async (departmentId: string) => {
           is_theory
         )
       `)
+      //@ts-ignore
       .eq("user_id", faculty.users.id)
       .eq("role_name", "Faculty")
       .not("subject_id", "is", null)
