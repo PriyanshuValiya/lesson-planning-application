@@ -175,7 +175,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Home, LogOut, ChevronLeft, FileText } from "lucide-react"
+import { Home, LogOut, ChevronLeft, FileText, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Image from "next/image"
@@ -208,7 +208,7 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
       {/* Sidebar Header */}
       <div className="p-6 border-b flex flex-col items-center">
         <Avatar className="h-20 w-20 mb-3">
-          {userData.profile_photo ? (
+          {userData.profile_photo && userData.profile_photo !== "NULL" ? (
             <Image
               src={userData.profile_photo || "/placeholder.svg"}
               alt="Profile"
@@ -217,7 +217,9 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
               className="rounded-full"
             />
           ) : (
-            <AvatarFallback className="text-2xl bg-[#1A5CA1] text-white">{getInitials(userData.name)}</AvatarFallback>
+            <AvatarFallback className="text-2xl bg-[#1A5CA1] text-white">
+              <User className="h-10 w-10" />
+            </AvatarFallback>
           )}
         </Avatar>
         {!isCollapsed && (
