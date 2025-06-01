@@ -44,7 +44,12 @@ export async function savePracticalPlanningForm({ faculty_id, subject_id, formDa
       subject_id,
       form: {
         ...existingForm?.form,
-        practicals: formData.practicals,
+        practicals: formData.practicals.map((practical) => ({
+          ...practical,
+          // Make sure faculty assignment data is included
+          assigned_faculty_id: practical.assigned_faculty_id || faculty_id,
+          faculty_name: practical.faculty_name || "Current Faculty",
+        })),
         practical_remarks: formData.remarks,
         practical_planning_completed: true,
         last_updated: new Date().toISOString(),

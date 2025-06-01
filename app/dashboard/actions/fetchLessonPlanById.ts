@@ -152,6 +152,26 @@ export async function fetchLessonPlanById(lessonPlanId: string) {
     const cies = savedFormData.cies || []
     const additionalInfo = savedFormData.additionalInfo || {}
 
+    // Process units to include faculty assignments
+    const processedUnits = units.map((unit: any) => {
+      // Ensure faculty assignment data is included
+      return {
+        ...unit,
+        assigned_faculty_id: unit.assigned_faculty_id || null,
+        faculty_name: unit.faculty_name || null,
+      }
+    })
+
+    // Process practicals to include faculty assignments
+    const processedPracticals = practicals.map((practical: any) => {
+      // Ensure faculty assignment data is included
+      return {
+        ...practical,
+        assigned_faculty_id: practical.assigned_faculty_id || null,
+        faculty_name: practical.faculty_name || null,
+      }
+    })
+
     // Construct the lesson plan object with saved data
     const lessonPlan = {
       id: lessonPlanData?.id || lessonPlanId,
@@ -184,8 +204,8 @@ export async function fetchLessonPlanById(lessonPlanId: string) {
       course_prerequisites: generalDetails.course_prerequisites || "",
       course_prerequisites_materials: generalDetails.course_prerequisites_materials || "",
       courseOutcomes: generalDetails.courseOutcomes || [],
-      units: units,
-      practicals: practicals,
+      units: processedUnits,
+      practicals: processedPracticals,
       cies: cies,
       additional_info: additionalInfo,
       unit_remarks: savedFormData.unit_remarks || "",

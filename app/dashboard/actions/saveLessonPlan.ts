@@ -1,4 +1,3 @@
-
 // // @ts-nocheck
 // "use server"
 
@@ -362,12 +361,13 @@ async function saveGeneralDetails(supabase: any, lessonPlanId: string, data: any
   }
 }
 
+// Update the saveUnitPlanning function to store faculty assignments
 async function saveUnitPlanning(supabase: any, lessonPlanId: string, units: any[]) {
   if (units && units.length > 0) {
     // Delete existing units
     await supabase.from("lesson_plan_units").delete().eq("lesson_plan_id", lessonPlanId)
 
-    // Insert new units
+    // Insert new units with faculty assignments
     const unitsData = units.map((unit: any, index: number) => ({
       lesson_plan_id: lessonPlanId,
       unit_number: index + 1,
@@ -377,18 +377,25 @@ async function saveUnitPlanning(supabase: any, lessonPlanId: string, units: any[
       self_study_topics: unit.self_study_topics,
       self_study_materials: unit.self_study_materials,
       unit_materials: unit.unit_materials,
+      assigned_faculty_id: unit.assigned_faculty_id || null,
+      faculty_name: unit.faculty_name || null,
+      faculty_assignments: JSON.stringify({
+        assigned_faculty_id: unit.assigned_faculty_id,
+        faculty_name: unit.faculty_name,
+      }),
     }))
 
     await supabase.from("lesson_plan_units").insert(unitsData)
   }
 }
 
+// Update the savePracticalPlanning function to store faculty assignments
 async function savePracticalPlanning(supabase: any, lessonPlanId: string, practicals: any[]) {
   if (practicals && practicals.length > 0) {
     // Delete existing practicals
     await supabase.from("lesson_plan_practicals").delete().eq("lesson_plan_id", lessonPlanId)
 
-    // Insert new practicals
+    // Insert new practicals with faculty assignments
     const practicalsData = practicals.map((practical: any, index: number) => ({
       lesson_plan_id: lessonPlanId,
       practical_number: index + 1,
@@ -402,6 +409,12 @@ async function savePracticalPlanning(supabase: any, lessonPlanId: string, practi
       practical_pedagogy: practical.practical_pedagogy,
       blooms_taxonomy: practical.blooms_taxonomy,
       reference_material: practical.reference_material,
+      assigned_faculty_id: practical.assigned_faculty_id || null,
+      faculty_name: practical.faculty_name || null,
+      faculty_assignments: JSON.stringify({
+        assigned_faculty_id: practical.assigned_faculty_id,
+        faculty_name: practical.faculty_name,
+      }),
     }))
 
     await supabase.from("lesson_plan_practicals").insert(practicalsData)
@@ -453,6 +466,7 @@ async function saveAdditionalInfo(supabase: any, lessonPlanId: string, additiona
   }
 }
 
+// Update the updateLessonPlanStatus function to include faculty assignments:
 async function updateLessonPlanStatus(supabase: any, lessonPlanId: string, subject: any) {
   // Get current completion status
   const { data: lessonPlan } = await supabase.from("lesson_plans").select("*").eq("id", lessonPlanId).single()
@@ -483,6 +497,9 @@ async function updateLessonPlanStatus(supabase: any, lessonPlanId: string, subje
 
   await supabase
     .from("lesson_plans")
-    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .update({
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", lessonPlanId)
 }

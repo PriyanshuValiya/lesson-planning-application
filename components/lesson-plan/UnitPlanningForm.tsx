@@ -1,4 +1,3 @@
-//@ts-nocheck
 
 // "use client"
 
@@ -47,6 +46,7 @@
 //     watch,
 //     setValue,
 //     getValues,
+//     trigger,
 //     formState: { errors },
 //   } = useForm<UnitPlanningFormValues>({
 //     resolver: zodResolver(unitPlanningSchema),
@@ -208,17 +208,38 @@
 //       )
 //     }
 //   }
+
+//   // Update the handleFacultyAssignment function to store both faculty ID and name
 //   const handleFacultyAssignment = (unitIndex: number, facultyId: string) => {
-//     // Update the form state directly
-//     setValue(`units.${unitIndex}.assigned_faculty_id`, facultyId)
-    
-//     // Also update the lesson plan state for UI feedback
+//     // Get faculty name
+//     const faculty = allFaculty.find((f) => f.id === facultyId)
+//     const facultyName = faculty ? faculty.name : "Unknown Faculty"
+
+//     // Update the form state directly and trigger validation
+//     setValue(`units.${unitIndex}.assigned_faculty_id`, facultyId, {
+//       shouldValidate: true,
+//       shouldDirty: true,
+//       shouldTouch: true,
+//     })
+
+//     // Also store faculty name for display purposes
+//     setValue(`units.${unitIndex}.faculty_name`, facultyName, {
+//       shouldValidate: false,
+//       shouldDirty: true,
+//       shouldTouch: true,
+//     })
+
+//     // Force re-render by triggering validation
+//     trigger(`units.${unitIndex}.assigned_faculty_id`)
+
+//     // Update the lesson plan state immediately for UI feedback
 //     setLessonPlan((prev: any) => {
 //       const updatedUnits = [...(prev.units || [])]
 //       if (updatedUnits[unitIndex]) {
 //         updatedUnits[unitIndex] = {
 //           ...updatedUnits[unitIndex],
 //           assigned_faculty_id: facultyId,
+//           faculty_name: facultyName,
 //         }
 //       }
 //       return {
@@ -228,30 +249,80 @@
 //     })
 //   }
 
+//   // Add a custom dialog component for validation errors
+//   // Add this function after the showValidationDialog function:
+
+//   const showFormDialog = (title: string, message: string) => {
+//     // Create a custom dialog for form messages
+//     const dialog = document.createElement("div")
+//     dialog.className = "fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+//     dialog.innerHTML = `
+//       <div class="bg-white rounded-lg w-full max-w-2xl shadow-xl">
+//         <div class="flex items-center justify-between p-6 border-b border-gray-200">
+//           <h3 class="text-xl font-semibold text-red-600">${title}</h3>
+//           <button class="text-gray-400 hover:text-gray-600 text-2xl font-bold" onclick="this.closest('.fixed').remove()">
+//             ×
+//           </button>
+//         </div>
+//         <div class="p-6">
+//           <div class="text-sm leading-relaxed whitespace-pre-line text-gray-700">${message}</div>
+//         </div>
+//         <div class="flex justify-end p-6 border-t border-gray-200 bg-gray-50">
+//           <button class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium" onclick="this.closest('.fixed').remove()">
+//             OK
+//           </button>
+//         </div>
+//       </div>
+//     `
+//     document.body.appendChild(dialog)
+
+//     // Add click outside to close
+//     dialog.addEventListener("click", (e) => {
+//       if (e.target === dialog) {
+//         dialog.remove()
+//       }
+//     })
+//   }
+
+//   // Modify the onSubmit function to use the new dialog and ensure faculty assignments
+//   // Replace the existing onSubmit function with this:
+
 //   const onSubmit = async (data: UnitPlanningFormValues) => {
 //     setIsSaving(true)
 
-//    // Validate faculty assignments for shared subjects
-// if (isSharing) {
-//   const unassignedUnits = data.units.filter((unit) => !unit.assigned_faculty_id)
-//   if (unassignedUnits.length > 0) {
-//     // Show specific error with unit numbers
-//     const unitNumbers = unassignedUnits.map((_, idx) => {
-//       const originalIndex = data.units.findIndex(u => u.id === unassignedUnits[idx].id)
-//       return originalIndex + 1
-//     }).join(", ")
-    
-//     toast.error(`Please assign faculty to Unit ${unitNumbers} before saving.`)
-//     setIsSaving(false)
-//     return
-//   }
-// } else {
-//   // For non-shared subjects, automatically assign current faculty to all units
-//   data.units = data.units.map(unit => ({
-//     ...unit,
-//     assigned_faculty_id: unit.assigned_faculty_id || userData?.id || ""
-//   }))
-// }
+//     // Debug: Log the data being submitted
+//     console.log(
+//       "Submitting data:",
+//       data.units.map((u, i) => ({
+//         unit: i + 1,
+//         assigned_faculty_id: u.assigned_faculty_id,
+//         faculty_name: u.faculty_name,
+//       })),
+//     )
+
+//     // Validate faculty assignments for shared subjects
+//     if (isSharing) {
+//       const unassignedUnits = data.units.filter((unit) => !unit.assigned_faculty_id)
+//       if (unassignedUnits.length > 0) {
+//         const unitNumbers = unassignedUnits
+//           .map((_, idx) => {
+//             const originalIndex = data.units.findIndex((u) => u.id === unassignedUnits[idx].id)
+//             return originalIndex + 1
+//           })
+//           .join(", ")
+
+//         showFormDialog("Faculty Assignment Required", `Please assign faculty to Unit ${unitNumbers} before saving.`)
+//         setIsSaving(false)
+//         return
+//       }
+//     } else {
+//       // For non-shared subjects, automatically assign current faculty to all units
+//       data.units = data.units.map((unit) => ({
+//         ...unit,
+//         assigned_faculty_id: unit.assigned_faculty_id || userData?.id || "",
+//         faculty_name: unit.faculty_name || userData?.name || "Current Faculty",
+//       }))
+//     }
 
 //     try {
 //       // Add sharing information to the form data
@@ -275,11 +346,12 @@
 //           unit_remarks: data.remarks,
 //           is_sharing: isSharing,
 //           sharing_faculty: allFaculty,
+//           unit_planning_completed: true,
 //         }))
 //       } else {
 //         // Show validation dialog
 //         if (result.error?.includes("Dear Professor")) {
-//           showValidationDialog(result.error)
+//           showFormDialog("Validation Required", result.error)
 //         } else {
 //           toast.error(result.error || "Failed to save unit planning")
 //         }
@@ -385,8 +457,8 @@
 //                 <div>
 //                   <h3 className="font-semibold">Skill Mapping:</h3>
 //                   <p>
-//                     Skills should be mentioned in measurable terms (e.g., "Ability to build and deploy a basic web
-//                     application using Flask framework" instead of just "web development skills").
+//                     Skills should be mentioned in measurable terms (e.g., &quot;Ability to build and deploy a basic web
+//                     application using Flask framework&quot; instead of just &quot;web development skills&quot;).
 //                   </p>
 //                 </div>
 //                 {isSharing && (
@@ -566,7 +638,7 @@
 //                   <Select
 //                     value={watch(`units.${activeUnit}.assigned_faculty_id`) || ""}
 //                     onValueChange={(value) => handleFacultyAssignment(activeUnit, value)}
-// >
+//                   >
 //                     <SelectTrigger className="w-[200px] bg-white border-blue-300">
 //                       <SelectValue placeholder="Select Faculty" />
 //                     </SelectTrigger>
@@ -814,7 +886,7 @@
 //               <Textarea
 //                 id={`skill-objectives-${activeUnit}`}
 //                 {...register(`units.${activeUnit}.skill_objectives`)}
-//                 placeholder="Skills should be mentioned in measurable terms (e.g., 'Ability to build and deploy a basic web application using Flask framework.' instead of just 'web development skills')."
+//                 placeholder="Skills should be mentioned in measurable terms (e.g., &apos;Ability to build and deploy a basic web application using Flask framework.&apos; instead of just &apos;web development skills&apos;)."
 //                 rows={3}
 //               />
 //               {errors.units?.[activeUnit]?.skill_objectives && (
@@ -826,7 +898,7 @@
 //             <div className="grid grid-cols-1 gap-6">
 //               <div>
 //                 <Label htmlFor={`interlink-topics-${activeUnit}`}>
-//                   Interlink of this unit topic(s) with other subject's topic (Optional)
+//                   Interlink of this unit topic(s) with other subject&apos;s topic (Optional)
 //                 </Label>
 //                 <Textarea
 //                   id={`interlink-topics-${activeUnit}`}
@@ -904,6 +976,9 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
   const [primaryFaculty, setPrimaryFaculty] = useState<any>(null)
   const [secondaryFaculty, setSecondaryFaculty] = useState<any[]>([])
 
+  // State persistence cache
+  const [unitDataCache, setUnitDataCache] = useState<{ [key: number]: any }>({})
+
   const {
     register,
     control,
@@ -912,6 +987,7 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
     setValue,
     getValues,
     trigger,
+    reset,
     formState: { errors },
   } = useForm<UnitPlanningFormValues>({
     resolver: zodResolver(unitPlanningSchema),
@@ -955,6 +1031,83 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
     control,
     name: "units",
   })
+
+  // Save current unit data to cache
+  const saveCurrentUnitToCache = () => {
+    const currentUnitData = getValues(`units.${activeUnit}`)
+    if (currentUnitData) {
+      setUnitDataCache((prev) => ({
+        ...prev,
+        [activeUnit]: { ...currentUnitData },
+      }))
+
+      // Also update lesson plan state immediately
+      setLessonPlan((prev: any) => {
+        const updatedUnits = [...(prev.units || [])]
+        if (updatedUnits[activeUnit]) {
+          updatedUnits[activeUnit] = { ...currentUnitData }
+        }
+        return {
+          ...prev,
+          units: updatedUnits,
+        }
+      })
+    }
+  }
+
+  // Load unit data from cache
+  const loadUnitFromCache = (unitIndex: number) => {
+    const cachedData = unitDataCache[unitIndex]
+    if (cachedData) {
+      // Set all form values for the unit
+      Object.keys(cachedData).forEach((key) => {
+        setValue(`units.${unitIndex}.${key}`, cachedData[key])
+      })
+    }
+  }
+
+  // Enhanced unit switching with state persistence
+  const switchToUnit = (newUnitIndex: number) => {
+    if (newUnitIndex === activeUnit) return
+
+    // Save current unit data before switching
+    saveCurrentUnitToCache()
+
+    // Switch to new unit
+    setActiveUnit(newUnitIndex)
+
+    // Load cached data for new unit after a brief delay to ensure state update
+    setTimeout(() => {
+      loadUnitFromCache(newUnitIndex)
+    }, 50)
+  }
+
+  // Initialize cache with existing unit data on mount
+  useEffect(() => {
+    if (lessonPlan?.units && lessonPlan.units.length > 0) {
+      const initialCache: { [key: number]: any } = {}
+      lessonPlan.units.forEach((unit: any, index: number) => {
+        initialCache[index] = { ...unit }
+      })
+      setUnitDataCache(initialCache)
+    }
+  }, [lessonPlan?.units])
+
+  // Auto-save current unit data when form values change
+  useEffect(() => {
+    const subscription = watch((value, { name }) => {
+      if (name && name.startsWith(`units.${activeUnit}`)) {
+        // Debounce the save operation
+        const timeoutId = setTimeout(() => {
+          saveCurrentUnitToCache()
+        }, 500)
+
+        return () => clearTimeout(timeoutId)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [watch, activeUnit, getValues, setLessonPlan])
 
   // Check for faculty sharing when component mounts
   useEffect(() => {
@@ -1004,7 +1157,10 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
   }, [lessonPlan?.units, setValue])
 
   const addUnit = () => {
-    appendUnit({
+    // Save current unit before adding new one
+    saveCurrentUnitToCache()
+
+    const newUnit = {
       id: crypto.randomUUID(),
       unit_name: "",
       unit_topics: "",
@@ -1023,8 +1179,18 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
       topics_beyond_unit: "",
       assigned_faculty_id: userData?.id || "",
       isNew: true,
-    })
-    setActiveUnit(unitFields.length)
+    }
+
+    appendUnit(newUnit)
+
+    // Cache the new unit
+    const newIndex = unitFields.length
+    setUnitDataCache((prev) => ({
+      ...prev,
+      [newIndex]: { ...newUnit },
+    }))
+
+    setActiveUnit(newIndex)
   }
 
   const removeUnitHandler = (index: number) => {
@@ -1032,7 +1198,28 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
       toast.error("You must have at least one unit")
       return
     }
+
+    // Remove from cache
+    setUnitDataCache((prev) => {
+      const newCache = { ...prev }
+      delete newCache[index]
+
+      // Reindex remaining cache entries
+      const reindexedCache: { [key: number]: any } = {}
+      Object.keys(newCache).forEach((key) => {
+        const numKey = Number.parseInt(key)
+        if (numKey > index) {
+          reindexedCache[numKey - 1] = newCache[numKey]
+        } else {
+          reindexedCache[numKey] = newCache[numKey]
+        }
+      })
+
+      return reindexedCache
+    })
+
     removeUnit(index)
+
     if (activeUnit >= index && activeUnit > 0) {
       setActiveUnit(activeUnit - 1)
     }
@@ -1074,10 +1261,22 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
     }
   }
 
+  // Update the handleFacultyAssignment function to store both faculty ID and name
   const handleFacultyAssignment = (unitIndex: number, facultyId: string) => {
+    // Get faculty name
+    const faculty = allFaculty.find((f) => f.id === facultyId)
+    const facultyName = faculty ? faculty.name : "Unknown Faculty"
+
     // Update the form state directly and trigger validation
     setValue(`units.${unitIndex}.assigned_faculty_id`, facultyId, {
       shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    })
+
+    // Also store faculty name for display purposes
+    setValue(`units.${unitIndex}.faculty_name`, facultyName, {
+      shouldValidate: false,
       shouldDirty: true,
       shouldTouch: true,
     })
@@ -1092,6 +1291,7 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
         updatedUnits[unitIndex] = {
           ...updatedUnits[unitIndex],
           assigned_faculty_id: facultyId,
+          faculty_name: facultyName,
         }
       }
       return {
@@ -1099,46 +1299,95 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
         units: updatedUnits,
       }
     })
+  }
 
-    // Debug: Log current form values
-    setTimeout(() => {
-      const currentValues = getValues()
-      console.log(
-        "Current form values after assignment:",
-        currentValues.units.map((u, i) => ({
-          unit: i + 1,
-          assigned_faculty_id: u.assigned_faculty_id,
-        })),
-      )
-    }, 100)
+  const showFormDialog = (title: string, message: string) => {
+    // Create a custom dialog for form messages
+    const dialog = document.createElement("div")
+    dialog.className = "fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+    dialog.innerHTML = `
+      <div class="bg-white rounded-lg w-full max-w-2xl shadow-xl">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+          <h3 class="text-xl font-semibold text-red-600">${title}</h3>
+          <button class="text-gray-400 hover:text-gray-600 text-2xl font-bold" onclick="this.closest('.fixed').remove()">
+            ×
+          </button>
+        </div>
+        <div class="p-6">
+          <div class="text-sm leading-relaxed whitespace-pre-line text-gray-700">${message}</div>
+        </div>
+        <div class="flex justify-end p-6 border-t border-gray-200 bg-gray-50">
+          <button class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium" onclick="this.closest('.fixed').remove()">
+            OK
+          </button>
+        </div>
+      </div>
+    `
+    document.body.appendChild(dialog)
+
+    // Add click outside to close
+    dialog.addEventListener("click", (e) => {
+      if (e.target === dialog) {
+        dialog.remove()
+      }
+    })
   }
 
   const onSubmit = async (data: UnitPlanningFormValues) => {
     setIsSaving(true)
 
+    // Save current unit to cache before submitting
+    saveCurrentUnitToCache()
+
+    // Merge cached data with form data
+    const mergedUnits = data.units.map((unit, index) => ({
+      ...unit,
+      ...(unitDataCache[index] || {}),
+    }))
+
+    const finalData = {
+      ...data,
+      units: mergedUnits,
+    }
+
     // Debug: Log the data being submitted
     console.log(
       "Submitting data:",
-      data.units.map((u, i) => ({
+      finalData.units.map((u, i) => ({
         unit: i + 1,
         assigned_faculty_id: u.assigned_faculty_id,
+        faculty_name: u.faculty_name,
       })),
     )
 
     // Validate faculty assignments for shared subjects
     if (isSharing) {
-      const unassignedUnits = data.units.filter((unit) => !unit.assigned_faculty_id)
+      const unassignedUnits = finalData.units.filter((unit) => !unit.assigned_faculty_id)
       if (unassignedUnits.length > 0) {
-        toast.error("Please assign faculty to all units before saving.")
+        const unitNumbers = unassignedUnits
+          .map((_, idx) => {
+            const originalIndex = finalData.units.findIndex((u) => u.id === unassignedUnits[idx].id)
+            return originalIndex + 1
+          })
+          .join(", ")
+
+        showFormDialog("Faculty Assignment Required", `Please assign faculty to Unit ${unitNumbers} before saving.`)
         setIsSaving(false)
         return
       }
+    } else {
+      // For non-shared subjects, automatically assign current faculty to all units
+      finalData.units = finalData.units.map((unit) => ({
+        ...unit,
+        assigned_faculty_id: unit.assigned_faculty_id || userData?.id || "",
+        faculty_name: unit.faculty_name || userData?.name || "Current Faculty",
+      }))
     }
 
     try {
       // Add sharing information to the form data
       const formDataWithSharing = {
-        ...data,
+        ...finalData,
         is_sharing: isSharing,
         sharing_faculty: allFaculty,
       }
@@ -1153,15 +1402,16 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
         toast.success("Unit planning saved successfully!")
         setLessonPlan((prev: any) => ({
           ...prev,
-          units: data.units,
-          unit_remarks: data.remarks,
+          units: finalData.units,
+          unit_remarks: finalData.remarks,
           is_sharing: isSharing,
           sharing_faculty: allFaculty,
+          unit_planning_completed: true,
         }))
       } else {
         // Show validation dialog
         if (result.error?.includes("Dear Professor")) {
-          showValidationDialog(result.error)
+          showFormDialog("Validation Required", result.error)
         } else {
           toast.error(result.error || "Failed to save unit planning")
         }
@@ -1371,7 +1621,7 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
               type="button"
               variant={activeUnit === index ? "default" : "outline"}
               className={`${activeUnit === index ? "bg-[#1A5CA1] hover:bg-[#154A80]" : ""} relative`}
-              onClick={() => setActiveUnit(index)}
+              onClick={() => switchToUnit(index)}
               title={
                 isSharing && watch(`units.${index}.assigned_faculty_id`)
                   ? `Assigned to: ${getFacultyName(watch(`units.${index}.assigned_faculty_id`))}`
