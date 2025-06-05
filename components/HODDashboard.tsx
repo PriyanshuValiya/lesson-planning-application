@@ -2977,7 +2977,7 @@ export default function HODDashboard() {
             <SelectContent>
               {uniqueRoles.map((role, idx) => (
                 <SelectItem value={role.role_name} key={idx}>
-                  {role.role_name}
+                  {role.role_name === "Faculty" ? "Subject Teacher" : role.role_name}
                 </SelectItem>
               ))}
             </SelectContent>
