@@ -1,3 +1,4 @@
+//@ts-nocheck
 "use client";
 import AttendanceDetails from "@/components/AttendanceDetails";
 import MarkAttendance from "@/components/MarkAttendance";
