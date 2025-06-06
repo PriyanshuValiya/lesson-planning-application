@@ -438,7 +438,7 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
             </div>
           </div>
           {termStartDateError && <p className="text-red-500 text-xs mt-1">{termStartDateError}</p>}
-          {termStartDate && <p className="text-xs text-gray-500 mt-1">{formatDateForUI(termStartDate)}</p>}
+          {/* {termStartDate && <p className="text-xs text-gray-500 mt-1">{formatDateForUI(termStartDate)}</p>} */}
         </div>
         <div>
           <Label htmlFor="term-end-date">Term End Date</Label>
@@ -455,7 +455,7 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
             </div>
           </div>
           {termEndDateError && <p className="text-red-500 text-xs mt-1">{termEndDateError}</p>}
-          {termEndDate && <p className="text-xs text-gray-500 mt-1">{formatDateForUI(termEndDate)}</p>}
+          {/* {termEndDate && <p className="text-xs text-gray-500 mt-1">{formatDateForUI(termEndDate)}</p>} */}
         </div>
       </div>
 
