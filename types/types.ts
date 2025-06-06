@@ -246,4 +246,5 @@ export type {
   Faculty_Subjects,
   Student_data,
   Timetable,
+  Attendance,
 };
