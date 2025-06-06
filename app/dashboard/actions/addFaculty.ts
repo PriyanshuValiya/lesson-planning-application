@@ -115,10 +115,9 @@ export const addFaculty = async (formData: FormData) => {
     const supabase = await createClient();
     
     // Create user in Supabase Auth with random password
-    const randomPassword = uuid();
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
-      password: randomPassword,
+      password: "depstar@charusat",
       email_confirm: true, 
     });
     
@@ -172,7 +171,6 @@ export const addFaculty = async (formData: FormData) => {
       data: { 
         user: userData, 
         role: roleData,
-        tempPassword: randomPassword 
       } 
     };
   } catch (error) {
