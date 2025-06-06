@@ -94,37 +94,62 @@ export async function getTimetableForDateAndFaculty(
   ];
   const dayOfWeek = days[date.getUTCDay()];
 
-  // Query timetable for that day and faculty
+  // Query timetable for that day and faculty, using date range for timestampz
   const { data, error } = await supabase
     .from('timetable')
     .select()
     .eq('day', dayOfWeek)
-    .eq('faculty', facultyId);
+    .eq('faculty', facultyId)
+    .gte('from', dateStr)
+    .lt(
+      'to',
+      new Date(new Date(dateStr).getTime() + 24 * 60 * 60 * 1000).toISOString()
+    );
   if (error) throw error;
   return data;
 }
 
 export async function isAttendanceTaken(timetableId: string, dateStr: string) {
   const supabase = await createClient();
+  // Convert dateStr to start and end of day in ISO format for timestampz comparison
+  const date = new Date(dateStr);
+  const startOfDay = new Date(date.setHours(0, 0, 0, 0)).toISOString();
+  const endOfDay = new Date(date.setHours(23, 59, 59, 999)).toISOString();
   const { data, error } = await supabase
     .from('attendance')
     .select('id')
     .eq('lecture', timetableId)
-    .eq('Date', dateStr)
-    .maybeSingle();
+    .gte('Date', startOfDay)
+    .lte('Date', endOfDay);
   if (error) throw error;
-  return !!data;
+  return Array.isArray(data) && data.length > 0;
 }
 
 export async function getTimetableAndAttendanceStatus(
-  dateStr: string,
-  facultyId: string
+  day: string,
+  facultyId: string,
+  dateStr: string
 ) {
-  const timetables = await getTimetableForDateAndFaculty(dateStr, facultyId);
+  const timetables = await getTimetableForDayAndFaculty(day, facultyId);
   const results = [];
   for (const timetable of timetables) {
     const taken = await isAttendanceTaken(timetable.id, dateStr);
     results.push({ ...timetable, attendanceTaken: taken });
   }
   return results;
+}
+
+// Helper to get timetable for a specific day and faculty
+export async function getTimetableForDayAndFaculty(
+  day: string,
+  facultyId: string
+) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('timetable')
+    .select()
+    .eq('day', day)
+    .eq('faculty', facultyId);
+  if (error) throw error;
+  return data;
 }
