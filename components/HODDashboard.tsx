@@ -250,7 +250,7 @@ export default function HODDashboard() {
 
       if (result.success) {
         const message = result.data?.isNewUser
-          ? `Faculty added successfully! ${result.data.tempPassword ? `Temporary password: ${result.data.tempPassword}` : ""}`
+          ? `Faculty added successfully !!}`
           : "Faculty role assigned to existing user successfully!"
 
         toast.success(message)
@@ -396,7 +396,6 @@ export default function HODDashboard() {
         toast.success("Subject deleted successfully")
         setDeleteSubjectDialogOpen(false)
 
-        // Refresh both subjects and faculty data since faculty assignments may have changed
         const [subjectData, facultyData] = await Promise.all([fetchSubjects(), fetchFaculty()])
 
         const departSubjects = subjectData.filter((subject) => subject.department_id === currentRole?.depart_id)
@@ -449,7 +448,6 @@ export default function HODDashboard() {
         const departSubjects = subjectData.filter((subject) => subject.department_id === currentRole.depart_id)
         setSubjects(departSubjects)
 
-        // Show PSO/PEO button in dialog after successful subject addition
         setShowPsoPeoInDialog(true)
       } else {
         toast.error("Failed to add subject")
