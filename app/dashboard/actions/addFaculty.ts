@@ -27,6 +27,10 @@ export const addFaculty = async (formData: FormData) => {
     let userData: any
 
     if (existingUser) {
+<<<<<<< HEAD
+=======
+      // User already exists, use existing auth_id
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
       authUserId = existingUser.auth_id
       userData = existingUser
 
@@ -46,6 +50,10 @@ export const addFaculty = async (formData: FormData) => {
         userData = updatedUser
       }
     } else {
+<<<<<<< HEAD
+=======
+      // Create new user in Supabase Auth
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password: "depstar@charusat",
@@ -63,6 +71,10 @@ export const addFaculty = async (formData: FormData) => {
 
       authUserId = authData.user.id
 
+<<<<<<< HEAD
+=======
+      // Create user in users table
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
       const { data: newUserData, error: userError } = await supabase
         .from("users")
         .insert({
@@ -75,6 +87,10 @@ export const addFaculty = async (formData: FormData) => {
 
       if (userError) {
         console.error("User table error:", userError)
+<<<<<<< HEAD
+=======
+        // Cleanup: delete auth user if users table insertion fails
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
         await supabaseAdmin.auth.admin.deleteUser(authUserId)
         return { success: false, error: userError.message }
       }
@@ -82,6 +98,10 @@ export const addFaculty = async (formData: FormData) => {
       userData = newUserData
     }
 
+<<<<<<< HEAD
+=======
+    // Check if faculty role already exists for this user in this department
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
     const { data: existingRole, error: roleCheckError } = await supabase
       .from("user_role")
       .select("*")
@@ -95,6 +115,10 @@ export const addFaculty = async (formData: FormData) => {
       return { success: false, error: "Faculty role already exists for this user and subject" }
     }
 
+<<<<<<< HEAD
+=======
+    // Create user role
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
     const { data: roleData, error: roleError } = await supabase
       .from("user_role")
       .insert({
@@ -110,6 +134,10 @@ export const addFaculty = async (formData: FormData) => {
 
     if (roleError) {
       console.error("User role error:", roleError)
+<<<<<<< HEAD
+=======
+      // Only delete user and auth if this was a new user creation
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
       if (!existingUser) {
         await supabase.from("users").delete().eq("auth_id", authUserId)
         await supabaseAdmin.auth.admin.deleteUser(authUserId)
@@ -123,7 +151,11 @@ export const addFaculty = async (formData: FormData) => {
         user: userData,
         role: roleData,
         isNewUser: !existingUser,
+<<<<<<< HEAD
         // tempPassword: existingUser ? null : "depstar@charusat",
+=======
+        tempPassword: existingUser ? null : "depstar@charusat",
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
       },
     }
   } catch (error) {
@@ -140,6 +172,10 @@ export const editFaculty = async (formData: FormData) => {
     const academicYear = formData.get("academicYear") as string
     const division = formData.get("division") as string
 
+<<<<<<< HEAD
+=======
+    // Extract subject IDs from FormData array format
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
     const subjectIds: string[] = []
     let index = 0
     while (formData.has(`subjectIds[${index}]`)) {
@@ -149,6 +185,7 @@ export const editFaculty = async (formData: FormData) => {
       }
       index++
     }
+<<<<<<< HEAD
 
     if (subjectIds.length === 0) {
       return { success: false, error: "At least one subject must be selected" }
@@ -156,6 +193,16 @@ export const editFaculty = async (formData: FormData) => {
 
     const supabase = await createClient()
 
+=======
+
+    if (subjectIds.length === 0) {
+      return { success: false, error: "At least one subject must be selected" }
+    }
+
+    const supabase = await createClient()
+
+    // Get the current user_role to find the user_id and depart_id
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
     const { data: currentRole, error: getCurrentError } = await supabase
       .from("user_role")
       .select("user_id, depart_id")
@@ -166,6 +213,10 @@ export const editFaculty = async (formData: FormData) => {
       return { success: false, error: getCurrentError.message }
     }
 
+<<<<<<< HEAD
+=======
+    // Update users table first
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
     const { data: userData, error: userError } = await supabase
       .from("users")
       .update({
@@ -180,12 +231,17 @@ export const editFaculty = async (formData: FormData) => {
       return { success: false, error: userError.message }
     }
 
+<<<<<<< HEAD
+=======
+    // Delete all existing user_role entries for this user with role "Faculty" in this department
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
     const { error: deleteError } = await supabase
       .from("user_role")
       .delete()
       .eq("user_id", currentRole.user_id)
       .eq("role_name", "Faculty")
       .eq("depart_id", currentRole.depart_id)
+<<<<<<< HEAD
 
     if (deleteError) {
       return { success: false, error: deleteError.message }
@@ -213,11 +269,45 @@ export const editFaculty = async (formData: FormData) => {
   }
 }
 
+=======
+
+    if (deleteError) {
+      return { success: false, error: deleteError.message }
+    }
+
+    // Create new user_role entries for each selected subject
+    const roleEntries = subjectIds.map((subjectId) => ({
+      user_id: currentRole.user_id,
+      role_name: "Faculty",
+      depart_id: currentRole.depart_id,
+      subject_id: subjectId,
+      academic_year: academicYear,
+      division,
+    }))
+
+    const { data: roleData, error: roleError } = await supabase.from("user_role").insert(roleEntries).select("*")
+
+    if (roleError) {
+      return { success: false, error: roleError.message }
+    }
+
+    return { success: true, data: { user: userData, roles: roleData } }
+  } catch (error) {
+    console.error("Unexpected error:", error)
+    return { success: false, error: "An unexpected error occurred" }
+  }
+}
+
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
 export const deleteFaculty = async (userAuthId: string) => {
   try {
     const supabase = await createClient()
     const supabaseAdmin = createAdminClient()
 
+<<<<<<< HEAD
+=======
+    // First, delete all user_role entries for this user
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
     const { error: roleDeleteError } = await supabase.from("user_role").delete().eq("user_id", userAuthId)
 
     if (roleDeleteError) {
@@ -225,6 +315,10 @@ export const deleteFaculty = async (userAuthId: string) => {
       return { success: false, error: roleDeleteError.message }
     }
 
+<<<<<<< HEAD
+=======
+    // Delete from users table
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
     const { error: userDeleteError } = await supabase.from("users").delete().eq("auth_id", userAuthId)
 
     if (userDeleteError) {
@@ -232,6 +326,10 @@ export const deleteFaculty = async (userAuthId: string) => {
       return { success: false, error: userDeleteError.message }
     }
 
+<<<<<<< HEAD
+=======
+    // Delete from Supabase Auth using admin client
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
     const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userAuthId)
 
     if (authDeleteError) {
@@ -246,6 +344,10 @@ export const deleteFaculty = async (userAuthId: string) => {
   }
 }
 
+<<<<<<< HEAD
+=======
+// Helper function to delete a single faculty role (not the entire user)
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
 export const deleteFacultyRole = async (roleId: string) => {
   try {
     const supabase = await createClient()
@@ -261,6 +363,10 @@ export const deleteFacultyRole = async (roleId: string) => {
       return { success: false, error: getRoleError.message }
     }
 
+<<<<<<< HEAD
+=======
+    // Delete the specific role
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
     const { error: roleDeleteError } = await supabase.from("user_role").delete().eq("id", roleId)
 
     if (roleDeleteError) {
@@ -277,12 +383,20 @@ export const deleteFacultyRole = async (roleId: string) => {
     }
 
     if (otherRoles.length === 0) {
+<<<<<<< HEAD
+=======
+      // Delete from users table
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
       const { error: userDeleteError } = await supabase.from("users").delete().eq("auth_id", roleData.user_id)
 
       if (userDeleteError) {
         console.error("Error deleting from users table:", userDeleteError)
       }
 
+<<<<<<< HEAD
+=======
+      // Delete from auth using admin client
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
       const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(roleData.user_id)
 
       if (authDeleteError) {
@@ -296,3 +410,8 @@ export const deleteFacultyRole = async (roleId: string) => {
     return { success: false, error: "An unexpected error occurred" }
   }
 }
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> f085102a97e6b28967007edab955e4c11fb45b7b
