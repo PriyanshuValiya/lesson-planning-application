@@ -56,9 +56,28 @@ export async function deleteAttendance(id: string) {
 // Get all attendance records
 export async function getAllAttendance() {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('attendance').select();
+  const { data, error } = await supabase
+    .from('attendance')
+    .select(
+      '*, timetable:lecture(subject, faculty, department, from, to, subjects:subject(code, name, departments(name)), faculty_details:faculty(name)), student:student_id(first_name, last_name, email)'
+    );
   if (error) throw error;
-  return data;
+  if (!data || data.length === 0) return [];
+  return data.map((item) => {
+    const { timetable, student, ...rest } = item;
+    return {
+      ...rest,
+      subject_code: timetable?.subjects?.code,
+      subject_name: timetable?.subjects?.name,
+      faculty_name: timetable?.faculty_details?.name,
+      department_name: timetable?.subjects?.departments?.name,
+      from: timetable?.from,
+      to: timetable?.to,
+      student_first_name: student?.first_name,
+      student_last_name: student?.last_name,
+      student_email: student?.email,
+    };
+  });
 }
 
 // Get attendance by id
@@ -66,22 +85,51 @@ export async function getAttendanceById(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('attendance')
-    .select()
+    .select(
+      '*, timetable:lecture(subject, faculty, department, from, to, subjects:subject(code, name, departments(name)), faculty_details:faculty(name)), student:student_id(first_name, last_name, email)'
+    )
     .eq('id', id)
-    .single();
-  if (error) throw error;
-  return data;
+    .maybeSingle(); // Use maybeSingle to avoid error if not found
+  if (error && error.code !== 'PGRST116') throw error;
+  if (!data) return null;
+  const { timetable, student, ...rest } = data;
+  return {
+    ...rest,
+    subject_code: timetable?.subjects?.code,
+    subject_name: timetable?.subjects?.name,
+    faculty_name: timetable?.faculty_details?.name,
+    department_name: timetable?.subjects?.departments?.name,
+    from: timetable?.from,
+    to: timetable?.to,
+    student_first_name: student?.first_name,
+    student_last_name: student?.last_name,
+    student_email: student?.email,
+  };
 }
 
 // Get attendance by student id
-export async function getAttendanceByStudentId(student: string) {
+export async function getAttendanceByStudentId(studentId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('attendance')
-    .select()
-    .eq('student_id', student);
+    .select(
+      '*, timetable:lecture(subject, faculty, department, from, to, subjects:subject(code, name, departments(name)), faculty_details:faculty(name))'
+    )
+    .eq('student_id', studentId);
   if (error) throw error;
-  return data;
+  if (!data || data.length === 0) return [];
+  return data.map((item) => {
+    const { timetable, ...rest } = item;
+    return {
+      ...rest,
+      subject_code: timetable?.subjects?.code,
+      subject_name: timetable?.subjects?.name,
+      faculty_name: timetable?.faculty_details?.name,
+      department_name: timetable?.subjects?.departments?.name,
+      from: timetable?.from,
+      to: timetable?.to,
+    };
+  });
 }
 
 // Bulk insert attendance for present and absent students for a single lecture
@@ -125,4 +173,42 @@ export async function insertBulkAttendanceByStatus(
     .select();
   if (error) throw error;
   return data;
+}
+
+// Get all presentees and absentees for a lecture
+export async function getAttendanceStatusByLecture(lectureId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('attendance')
+    .select(
+      'is_present, student:student_id(first_name, last_name, email), timetable:lecture(subjects:subject(name, code), faculty_details:faculty(name))'
+    )
+    .eq('lecture', lectureId);
+
+  if (error) throw error;
+  if (!data || data.length === 0) return { presentees: [], absentees: [] };
+
+  const presentees = data
+    .filter((item) => item.is_present)
+    .map((item) => ({
+      student_first_name: item.student?.[0]?.first_name,
+      student_last_name: item.student?.[0]?.last_name,
+      student_email: item.student?.[0]?.email,
+      subject_name: item.timetable?.[0]?.subjects?.[0]?.name,
+      subject_code: item.timetable?.[0]?.subjects?.[0]?.code,
+      faculty_name: item.timetable?.[0]?.faculty_details?.[0]?.name,
+    }));
+
+  const absentees = data
+    .filter((item) => !item.is_present)
+    .map((item) => ({
+      student_first_name: item.student?.[0]?.first_name,
+      student_last_name: item.student?.[0]?.last_name,
+      student_email: item.student?.[0]?.email,
+      subject_name: item.timetable?.[0]?.subjects?.[0]?.name,
+      subject_code: item.timetable?.[0]?.subjects?.[0]?.code,
+      faculty_name: item.timetable?.[0]?.faculty_details?.[0]?.name,
+    }));
+
+  return { presentees, absentees };
 }
