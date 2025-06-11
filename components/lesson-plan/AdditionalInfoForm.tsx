@@ -528,16 +528,24 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Trash2, Save, CheckCircle } from "lucide-react"
+import { Plus, Trash2, Save, CheckCircle, Upload, FileText } from "lucide-react"
 import { toast } from "sonner"
 import { additionalInfoSchema, type AdditionalInfoFormValues } from "@/utils/schema"
 import { saveAdditionalInfoForm } from "@/app/dashboard/actions/saveAdditionalInfoForm"
 import { useDashboardContext } from "@/context/DashboardContext"
 import { checkLessonPlanCompletion } from "@/app/dashboard/actions/checkLessonPlanCompletion"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface AdditionalInfoFormProps {
   lessonPlan: any
   setLessonPlan: React.Dispatch<React.SetStateAction<any>>
+}
+
+interface FileData {
+  name: string
+  type: string
+  size: number
+  arrayBuffer: ArrayBuffer
 }
 
 const eventTypes = [
@@ -548,8 +556,8 @@ const eventTypes = [
   "Competition",
   "Panel Discussion",
   "Round Table Discussion",
-  "Poster Presentations",
-  "Project Exhibitions",
+  "poster presentations",
+  "project exhibitions",
   "Knowledge Sharing Session",
   "Debate",
   "Idea/Innovation Contest",
@@ -568,22 +576,24 @@ const targetAudienceOptions = [
   "Staff",
 ]
 
-const skillMappingOptions = [
-  "Problem Solving",
-  "Critical Thinking",
-  "Communication",
-  "Leadership",
-  "Teamwork",
-  "Technical Skills",
-  "Research Skills",
-  "Innovation",
-  "Analytical Thinking",
-  "Project Management",
-]
-
 export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: AdditionalInfoFormProps) {
   const { userData } = useDashboardContext()
   const [isSaving, setIsSaving] = useState(false)
+  const [uploadedFiles, setUploadedFiles] = useState<{
+    fast_learner?: FileData
+    medium_learner?: FileData
+    slow_learner?: FileData
+  }>({})
+
+  const [existingFiles, setExistingFiles] = useState<{
+    fast_learner_file_url?: string
+    medium_learner_file_url?: string
+    slow_learner_file_url?: string
+  }>({
+    fast_learner_file_url: lessonPlan?.additional_info?.fast_learner_file_url,
+    medium_learner_file_url: lessonPlan?.additional_info?.medium_learner_file_url,
+    slow_learner_file_url: lessonPlan?.additional_info?.slow_learner_file_url,
+  })
 
   const {
     register,
@@ -607,6 +617,9 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
       academic_integrity: lessonPlan?.additional_info?.academic_integrity || "",
       communication_channels: lessonPlan?.additional_info?.communication_channels || "",
       interdisciplinary_integration: lessonPlan?.additional_info?.interdisciplinary_integration || "",
+      fast_learner_planning: lessonPlan?.additional_info?.fast_learner_planning || "",
+      medium_learner_planning: lessonPlan?.additional_info?.medium_learner_planning || "",
+      slow_learner_planning: lessonPlan?.additional_info?.slow_learner_planning || "",
       events: lessonPlan?.additional_info?.events || [],
     },
   })
@@ -630,18 +643,85 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
       target_audience: [],
       mode_of_conduct: "Offline",
       expected_outcomes: "",
-      skill_mapping: [],
       proposed_speaker: "",
     })
+  }
+
+  const handleFileUpload = async (learnerType: "fast_learner" | "medium_learner" | "slow_learner", file: File) => {
+    if (file.type !== "application/pdf") {
+      toast.error("Please upload only PDF files")
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size should be less than 5MB")
+      return
+    }
+
+    try {
+      // Convert File to ArrayBuffer for server action
+      const arrayBuffer = await file.arrayBuffer()
+
+      const fileData: FileData = {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        arrayBuffer: arrayBuffer,
+      }
+
+      setUploadedFiles((prev) => ({
+        ...prev,
+        [learnerType]: fileData,
+      }))
+
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2)
+      toast.success(`${learnerType.replace("_", " ")} file selected for upload (${fileSizeMB}MB)`)
+    } catch (error) {
+      console.error("Error processing file:", error)
+      toast.error("Error processing file")
+    }
+  }
+
+  const downloadFile = (url: string, fileName: string) => {
+    const link = document.createElement("a")
+    link.href = url
+    link.download = fileName
+    link.target = "_blank"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const removeExistingFile = (learnerType: "fast_learner" | "medium_learner" | "slow_learner") => {
+    setExistingFiles((prev) => ({
+      ...prev,
+      [`${learnerType}_file_url`]: undefined,
+    }))
+    toast.success("File marked for removal")
+  }
+
+  const removeFile = (learnerType: "fast_learner" | "medium_learner" | "slow_learner") => {
+    setUploadedFiles((prev) => {
+      const newFiles = { ...prev }
+      delete newFiles[learnerType]
+      return newFiles
+    })
+    toast.success("File removed")
   }
 
   const onSubmit = async (data: AdditionalInfoFormValues) => {
     setIsSaving(true)
     try {
+      // Include uploaded files in the form data
+      const formDataWithFiles = {
+        ...data,
+        uploaded_files: uploadedFiles,
+      }
+
       const result = await saveAdditionalInfoForm({
         faculty_id: userData?.id || "",
         subject_id: lessonPlan?.subject?.id || "",
-        formData: data,
+        formData: formDataWithFiles,
       })
 
       if (result.success) {
@@ -658,8 +738,11 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
 
         setLessonPlan((prev: any) => ({
           ...prev,
-          additional_info: data,
+          additional_info: result.data,
         }))
+
+        // Clear uploaded files after successful save
+        setUploadedFiles({})
       } else {
         toast.error(result.error || "Failed to save additional information")
       }
@@ -800,7 +883,9 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
         </div>
 
         <div>
-          <Label htmlFor="topics_beyond_syllabus">Topics Beyond Syllabus (Optional)</Label>
+          <Label htmlFor="topics_beyond_syllabus">
+            Topics Beyond Syllabus <span className="text-red-500">*</span>
+          </Label>
           <Textarea
             id="topics_beyond_syllabus"
             placeholder="e.g. Identify the topics that go beyond the prescribed syllabus to enrich student learning. These may include recent advancements & emerging trends, interdisciplinary applications, or practical case studies relevant to the subject."
@@ -808,6 +893,9 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
             className="mt-2"
             rows={4}
           />
+          {errors.topics_beyond_syllabus && (
+            <p className="text-red-500 text-sm mt-1">{errors.topics_beyond_syllabus.message}</p>
+          )}
         </div>
 
         <div>
@@ -823,6 +911,287 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
           />
         </div>
       </div>
+
+      {/* Planning for Different Types of Learners */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Planning for Different Types of Learners</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Fast Learner Planning */}
+          <div>
+            <Label htmlFor="fast_learner_planning">
+              Planning for Fast Learners <span className="text-red-500">*</span>
+            </Label>
+            <Textarea
+              id="fast_learner_planning"
+              placeholder="Describe strategies, additional challenges, and advanced topics for fast learners"
+              {...register("fast_learner_planning")}
+              className="mt-2"
+              rows={4}
+            />
+            {errors.fast_learner_planning && (
+              <p className="text-red-500 text-sm mt-1">{errors.fast_learner_planning.message}</p>
+            )}
+
+            {/* File Upload for Fast Learners */}
+            <div className="mt-3">
+              <Label className="text-sm font-medium">Tasks for Fast Learners (PDF Upload)</Label>
+
+              {/* Show existing file if available */}
+              {existingFiles.fast_learner_file_url && (
+                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-green-600" />
+                      <span className="text-sm text-green-700">Existing file uploaded</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadFile(existingFiles.fast_learner_file_url!, "fast_learner_tasks.pdf")}
+                      >
+                        Download
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeExistingFile("fast_learner")}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Upload new file */}
+              <div className="mt-2 flex items-center gap-4">
+                <Input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleFileUpload("fast_learner", file)
+                  }}
+                  className="hidden"
+                  id="fast-learner-upload"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById("fast-learner-upload")?.click()}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  {existingFiles.fast_learner_file_url ? "Replace PDF" : "Upload PDF"}
+                </Button>
+                {uploadedFiles.fast_learner && (
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm text-blue-600">{uploadedFiles.fast_learner.name} (Ready to upload)</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile("fast_learner")}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Medium Learner Planning */}
+          <div>
+            <Label htmlFor="medium_learner_planning">
+              Planning for Medium Learners <span className="text-red-500">*</span>
+            </Label>
+            <Textarea
+              id="medium_learner_planning"
+              placeholder="Describe strategies, regular pace activities, and standard learning approaches for medium learners"
+              {...register("medium_learner_planning")}
+              className="mt-2"
+              rows={4}
+            />
+            {errors.medium_learner_planning && (
+              <p className="text-red-500 text-sm mt-1">{errors.medium_learner_planning.message}</p>
+            )}
+
+            {/* File Upload for Medium Learners */}
+            <div className="mt-3">
+              <Label className="text-sm font-medium">Tasks for Medium Learners (PDF Upload)</Label>
+
+              {/* Show existing file if available */}
+              {existingFiles.medium_learner_file_url && (
+                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-green-600" />
+                      <span className="text-sm text-green-700">Existing file uploaded</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadFile(existingFiles.medium_learner_file_url!, "medium_learner_tasks.pdf")}
+                      >
+                        Download
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeExistingFile("medium_learner")}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Upload new file */}
+              <div className="mt-2 flex items-center gap-4">
+                <Input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleFileUpload("medium_learner", file)
+                  }}
+                  className="hidden"
+                  id="medium-learner-upload"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById("medium-learner-upload")?.click()}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  {existingFiles.medium_learner_file_url ? "Replace PDF" : "Upload PDF"}
+                </Button>
+                {uploadedFiles.medium_learner && (
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm text-blue-600">{uploadedFiles.medium_learner.name} (Ready to upload)</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile("medium_learner")}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Slow Learner Planning */}
+          <div>
+            <Label htmlFor="slow_learner_planning">
+              Planning for Slow Learners <span className="text-red-500">*</span>
+            </Label>
+            <Textarea
+              id="slow_learner_planning"
+              placeholder="Describe strategies, additional support, remedial activities, and step-by-step approaches for slow learners"
+              {...register("slow_learner_planning")}
+              className="mt-2"
+              rows={4}
+            />
+            {errors.slow_learner_planning && (
+              <p className="text-red-500 text-sm mt-1">{errors.slow_learner_planning.message}</p>
+            )}
+
+            {/* File Upload for Slow Learners */}
+            <div className="mt-3">
+              <Label className="text-sm font-medium">Tasks for Slow Learners (PDF Upload)</Label>
+
+              {/* Show existing file if available */}
+              {existingFiles.slow_learner_file_url && (
+                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-green-600" />
+                      <span className="text-sm text-green-700">Existing file uploaded</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadFile(existingFiles.slow_learner_file_url!, "slow_learner_tasks.pdf")}
+                      >
+                        Download
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeExistingFile("slow_learner")}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Upload new file */}
+              <div className="mt-2 flex items-center gap-4">
+                <Input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleFileUpload("slow_learner", file)
+                  }}
+                  className="hidden"
+                  id="slow-learner-upload"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById("slow-learner-upload")?.click()}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  {existingFiles.slow_learner_file_url ? "Replace PDF" : "Upload PDF"}
+                </Button>
+                {uploadedFiles.slow_learner && (
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm text-blue-600">{uploadedFiles.slow_learner.name} (Ready to upload)</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile("slow_learner")}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Event Planning Section */}
       <Card>
@@ -869,8 +1238,16 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
                           {type}
                         </SelectItem>
                       ))}
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
+                  {watch(`events.${index}.event_type`) === "other" && (
+                    <Input
+                      {...register(`events.${index}.other_event_type`)}
+                      placeholder="Enter custom event type"
+                      className="mt-2"
+                    />
+                  )}
                 </div>
 
                 <div>
@@ -929,6 +1306,39 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
 
                 <div className="md:col-span-2">
                   <Label className="mb-2">
+                    Target Audience <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {targetAudienceOptions.map((option) => (
+                      <div key={option} className="space-x-2">
+                        <Checkbox
+                          id={`target_audience_${index}_${option.replace(" ", "_").toLowerCase()}`}
+                          checked={watch(`events.${index}.target_audience`)?.includes(option)}
+                          onCheckedChange={(checked) => {
+                            const currentValues = watch(`events.${index}.target_audience`) || []
+                            if (checked) {
+                              setValue(`events.${index}.target_audience`, [...currentValues, option])
+                            } else {
+                              setValue(
+                                `events.${index}.target_audience`,
+                                currentValues.filter((v: string) => v !== option),
+                              )
+                            }
+                          }}
+                        />
+                        <Label
+                          htmlFor={`target_audience_${index}_${option.replace(" ", "_").toLowerCase()}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {option}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label className="mb-2">
                     Expected Outcomes <span className="text-red-500">*</span>
                   </Label>
                   <Textarea
@@ -937,7 +1347,9 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
                     rows={3}
                   />
                   {errors.events?.[index]?.expected_outcomes && (
-                    <p className="text-red-500 text-sm mt-1">{errors.events[index]?.expected_outcomes?.message}</p>
+                    <p className="text-red-500 text-sm mt-1">
+                      Write in brief, how this event will benefit to students.
+                    </p>
                   )}
                 </div>
               </div>

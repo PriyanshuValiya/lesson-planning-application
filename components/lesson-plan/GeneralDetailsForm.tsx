@@ -9,12 +9,14 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { InfoIcon, PlusCircle, XCircle } from 'lucide-react'
+import { InfoIcon, PlusCircle, XCircle } from "lucide-react"
 import { toast } from "sonner"
 import { v4 as uuidv4 } from "uuid"
 import { saveGeneralDetailsForm } from "@/app/dashboard/actions/saveGeneralDetailsForm"
 import { useDashboardContext } from "@/context/DashboardContext"
-import { createClient } from "@/utils/supabase/client"
+
+// DIRECT SUPABASE IMPORT - NO UTILITY FUNCTION
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 
 interface GeneralDetailsFormProps {
   lessonPlan: any
@@ -22,54 +24,10 @@ interface GeneralDetailsFormProps {
   openPdfViewer: (file: string) => void
 }
 
-// COMPREHENSIVE DATE HANDLING FUNCTIONS
-const parseAnyDateFormat = (dateStr: string): Date | null => {
-  if (!dateStr) return null
-
-  // Handle DD-MM-YYYY format (database format)
-  if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
-    const [day, month, year] = dateStr.split("-")
-    return new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day))
-  }
-
-  // Handle MM/DD/YYYY format (HOD input format)
-  if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-    const [month, day, year] = dateStr.split("/")
-    return new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day))
-  }
-
-  // Handle DD/MM/YYYY format
-  if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-    const [day, month, year] = dateStr.split("/")
-    return new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day))
-  }
-
-  // Handle YYYY-MM-DD format (ISO format)
-  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    return new Date(dateStr)
-  }
-
-  // Try default parsing as fallback
-  try {
-    return new Date(dateStr)
-  } catch (error) {
-    console.error("Error parsing date:", error)
-    return null
-  }
-}
-
-const formatDateForDisplay = (dateStr: string): string => {
-  if (!dateStr) return ""
-
-  const date = parseAnyDateFormat(dateStr)
-  if (!date || isNaN(date.getTime())) return dateStr
-
-  const day = date.getDate().toString().padStart(2, "0")
-  const month = (date.getMonth() + 1).toString().padStart(2, "0")
-  const year = date.getFullYear()
-  
-  return `${day}-${month}-${year}` // Always return DD-MM-YYYY format
-}
+// Create Supabase client directly
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://your-project.supabase.co"
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+const supabase = createSupabaseClient(supabaseUrl, supabaseKey)
 
 export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfViewer }: GeneralDetailsFormProps) {
   const { userData } = useDashboardContext()
@@ -82,6 +40,9 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
     termStartDate: "",
     termEndDate: "",
   })
+
+  // Debug state
+  const [debugInfo, setDebugInfo] = useState("")
 
   // Form state
   const [division, setDivision] = useState(lessonPlan?.division || "Div 1 & 2")
@@ -103,89 +64,186 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
   const [coursePrerequisitesMaterialsError, setCoursePrerequisitesMaterialsError] = useState("")
   const [courseOutcomesError, setCourseOutcomesError] = useState("")
 
-  // COMPREHENSIVE DATE FETCHING WITH ALL POSSIBLE PATHS
+  // FIXED DATABASE QUERY FUNCTION
+  const testDatabaseQuery = async () => {
+    try {
+      setDebugInfo("🔍 Testing database query...")
+
+      if (!lessonPlan?.subject?.code) {
+        setDebugInfo("❌ No subject code available")
+        return
+      }
+
+      const subjectCode = lessonPlan.subject.code
+      setDebugInfo(`🔍 Querying for subject code: ${subjectCode}`)
+
+      // SIMPLER QUERY - Just get the metadata
+      const { data, error } = await supabase.from("subjects").select("metadata").eq("code", subjectCode).single()
+
+      if (error) {
+        setDebugInfo(`❌ Database error: ${JSON.stringify(error)}`)
+        return
+      }
+
+      if (!data) {
+        setDebugInfo(`❌ No subject found with code: ${subjectCode}`)
+        return
+      }
+
+      setDebugInfo(`✅ Found subject metadata: ${JSON.stringify(data.metadata, null, 2)}`)
+
+      // Extract dates from metadata
+      let metadata = data.metadata
+      if (typeof metadata === "string") {
+        try {
+          metadata = JSON.parse(metadata)
+        } catch (e) {
+          setDebugInfo(`❌ Error parsing metadata: ${e.message}`)
+          return
+        }
+      }
+
+      const startDate = metadata?.term_start_date
+      const endDate = metadata?.term_end_date
+
+      setDebugInfo(`📅 Extracted dates: start=${startDate}, end=${endDate}`)
+
+      // If dates are found, set them
+      if (startDate) {
+        setFacultyTermDates((prev) => ({
+          ...prev,
+          termStartDate: startDate,
+        }))
+        setDebugInfo((prev) => prev + "\n✅ Start date set!")
+      }
+
+      if (endDate) {
+        setFacultyTermDates((prev) => ({
+          ...prev,
+          termEndDate: endDate,
+        }))
+        setDebugInfo((prev) => prev + "\n✅ End date set!")
+      }
+
+      if (startDate || endDate) {
+        toast.success("Term dates loaded successfully!")
+      } else {
+        setDebugInfo((prev) => prev + "\n⚠️ No dates found in metadata")
+      }
+    } catch (error) {
+      setDebugInfo(`💥 Error: ${error.message}\n${error.stack}`)
+    }
+  }
+
+  // FIXED ADD SAMPLE DATES FUNCTION
+  const addSampleTermDates = async () => {
+    try {
+      setDebugInfo("📝 Adding sample term dates...")
+
+      if (!lessonPlan?.subject?.code) {
+        setDebugInfo("❌ No subject code available")
+        return
+      }
+
+      const subjectCode = lessonPlan.subject.code
+
+      // First get the current metadata
+      const { data: currentData, error: fetchError } = await supabase
+        .from("subjects")
+        .select("metadata")
+        .eq("code", subjectCode)
+        .single()
+
+      if (fetchError) {
+        setDebugInfo(`❌ Fetch error: ${JSON.stringify(fetchError)}`)
+        return
+      }
+
+      // Parse existing metadata or create new object
+      let metadata = currentData?.metadata || {}
+      if (typeof metadata === "string") {
+        try {
+          metadata = JSON.parse(metadata)
+        } catch (e) {
+          metadata = {}
+        }
+      }
+
+      // Add term dates to metadata
+      metadata.term_start_date = "01-05-2025"
+      metadata.term_end_date = "01-10-2025"
+
+      setDebugInfo(`📝 Updating with metadata: ${JSON.stringify(metadata, null, 2)}`)
+
+      // Update the subject with sample term dates
+      const { data: updateData, error: updateError } = await supabase
+        .from("subjects")
+        .update({ metadata })
+        .eq("code", subjectCode)
+        .select()
+
+      if (updateError) {
+        setDebugInfo(`❌ Update error: ${JSON.stringify(updateError)}`)
+        return
+      }
+
+      setDebugInfo(`✅ Sample dates added: ${JSON.stringify(updateData, null, 2)}`)
+
+      // Set the dates in state
+      setFacultyTermDates({
+        termStartDate: "01-05-2025",
+        termEndDate: "01-10-2025",
+      })
+
+      toast.success("Sample term dates added!")
+    } catch (error) {
+      setDebugInfo(`💥 Error: ${error.message}\n${error.stack}`)
+    }
+  }
+
+  // DIRECT FETCH ON LOAD
   useEffect(() => {
-    const fetchTermDates = async () => {
+    const fetchDates = async () => {
       try {
-        let termStartDate = ""
-        let termEndDate = ""
+        if (!lessonPlan?.subject?.code) return
 
-        // Path 1: Try to get from lessonPlan.subject.metadata (direct object)
-        if (lessonPlan?.subject?.metadata?.term_start_date) {
-          termStartDate = lessonPlan.subject.metadata.term_start_date
-          termEndDate = lessonPlan.subject.metadata.term_end_date
-          console.log("Found dates in lessonPlan.subject.metadata (object):", { termStartDate, termEndDate })
-        }
+        const { data, error } = await supabase
+          .from("subjects")
+          .select("metadata")
+          .eq("code", lessonPlan.subject.code)
+          .single()
 
-        // Path 2: Try to parse metadata if it's a JSON string
-        if (!termStartDate && typeof lessonPlan?.subject?.metadata === "string") {
+        if (error || !data) return
+
+        let metadata = data.metadata
+        if (typeof metadata === "string") {
           try {
-            const parsedMetadata = JSON.parse(lessonPlan.subject.metadata)
-            termStartDate = parsedMetadata?.term_start_date || ""
-            termEndDate = parsedMetadata?.term_end_date || ""
-            console.log("Found dates in lessonPlan.subject.metadata (parsed JSON):", { termStartDate, termEndDate })
+            metadata = JSON.parse(metadata)
           } catch (e) {
-            console.error("Error parsing metadata JSON:", e)
+            return
           }
         }
 
-        // Path 3: Try direct from lessonPlan
-        if (!termStartDate && lessonPlan?.term_start_date) {
-          termStartDate = lessonPlan.term_start_date
-          termEndDate = lessonPlan.term_end_date
-          console.log("Found dates in lessonPlan (direct):", { termStartDate, termEndDate })
+        if (metadata?.term_start_date) {
+          setFacultyTermDates((prev) => ({
+            ...prev,
+            termStartDate: metadata.term_start_date,
+          }))
         }
 
-        // Path 4: Fetch from database if we have subject code
-        if (!termStartDate && lessonPlan?.subject?.code) {
-          const supabase = createClient()
-          
-          const { data: subjects, error: subjectError } = await supabase
-            .from("subjects")
-            .select("metadata")
-            .eq("code", lessonPlan.subject.code)
-            .single()
-
-          if (!subjectError && subjects?.metadata) {
-            let metadata = subjects.metadata
-            
-            if (typeof metadata === "string") {
-              try {
-                metadata = JSON.parse(metadata)
-              } catch (e) {
-                console.error("Failed to parse database metadata:", e)
-              }
-            }
-            
-            if (metadata?.term_start_date) {
-              termStartDate = metadata.term_start_date
-              termEndDate = metadata.term_end_date
-              console.log("Found dates in database:", { termStartDate, termEndDate })
-            }
-          }
+        if (metadata?.term_end_date) {
+          setFacultyTermDates((prev) => ({
+            ...prev,
+            termEndDate: metadata.term_end_date,
+          }))
         }
-
-        // Format dates consistently to DD-MM-YYYY
-        if (termStartDate && termEndDate) {
-          setFacultyTermDates({
-            termStartDate: formatDateForDisplay(termStartDate),
-            termEndDate: formatDateForDisplay(termEndDate),
-          })
-          console.log("Final formatted dates:", {
-            termStartDate: formatDateForDisplay(termStartDate),
-            termEndDate: formatDateForDisplay(termEndDate)
-          })
-        } else {
-          console.log("No term dates found in any path")
-        }
-
       } catch (error) {
-        console.error("Error fetching term dates:", error)
+        console.error("Error fetching dates:", error)
       }
     }
 
-    fetchTermDates()
-  }, [lessonPlan?.subject?.code, lessonPlan?.subject?.metadata])
+    fetchDates()
+  }, [lessonPlan?.subject?.code])
 
   const handleAddCourseOutcome = () => {
     setCourseOutcomes([...courseOutcomes, { id: uuidv4(), text: "" }])
@@ -221,7 +279,6 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
       resetErrors()
       let hasErrors = false
 
-      // Validation
       if (!division) {
         setDivisionError("Division is required")
         hasErrors = true
@@ -263,15 +320,14 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
         return
       }
 
-      // Prepare form data with consistent date format
       const formData = {
         subject_id: lessonPlan?.subject?.id,
         division,
         lecture_hours: Number(lectureHours),
         lab_hours: Number(labHours),
         credits: Number(credits),
-        term_start_date: facultyTermDates.termStartDate, // DD-MM-YYYY format
-        term_end_date: facultyTermDates.termEndDate, // DD-MM-YYYY format
+        term_start_date: facultyTermDates.termStartDate,
+        term_end_date: facultyTermDates.termEndDate,
         course_prerequisites: coursePrerequisites,
         course_prerequisites_materials: coursePrerequisitesMaterials,
         courseOutcomes,
@@ -485,13 +541,7 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
             disabled
             className={`mt-1 ${facultyTermDates.termStartDate ? "bg-green-50 border-green-200" : "bg-gray-50"}`}
           />
-          <p
-            className={`text-xs mt-1 font-medium ${
-              facultyTermDates.termStartDate ? "text-green-600" : "text-orange-600"
-            }`}
-          >
-            {facultyTermDates.termStartDate ? "Set by HOD for this subject" : "HOD needs to set term dates"}
-          </p>
+          
         </div>
         <div>
           <Label htmlFor="term-end-date">Term End Date</Label>
@@ -502,16 +552,11 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
             disabled
             className={`mt-1 ${facultyTermDates.termEndDate ? "bg-green-50 border-green-200" : "bg-gray-50"}`}
           />
-          <p
-            className={`text-xs mt-1 font-medium ${
-              facultyTermDates.termEndDate ? "text-green-600" : "text-orange-600"
-            }`}
-          >
-            {facultyTermDates.termEndDate ? "Set by HOD for this subject" : "HOD needs to set term dates"}
-          </p>
+         
         </div>
       </div>
 
+    
       <div>
         <div className="flex items-center justify-between">
           <Label htmlFor="course-prerequisites">
