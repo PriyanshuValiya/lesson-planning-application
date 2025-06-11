@@ -1782,12 +1782,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import {
-  parseDDMMYYYYToDate,
-  formatDateToDDMMYYYY,
-  convertToStandardDateFormat,
-  getDaysDifference,
-} from "@/utils/dateUtils"
 
 interface PSOPEOItem {
   id: string
@@ -1798,6 +1792,61 @@ interface PSOPEOItem {
 interface CIEPlanningFormProps {
   lessonPlan: any
   setLessonPlan: React.Dispatch<React.SetStateAction<any>>
+}
+
+// Date utility functions specifically for this component
+const convertYYYYMMDDToDDMMYYYY = (dateStr: string): string => {
+  if (!dateStr) return ""
+
+  // If already in DD-MM-YYYY format
+  if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
+    return dateStr
+  }
+
+  // If in YYYY-MM-DD format, convert to DD-MM-YYYY
+  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const [year, month, day] = dateStr.split("-")
+    return `${day}-${month}-${year}`
+  }
+
+  return dateStr
+}
+
+const convertDDMMYYYYToYYYYMMDD = (dateStr: string): string => {
+  if (!dateStr) return ""
+
+  // If already in YYYY-MM-DD format
+  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return dateStr
+  }
+
+  // If in DD-MM-YYYY format, convert to YYYY-MM-DD
+  if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
+    const [day, month, year] = dateStr.split("-")
+    return `${year}-${month}-${day}`
+  }
+
+  return dateStr
+}
+
+const parseDateToDDMMYYYY = (dateStr: string): Date | null => {
+  if (!dateStr) return null
+
+  const standardDate = convertYYYYMMDDToDDMMYYYY(dateStr)
+  if (!standardDate.match(/^\d{2}-\d{2}-\d{4}$/)) return null
+
+  const [day, month, year] = standardDate.split("-").map(Number)
+  return new Date(year, month - 1, day)
+}
+
+const getDaysDifferenceBetweenDates = (date1: string, date2: string): number => {
+  const d1 = parseDateToDDMMYYYY(date1)
+  const d2 = parseDateToDDMMYYYY(date2)
+
+  if (!d1 || !d2) return 0
+
+  const diffTime = Math.abs(d2.getTime() - d1.getTime())
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 }
 
 // CIE Type Options
@@ -1970,6 +2019,12 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
   const handleCIEChange = (index: number, field: string, value: any) => {
     const updatedCIEs = [...(lessonPlan.cies || [])]
+
+    // Handle date conversion from HTML5 input (YYYY-MM-DD) to our format (DD-MM-YYYY)
+    if (field === "date" && value) {
+      value = convertYYYYMMDDToDDMMYYYY(value)
+    }
+
     updatedCIEs[index] = {
       ...updatedCIEs[index],
       [field]: value,
@@ -2144,28 +2199,28 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
     // Helper function to format date for display
     const formatForDisplay = (dateStr: string): string => {
-      if (!dateStr) return ""
-
-      // Convert to standard DD-MM-YYYY format
-      const standardDate = convertToStandardDateFormat(dateStr)
-      return standardDate || dateStr
+      return convertYYYYMMDDToDDMMYYYY(dateStr)
     }
 
     // VALIDATION 1: Date gap validation (must not exceed Course Term End Date)
     const sortedCIEs = [...currentCIEs]
       .filter((cie) => cie.date)
       .sort((a, b) => {
-        const dateA = parseDDMMYYYYToDate(a.date)
-        const dateB = parseDDMMYYYYToDate(b.date)
+        const dateA = parseDateToDDMMYYYY(a.date)
+        const dateB = parseDateToDDMMYYYY(b.date)
         if (!dateA || !dateB) return 0
         return dateA.getTime() - dateB.getTime()
       })
 
     if (lessonPlan.term_end_date) {
-      const termEndDate = parseDDMMYYYYToDate(convertToStandardDateFormat(lessonPlan.term_end_date))
+      const termEndDateStr = convertYYYYMMDDToDDMMYYYY(lessonPlan.term_end_date)
+      const termEndDate = parseDateToDDMMYYYY(termEndDateStr)
+
       if (termEndDate) {
         sortedCIEs.forEach((cie, index) => {
-          const cieDate = parseDDMMYYYYToDate(cie.date)
+          const cieDateStr = convertYYYYMMDDToDDMMYYYY(cie.date)
+          const cieDate = parseDateToDDMMYYYY(cieDateStr)
+
           if (cieDate && cieDate > termEndDate) {
             errors.push(
               `CIE ${index + 1} date (${formatForDisplay(cie.date)}) cannot exceed the Course Term End Date (${formatForDisplay(lessonPlan.term_end_date)})`,
@@ -2177,14 +2232,12 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
     // Minimum 7 days gap between consecutive CIEs
     for (let i = 1; i < sortedCIEs.length; i++) {
-      const prevDate = parseDDMMYYYYToDate(sortedCIEs[i - 1].date)
-      const currDate = parseDDMMYYYYToDate(sortedCIEs[i].date)
+      const prevDateStr = convertYYYYMMDDToDDMMYYYY(sortedCIEs[i - 1].date)
+      const currDateStr = convertYYYYMMDDToDDMMYYYY(sortedCIEs[i].date)
 
-      if (prevDate && currDate) {
-        const daysDiff = getDaysDifference(formatDateToDDMMYYYY(prevDate), formatDateToDDMMYYYY(currDate))
-        if (daysDiff < 7) {
-          errors.push(`CIE dates must be at least 7 days apart`)
-        }
+      const daysDiff = getDaysDifferenceBetweenDates(prevDateStr, currDateStr)
+      if (daysDiff < 7) {
+        errors.push(`CIE dates must be at least 7 days apart`)
       }
     }
 
@@ -2252,17 +2305,15 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
     // Validate Course Prerequisites CIE date (must be within 10 days of term start)
     const prereqCIE = currentCIEs.find((cie: any) => cie.type === "Course Prerequisites CIE")
     if (prereqCIE && prereqCIE.date && lessonPlan.term_start_date) {
-      const termStart = parseDDMMYYYYToDate(convertToStandardDateFormat(lessonPlan.term_start_date))
-      const prereqDate = parseDDMMYYYYToDate(prereqCIE.date)
+      const termStartStr = convertYYYYMMDDToDDMMYYYY(lessonPlan.term_start_date)
+      const prereqDateStr = convertYYYYMMDDToDDMMYYYY(prereqCIE.date)
 
-      if (termStart && prereqDate) {
-        const daysDiff = getDaysDifference(formatDateToDDMMYYYY(termStart), formatDateToDDMMYYYY(prereqDate))
+      const daysDiff = getDaysDifferenceBetweenDates(termStartStr, prereqDateStr)
 
-        if (daysDiff > 10) {
-          errors.push(
-            `Course Prerequisites CIE must be conducted within 10 days of term start date (${formatForDisplay(lessonPlan.term_start_date)})`,
-          )
-        }
+      if (daysDiff > 10) {
+        errors.push(
+          `Course Prerequisites CIE must be conducted within 10 days of term start date (${formatForDisplay(lessonPlan.term_start_date)})`,
+        )
       }
     }
 
@@ -2766,11 +2817,11 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         {/* Date, Marks, Duration */}
         <div className="grid grid-cols-3 gap-6">
           <div>
-            <Label htmlFor="date">Date * (DD-MM-YYYY)</Label>
+            <Label htmlFor="date">Date *</Label>
             <Input
               id="date"
               type="date"
-              value={currentCIE.date || ""}
+              value={convertDDMMYYYYToYYYYMMDD(currentCIE.date || "")}
               onChange={(e) => handleCIEChange(activeCIE, "date", e.target.value)}
               className="mt-1"
             />
