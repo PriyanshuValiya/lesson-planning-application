@@ -22,7 +22,7 @@ function ViewLessonPlanPage() {
         if (result.success) {
           setLessonPlan(result.data);
         } else {
-          toast.error(result.error || "Failed to load lesson plan");
+          toast.error(result.error || "Failed to load lesson plan !!");
         }
       } catch (error) {
         console.error("Error loading lesson plan:", error);
