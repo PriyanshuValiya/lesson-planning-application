@@ -51,6 +51,7 @@ export async function addSubject(formData: FormData) {
       .select();
 
     if (error) {
+      console.error("Error adding subject:", error);
       return { success: false, error: error.message };
     }
 
@@ -63,7 +64,6 @@ export async function addSubject(formData: FormData) {
 }
 
 export async function deleteSubject(id: string) {
-  console.log("Deleting subject with ID:", id);
   try {
     const supabase = createClient();
 
