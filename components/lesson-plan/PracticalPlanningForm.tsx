@@ -2568,7 +2568,7 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan }: Pra
 
                 {/* PSO Mapping with dropdown */}
                 <div>
-                  <Label className="mb-2">PSO Mapping (Optional)</Label>
+                  <Label className="mb-2">PSO Mapping</Label>
                   {loadingPsoPeo ? (
                     <p className="text-sm text-gray-500 mt-2">Loading PSO data...</p>
                   ) : departmentPsoPeo.pso_data.length > 0 ? (
@@ -2615,7 +2615,7 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan }: Pra
 
                 {/* PEO Mapping with dropdown */}
                 <div>
-                  <Label className="mb-2">PEO Mapping (Optional)</Label>
+                  <Label className="mb-2">PEO Mapping</Label>
                   {loadingPsoPeo ? (
                     <p className="text-sm text-gray-500 mt-2">Loading PEO data...</p>
                   ) : departmentPsoPeo.peo_data.length > 0 ? (
@@ -2664,7 +2664,7 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan }: Pra
               {/* Bloom's Taxonomy */}
               <div>
                 <Label className="mb-2">
-                  Bloom's Taxonomy <span className="text-red-500">*</span> (Multiple selection)
+                  Bloom's Taxonomy <span className="text-red-500">*</span> 
                 </Label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
                   {bloomsTaxonomyOptions.map((taxonomy) => (

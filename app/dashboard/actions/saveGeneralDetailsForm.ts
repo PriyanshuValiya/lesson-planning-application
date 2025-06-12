@@ -69,11 +69,7 @@ export async function saveGeneralDetailsForm(formData: any) {
       formData.term_end_date instanceof Date ? formData.term_end_date : new Date(formData.term_end_date)
 
     // Ensure dates are properly formatted as Date objects for storage
-    const term_start_date =
-      formData.term_start_date instanceof Date ? formData.term_start_date : new Date(formData.term_start_date)
-
-    const term_end_date =
-      formData.term_end_date instanceof Date ? formData.term_end_date : new Date(formData.term_end_date)
+    
 
     // Prepare the form data in BSON format structure with Date objects
     const formDataToSave = {
