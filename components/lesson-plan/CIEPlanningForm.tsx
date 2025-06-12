@@ -3160,7 +3160,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         {/* Save Button */}
         <div className="flex justify-end pt-6 border-t">
           <Button onClick={handleSave} className="bg-[#1A5CA1] hover:bg-[#154A80]" disabled={saving}>
-            {saving ? "Saving..." : "Save CIE Details"}
+            {saving ? "Saving..." : "Submit"}
           </Button>
         </div>
       </div>

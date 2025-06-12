@@ -653,7 +653,7 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
 
       <div className="flex justify-end">
         <Button type="submit" className="bg-[#1A5CA1] hover:bg-[#154A80]" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Save General Details"}
+          {isSubmitting ? "Saving..." : "Submit"}
         </Button>
       </div>
     </form>

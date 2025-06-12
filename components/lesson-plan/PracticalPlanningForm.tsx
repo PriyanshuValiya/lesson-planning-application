@@ -1385,7 +1385,7 @@ export default function PracticalPlanningForm({
           className="bg-[#1A5CA1] hover:bg-[#154A80]"
         >
           <Save className="mr-2 h-4 w-4" />
-          {isSaving ? "Saving..." : "Save Practical Details"}
+          {isSaving ? "Saving..." : "Submit"}
         </Button>
       </div>
     </form>
