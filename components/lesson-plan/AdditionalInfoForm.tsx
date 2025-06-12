@@ -1,9 +1,7 @@
-
-
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Textarea } from "@/components/ui/textarea"
@@ -20,6 +18,7 @@ import { useDashboardContext } from "@/context/DashboardContext"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { saveFormDraft, loadFormDraft } from "@/app/dashboard/actions/saveFormDraft"
 
 interface AdditionalInfoFormProps {
   lessonPlan: any
@@ -86,6 +85,8 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
     medium_learner?: FileData
     slow_learner?: FileData
   }>({})
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
   const [existingFiles, setExistingFiles] = useState<{
     fast_learner_file_url?: string
@@ -103,6 +104,8 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
     handleSubmit,
     watch,
     setValue,
+    getValues,
+    reset,
     formState: { errors },
   } = useForm<AdditionalInfoFormValues>({
     resolver: zodResolver(additionalInfoSchema),
@@ -211,6 +214,32 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
     toast.success("File removed")
   }
 
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true)
+
+    try {
+      const currentFormData = getValues()
+      const formData = {
+        ...currentFormData,
+        uploaded_files: uploadedFiles,
+      }
+
+      const result = await saveFormDraft(userData?.id || "", lessonPlan?.subject?.id || "", "additional_info", formData)
+
+      if (result.success) {
+        setLastSaved(new Date())
+        toast.success("Draft saved successfully")
+      } else {
+        toast.error("Failed to save draft")
+      }
+    } catch (error) {
+      console.error("Error saving draft:", error)
+      toast.error("Failed to save draft")
+    } finally {
+      setIsSavingDraft(false)
+    }
+  }
+
   const onSubmit = async (data: AdditionalInfoFormValues) => {
     setIsSaving(true)
     setValidationError(null)
@@ -276,6 +305,38 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
     }
   }
 
+  useEffect(() => {
+    const loadDraft = async () => {
+      if (!userData?.id || !lessonPlan?.subject?.id) return
+
+      try {
+        const result = await loadFormDraft(userData.id, lessonPlan.subject.id, "additional_info")
+
+        if (result.success && result.data) {
+          const data = result.data
+
+          // Reset form with loaded data
+          reset({
+            ...data,
+            faculty_id: userData.id,
+            subject_id: lessonPlan.subject.id,
+          })
+
+          // Restore uploaded files if any
+          if (data.uploaded_files) {
+            setUploadedFiles(data.uploaded_files)
+          }
+
+          toast.success("Draft loaded successfully")
+        }
+      } catch (error) {
+        console.error("Error loading draft:", error)
+      }
+    }
+
+    loadDraft()
+  }, [userData?.id, lessonPlan?.subject?.id, reset])
+
   // Check if all required fields are filled
   const watchedFields = watch([
     "classroom_conduct",
@@ -307,7 +368,6 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
     <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Additional Planning Information</h3>
-        <div className="text-sm text-gray-600">Complete all required fields and upload files to submit</div>
       </div>
 
       {/* Validation Error Alert */}
@@ -318,14 +378,7 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
         </Alert>
       )}
 
-      {/* Required Fields Notice */}
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          All fields marked with <span className="text-red-500">*</span> are required. PDF files must be uploaded for
-          each learner type.
-        </AlertDescription>
-      </Alert>
+     
 
       {/* Required Fields */}
       <div className="grid grid-cols-1 gap-6">
@@ -940,26 +993,34 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
         </CardContent>
       </Card>
 
-      <div className="w-full flex justify-end">
-        <Button
-          type="submit"
-          disabled={isSaving || !isFormValid}
-          className={`${
-            isFormValid ? "bg-[#1A5CA1] hover:bg-[#154A80]" : "bg-gray-400 cursor-not-allowed"
-          } transition-colors duration-200`}
-        >
-          {isSaving ? (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              {isFormValid ? "Submit" : "Submit"}
-            </>
-          )}
-        </Button>
+      <div className="flex justify-between items-center w-full">
+        <div className="flex items-center gap-4">
+          {lastSaved && <span className="text-sm text-gray-500">Last saved: {lastSaved.toLocaleTimeString()}</span>}
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSavingDraft}>
+            {isSavingDraft ? "Saving..." : "Save Draft"}
+          </Button>
+          <Button
+            type="submit"
+            disabled={isSaving || !isFormValid}
+            className={`${
+              isFormValid ? "bg-[#1A5CA1] hover:bg-[#154A80]" : "bg-gray-400 cursor-not-allowed"
+            } transition-colors duration-200`}
+          >
+            {isSaving ? (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Submit
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </form>
   )

@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { v4 as uuidv4 } from "uuid"
 import { saveGeneralDetailsForm } from "@/app/dashboard/actions/saveGeneralDetailsForm"
 import { useDashboardContext } from "@/context/DashboardContext"
+import { saveFormDraft, loadFormDraft } from "@/app/dashboard/actions/saveFormDraft"
 
 // DIRECT SUPABASE IMPORT - NO UTILITY FUNCTION
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
@@ -63,6 +64,9 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
   const [coursePrerequisitesError, setCoursePrerequisitesError] = useState("")
   const [coursePrerequisitesMaterialsError, setCoursePrerequisitesMaterialsError] = useState("")
   const [courseOutcomesError, setCourseOutcomesError] = useState("")
+
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
   // FIXED DATABASE QUERY FUNCTION
   const testDatabaseQuery = async () => {
@@ -271,6 +275,38 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
     setCourseOutcomesError("")
   }
 
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true)
+
+    try {
+      const formData = {
+        division,
+        lectureHours,
+        labHours,
+        credits,
+        coursePrerequisites,
+        coursePrerequisitesMaterials,
+        courseOutcomes,
+        remarks,
+        facultyTermDates,
+      }
+
+      const result = await saveFormDraft(userData?.id || "", lessonPlan?.subject?.id || "", "general_details", formData)
+
+      if (result.success) {
+        setLastSaved(new Date())
+        toast.success("Draft saved successfully")
+      } else {
+        toast.error("Failed to save draft")
+      }
+    } catch (error) {
+      console.error("Error saving draft:", error)
+      toast.error("Failed to save draft")
+    } finally {
+      setIsSavingDraft(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -374,6 +410,35 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
       setIsSubmitting(false)
     }
   }
+
+  useEffect(() => {
+    const loadDraft = async () => {
+      if (!userData?.id || !lessonPlan?.subject?.id) return
+
+      try {
+        const result = await loadFormDraft(userData.id, lessonPlan.subject.id, "general_details")
+
+        if (result.success && result.data) {
+          const data = result.data
+          if (data.division) setDivision(data.division)
+          if (data.lectureHours) setLectureHours(data.lectureHours)
+          if (data.labHours) setLabHours(data.labHours)
+          if (data.credits) setCredits(data.credits)
+          if (data.coursePrerequisites) setCoursePrerequisites(data.coursePrerequisites)
+          if (data.coursePrerequisitesMaterials) setCoursePrerequisitesMaterials(data.coursePrerequisitesMaterials)
+          if (data.courseOutcomes) setCourseOutcomes(data.courseOutcomes)
+          if (data.remarks) setRemarks(data.remarks)
+          if (data.facultyTermDates) setFacultyTermDates(data.facultyTermDates)
+
+          toast.success("Draft loaded successfully")
+        }
+      } catch (error) {
+        console.error("Error loading draft:", error)
+      }
+    }
+
+    loadDraft()
+  }, [userData?.id, lessonPlan?.subject?.id])
 
   return (
     <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -541,7 +606,6 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
             disabled
             className={`mt-1 ${facultyTermDates.termStartDate ? "bg-green-50 border-green-200" : "bg-gray-50"}`}
           />
-          
         </div>
         <div>
           <Label htmlFor="term-end-date">Term End Date</Label>
@@ -552,11 +616,9 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
             disabled
             className={`mt-1 ${facultyTermDates.termEndDate ? "bg-green-50 border-green-200" : "bg-gray-50"}`}
           />
-         
         </div>
       </div>
 
-    
       <div>
         <div className="flex items-center justify-between">
           <Label htmlFor="course-prerequisites">
@@ -651,10 +713,18 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
         />
       </div>
 
-      <div className="flex justify-end">
-        <Button type="submit" className="bg-[#1A5CA1] hover:bg-[#154A80]" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Submit"}
-        </Button>
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          {lastSaved && <span className="text-sm text-gray-500">Last saved: {lastSaved.toLocaleTimeString()}</span>}
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSavingDraft}>
+            {isSavingDraft ? "Saving..." : "Save Draft"}
+          </Button>
+          <Button type="submit" className="bg-[#1A5CA1] hover:bg-[#154A80]" disabled={isSubmitting}>
+            {isSubmitting ? "Submitting..." : "Submit"}
+          </Button>
+        </div>
       </div>
     </form>
   )

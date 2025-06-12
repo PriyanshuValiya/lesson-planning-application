@@ -1,7 +1,4 @@
-
-
-
-// "use client"
+// // "use client"
 
 // import type React from "react"
 // import { useState, useEffect } from "react"
@@ -25,6 +22,7 @@
 //   DialogDescription,
 //   DialogFooter,
 // } from "@/components/ui/dialog"
+// import { saveFormDraft, loadFormDraft } from "@/app/dashboard/actions/saveFormDraft"
 
 // interface PSOPEOItem {
 //   id: string
@@ -35,6 +33,7 @@
 // interface CIEPlanningFormProps {
 //   lessonPlan: any
 //   setLessonPlan: React.Dispatch<React.SetStateAction<any>>
+//   userData: any
 // }
 
 // // Date utility functions specifically for this component
@@ -140,7 +139,7 @@
 //   "Ethical, Social, and Environmental Awareness Skills",
 // ]
 
-// export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanningFormProps) {
+// export default function CIEPlanningForm({ lessonPlan, setLessonPlan, userData }: CIEPlanningFormProps) {
 //   const [activeCIE, setActiveCIE] = useState(0)
 //   const [validationErrors, setValidationErrors] = useState<string[]>([])
 //   const [validationWarnings, setValidationWarnings] = useState<string[]>([])
@@ -155,6 +154,8 @@
 //   const [saving, setSaving] = useState(false)
 //   const [warningDialogOpen, setWarningDialogOpen] = useState(false)
 //   const [currentWarning, setCurrentWarning] = useState("")
+//   const [isSavingDraft, setIsSavingDraft] = useState(false)
+//   const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
 //   // Field-specific error states
 //   const [typeError, setTypeError] = useState("")
@@ -177,7 +178,7 @@
 //         practicals_covered: [],
 //         date: "",
 //         marks: 50,
-//         duration: 45,
+//         duration: 50,
 //         blooms_taxonomy: [],
 //         evaluation_pedagogy: "",
 //         other_pedagogy: "",
@@ -260,6 +261,33 @@
 //     loadPsoPeoData()
 //   }, [lessonPlan.subject?.id])
 
+//   useEffect(() => {
+//     const loadDraft = async () => {
+//       if (!userData?.id || !lessonPlan?.subject?.id) return
+
+//       try {
+//         const result = await loadFormDraft(userData.id, lessonPlan.subject.id, "cie_planning")
+
+//         if (result.success && result.data) {
+//           const data = result.data
+//           if (data.cies && data.cies.length > 0) {
+//             setLessonPlan((prev: any) => ({
+//               ...prev,
+//               cies: data.cies,
+//               cie_remarks: data.remarks || "",
+//             }))
+
+//             toast.success("Draft loaded successfully")
+//           }
+//         }
+//       } catch (error) {
+//         console.error("Error loading draft:", error)
+//       }
+//     }
+
+//     loadDraft()
+//   }, [userData?.id, lessonPlan?.subject?.id, setLessonPlan])
+
 //   const handleCIEChange = (index: number, field: string, value: any) => {
 //     const updatedCIEs = [...(lessonPlan.cies || [])]
 
@@ -273,14 +301,34 @@
 //       [field]: value,
 //     }
 
-//     // Auto-calculate duration based on marks and bloom's taxonomy
+//     // Auto-calculate duration based on marks and bloom's taxonomy - MORE RESPONSIVE
 //     if (field === "marks" || field === "blooms_taxonomy") {
 //       const marks = field === "marks" ? value : updatedCIEs[index].marks
 //       const blooms = field === "blooms_taxonomy" ? value : updatedCIEs[index].blooms_taxonomy
 
 //       const calculatedDuration = calculateMinimumDuration(marks, blooms)
-//       if (calculatedDuration > updatedCIEs[index].duration) {
-//         updatedCIEs[index].duration = calculatedDuration
+//       // Always update duration when marks or blooms change
+//       updatedCIEs[index].duration = Math.max(calculatedDuration, 30) // Ensure minimum 30 minutes
+
+//       // Clear duration error when auto-calculating
+//       setDurationError("")
+//     }
+
+//     // Real-time duration validation when manually changed
+//     if (field === "duration") {
+//       const marks = updatedCIEs[index].marks || 0
+//       const blooms = updatedCIEs[index].blooms_taxonomy || []
+//       const minDuration = Math.max(calculateMinimumDuration(marks, blooms), 30)
+//       const pedagogy = updatedCIEs[index].evaluation_pedagogy
+
+//       if (value < 30) {
+//         setDurationError("Duration must be at least 30 minutes")
+//       } else if (value < minDuration) {
+//         setDurationError(`Duration should be at least ${minDuration} minutes based on marks and Bloom's taxonomy`)
+//       } else if (pedagogy === "Objective-Based Assessment (Quiz/MCQ)" && value > 50) {
+//         setDurationError("Quiz/MCQ duration cannot exceed 50 minutes")
+//       } else {
+//         setDurationError("")
 //       }
 //     }
 
@@ -372,6 +420,15 @@
 //       }
 //     }
 
+//     // Real-time validation for evaluation pedagogy and duration
+//     if (field === "evaluation_pedagogy") {
+//       const currentDuration = updatedCIEs[index].duration
+//       if (value === "Objective-Based Assessment (Quiz/MCQ)" && currentDuration > 50) {
+//         updatedCIEs[index].duration = 50
+//         toast.info("Duration automatically adjusted to 50 minutes for Quiz/MCQ")
+//       }
+//     }
+
 //     setLessonPlan((prev: any) => ({
 //       ...prev,
 //       cies: updatedCIEs,
@@ -381,7 +438,7 @@
 //   }
 
 //   const calculateMinimumDuration = (marks: number, bloomsLevels: string[]): number => {
-//     if (!marks || !bloomsLevels || bloomsLevels.length === 0) return 0
+//     if (!marks || !bloomsLevels || bloomsLevels.length === 0) return 30
 
 //     const hasHigherOrder = bloomsLevels.some((level) => ["Analyze", "Evaluate", "Create"].includes(level))
 //     const hasOnlyLowerOrder = bloomsLevels.every((level) => ["Remember", "Understand"].includes(level))
@@ -389,17 +446,15 @@
 //     let duration = 0
 
 //     if (hasOnlyLowerOrder) {
-//       duration = marks * 2 // 1 mark = 2 minutes
+//       duration = marks * 2 // 1 mark = 2 minutes for lower order
+//     } else if (hasHigherOrder) {
+//       duration = marks * 3 // 1 mark = 3 minutes for higher order
 //     } else {
-//       duration = marks * 3 // 1 mark = 3 minutes
+//       duration = marks * 2.5 // Mixed levels
 //     }
 
-//     // Minimum 30 minutes for higher order thinking
-//     if (hasHigherOrder && duration < 30) {
-//       duration = 30
-//     }
-
-//     return duration
+//     // Ensure minimum 30 minutes
+//     return Math.max(duration, 30)
 //   }
 
 //   const validateCIE = (cie: any, index: number) => {
@@ -638,7 +693,7 @@
 //       practicals_covered: [],
 //       date: "",
 //       marks: 50,
-//       duration: 45,
+//       duration: 50,
 //       blooms_taxonomy: [],
 //       evaluation_pedagogy: "",
 //       other_pedagogy: "",
@@ -718,6 +773,31 @@
 //       ...prev,
 //       cies: updatedCIEs,
 //     }))
+//   }
+
+//   const handleSaveDraft = async () => {
+//     setIsSavingDraft(true)
+
+//     try {
+//       const formData = {
+//         cies: lessonPlan.cies || [],
+//         remarks: lessonPlan.cie_remarks || "",
+//       }
+
+//       const result = await saveFormDraft(userData?.id || "", lessonPlan?.subject?.id || "", "cie_planning", formData)
+
+//       if (result.success) {
+//         setLastSaved(new Date())
+//         toast.success("Draft saved successfully")
+//       } else {
+//         toast.error("Failed to save draft")
+//       }
+//     } catch (error) {
+//       console.error("Error saving draft:", error)
+//       toast.error("Failed to save draft")
+//     } finally {
+//       setIsSavingDraft(false)
+//     }
 //   }
 
 //   const handleSave = async () => {
@@ -1090,13 +1170,39 @@
 //             <Input
 //               id="duration"
 //               type="number"
-//               min="1"
+//               min="30"
+//               max={currentCIE.evaluation_pedagogy === "Objective-Based Assessment (Quiz/MCQ)" ? "50" : undefined}
 //               value={currentCIE.duration || ""}
-//               onChange={(e) => handleCIEChange(activeCIE, "duration", Number(e.target.value))}
+//               onChange={(e) => {
+//                 const value = Number(e.target.value)
+//                 handleCIEChange(activeCIE, "duration", value)
+//               }}
+//               onBlur={() => {
+//                 // Recalculate and validate on blur
+//                 const marks = currentCIE.marks || 0
+//                 const blooms = currentCIE.blooms_taxonomy || []
+//                 const minDuration = Math.max(calculateMinimumDuration(marks, blooms), 30)
+
+//                 if (currentCIE.duration < minDuration) {
+//                   handleCIEChange(activeCIE, "duration", minDuration)
+//                   toast.info(`Duration automatically adjusted to minimum required: ${minDuration} minutes`)
+//                 }
+//               }}
 //               className="mt-1"
 //             />
 //             {durationError && <p className="text-red-500 text-xs mt-1">{durationError}</p>}
-//             <p className="text-xs text-gray-500 mt-1">Auto-calculated based on marks and Bloom's levels</p>
+//             <p className="text-xs text-gray-500 mt-1">
+//               Minimum 30 minutes required.
+//               {currentCIE.marks && currentCIE.blooms_taxonomy?.length > 0 && (
+//                 <span className="text-blue-600">
+//                   {" "}
+//                   Recommended: {Math.max(calculateMinimumDuration(currentCIE.marks, currentCIE.blooms_taxonomy), 30)}{" "}
+//                   minutes based on marks and Bloom's levels.
+//                 </span>
+//               )}
+//               {currentCIE.evaluation_pedagogy === "Objective-Based Assessment (Quiz/MCQ)" &&
+//                 " Maximum 50 minutes for Quiz/MCQ."}
+//             </p>
 //           </div>
 //         </div>
 
@@ -1221,63 +1327,112 @@
 //         </div>
 
 //         {/* CO, PSO, PEO Mapping */}
-//         <div className="grid grid-cols-3 gap-6">
+//         <div className="grid grid-cols-1 gap-6">
+//           {/* CO Mapping */}
 //           <div>
 //             <Label>
 //               CO Mapping{" "}
 //               {["Lecture CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"].includes(currentCIE.type)
 //                 ? "*"
 //                 : "(Optional)"}
-//               {["Lecture CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"].includes(currentCIE.type) && (
-//                 <span className="text-xs text-amber-600 ml-1">
-//                   (All COs must be covered across Lecture CIEs + Course Prerequisites CIEs + Mid-term/Internal Exams)
-//                 </span>
-//               )}
 //             </Label>
-//             <div className="grid grid-cols-2 gap-2 mt-2">
-//               {lessonPlan.courseOutcomes?.map((co: any, index: number) => (
-//                 <div key={co.id} className="flex items-center space-x-2">
-//                   <Checkbox
-//                     id={`co-${co.id}`}
-//                     checked={currentCIE.co_mapping?.includes(co.id) || false}
-//                     onCheckedChange={(checked) => {
-//                       const current = currentCIE.co_mapping || []
-//                       const updated = checked ? [...current, co.id] : current.filter((id: string) => id !== co.id)
-//                       handleCIEChange(activeCIE, "co_mapping", updated)
-//                     }}
-//                   />
-//                   <Label htmlFor={`co-${co.id}`} className="text-sm">
-//                     CO{index + 1}
-//                   </Label>
-//                 </div>
-//               ))}
+//             <Select
+//               value=""
+//               onValueChange={(value) => {
+//                 const current = currentCIE.co_mapping || []
+//                 if (!current.includes(value)) {
+//                   const updated = [...current, value]
+//                   handleCIEChange(activeCIE, "co_mapping", updated)
+//                 }
+//               }}
+//             >
+//               <SelectTrigger className="w-full mt-1">
+//                 <SelectValue placeholder="Select Course Outcomes" />
+//               </SelectTrigger>
+//               <SelectContent>
+//                 {lessonPlan.courseOutcomes?.map((co: any, index: number) => (
+//                   <SelectItem key={co.id} value={co.id}>
+//                     CO{index + 1}: {co.text}
+//                   </SelectItem>
+//                 ))}
+//               </SelectContent>
+//             </Select>
+
+//             {/* Selected COs */}
+//             <div className="mt-2 flex flex-wrap gap-2">
+//               {(currentCIE.co_mapping || []).map((coId: string) => {
+//                 const co = lessonPlan.courseOutcomes?.find((c: any) => c.id === coId)
+//                 const coIndex = lessonPlan.courseOutcomes?.findIndex((c: any) => c.id === coId)
+//                 return (
+//                   <Badge key={coId} variant="secondary" className="text-xs">
+//                     CO{(coIndex || 0) + 1}: {co?.text || "Unknown"}
+//                     <button
+//                       onClick={() => {
+//                         const updated = currentCIE.co_mapping.filter((id: string) => id !== coId)
+//                         handleCIEChange(activeCIE, "co_mapping", updated)
+//                       }}
+//                       className="ml-1 text-red-500 hover:text-red-700"
+//                     >
+//                       ×
+//                     </button>
+//                   </Badge>
+//                 )
+//               })}
 //             </div>
 //             {coMappingError && <p className="text-red-500 text-xs mt-1">{coMappingError}</p>}
 //           </div>
 
+//           {/* PSO Mapping */}
 //           <div>
 //             <Label>PSO Mapping (Optional)</Label>
 //             {loadingPsoPeo ? (
 //               <p className="text-sm text-gray-500 mt-2">Loading PSO data...</p>
 //             ) : departmentPsoPeo.pso_data.length > 0 ? (
-//               <div className="grid grid-cols-2 gap-2 mt-2">
-//                 {departmentPsoPeo.pso_data.map((pso, index) => (
-//                   <div key={pso.id} className="flex items-center space-x-2">
-//                     <Checkbox
-//                       id={`pso-${pso.id}`}
-//                       checked={currentCIE.pso_mapping?.includes(pso.id) || false}
-//                       onCheckedChange={(checked) => {
-//                         const current = currentCIE.pso_mapping || []
-//                         const updated = checked ? [...current, pso.id] : current.filter((p: string) => p !== pso.id)
-//                         handleCIEChange(activeCIE, "pso_mapping", updated)
-//                       }}
-//                     />
-//                     <Label htmlFor={`pso-${pso.id}`} className="text-sm" title={pso.description}>
-//                       {pso.label || `PSO${index + 1}`}
-//                     </Label>
-//                   </div>
-//                 ))}
-//               </div>
+//               <>
+//                 <Select
+//                   value=""
+//                   onValueChange={(value) => {
+//                     const current = currentCIE.pso_mapping || []
+//                     if (!current.includes(value)) {
+//                       const updated = [...current, value]
+//                       handleCIEChange(activeCIE, "pso_mapping", updated)
+//                     }
+//                   }}
+//                 >
+//                   <SelectTrigger className="w-full mt-1">
+//                     <SelectValue placeholder="Select PSO" />
+//                   </SelectTrigger>
+//                   <SelectContent>
+//                     {departmentPsoPeo.pso_data.map((pso, index) => (
+//                       <SelectItem key={pso.id} value={pso.id}>
+//                         {pso.label || `PSO${index + 1}`}: {pso.description}
+//                       </SelectItem>
+//                     ))}
+//                   </SelectContent>
+//                 </Select>
+
+//                 {/* Selected PSOs */}
+//                 <div className="mt-2 flex flex-wrap gap-2">
+//                   {(currentCIE.pso_mapping || []).map((psoId: string) => {
+//                     const pso = departmentPsoPeo.pso_data.find((p) => p.id === psoId)
+//                     const psoIndex = departmentPsoPeo.pso_data.findIndex((p) => p.id === psoId)
+//                     return (
+//                       <Badge key={psoId} variant="secondary" className="text-xs">
+//                         {pso?.label || `PSO${psoIndex + 1}`}: {pso?.description || "Unknown"}
+//                         <button
+//                           onClick={() => {
+//                             const updated = currentCIE.pso_mapping.filter((id: string) => id !== psoId)
+//                             handleCIEChange(activeCIE, "pso_mapping", updated)
+//                           }}
+//                           className="ml-1 text-red-500 hover:text-red-700"
+//                         >
+//                           ×
+//                         </button>
+//                       </Badge>
+//                     )
+//                   })}
+//                 </div>
+//               </>
 //             ) : (
 //               <p className="text-sm text-gray-500 mt-2">
 //                 No PSO data configured for this department. Please contact your HOD to set up PSO/PEO data.
@@ -1285,29 +1440,57 @@
 //             )}
 //           </div>
 
+//           {/* PEO Mapping */}
 //           <div>
 //             <Label>PEO Mapping (Optional)</Label>
 //             {loadingPsoPeo ? (
 //               <p className="text-sm text-gray-500 mt-2">Loading PEO data...</p>
 //             ) : departmentPsoPeo.peo_data.length > 0 ? (
-//               <div className="grid grid-cols-2 gap-2 mt-2">
-//                 {departmentPsoPeo.peo_data.map((peo, index) => (
-//                   <div key={peo.id} className="flex items-center space-x-2">
-//                     <Checkbox
-//                       id={`peo-${peo.id}`}
-//                       checked={currentCIE.peo_mapping?.includes(peo.id) || false}
-//                       onCheckedChange={(checked) => {
-//                         const current = currentCIE.peo_mapping || []
-//                         const updated = checked ? [...current, peo.id] : current.filter((p: string) => p !== peo.id)
-//                         handleCIEChange(activeCIE, "peo_mapping", updated)
-//                       }}
-//                     />
-//                     <Label htmlFor={`peo-${peo.id}`} className="text-sm" title={peo.description}>
-//                       {peo.label || `PEO${index + 1}`}
-//                     </Label>
-//                   </div>
-//                 ))}
-//               </div>
+//               <>
+//                 <Select
+//                   value=""
+//                   onValueChange={(value) => {
+//                     const current = currentCIE.peo_mapping || []
+//                     if (!current.includes(value)) {
+//                       const updated = [...current, value]
+//                       handleCIEChange(activeCIE, "peo_mapping", updated)
+//                     }
+//                   }}
+//                 >
+//                   <SelectTrigger className="w-full mt-1">
+//                     <SelectValue placeholder="Select PEO" />
+//                   </SelectTrigger>
+//                   <SelectContent>
+//                     {departmentPsoPeo.peo_data.map((peo, index) => (
+//                       <SelectItem key={peo.id} value={peo.id}>
+//                         {peo.label || `PEO${index + 1}`}: {peo.description}
+//                       </SelectItem>
+//                     ))}
+//                   </SelectContent>
+//                 </Select>
+
+//                 {/* Selected PEOs */}
+//                 <div className="mt-2 flex flex-wrap gap-2">
+//                   {(currentCIE.peo_mapping || []).map((peoId: string) => {
+//                     const peo = departmentPsoPeo.peo_data.find((p) => p.id === peoId)
+//                     const peoIndex = departmentPsoPeo.peo_data.findIndex((p) => p.id === peoId)
+//                     return (
+//                       <Badge key={peoId} variant="secondary" className="text-xs">
+//                         {peo?.label || `PEO${peoIndex + 1}`}: {peo?.description || "Unknown"}
+//                         <button
+//                           onClick={() => {
+//                             const updated = currentCIE.peo_mapping.filter((id: string) => id !== peoId)
+//                             handleCIEChange(activeCIE, "peo_mapping", updated)
+//                           }}
+//                           className="ml-1 text-red-500 hover:text-red-700"
+//                         >
+//                           ×
+//                         </button>
+//                       </Badge>
+//                     )
+//                   })}
+//                 </div>
+//               </>
 //             ) : (
 //               <p className="text-sm text-gray-500 mt-2">
 //                 No PEO data configured for this department. Please contact your HOD to set up PSO/PEO data.
@@ -1401,10 +1584,18 @@
 //         </div>
 
 //         {/* Save Button */}
-//         <div className="flex justify-end pt-6 border-t">
-//           <Button onClick={handleSave} className="bg-[#1A5CA1] hover:bg-[#154A80]" disabled={saving}>
-//             {saving ? "Saving..." : "Submit"}
-//           </Button>
+//         <div className="flex justify-between items-center pt-6 border-t">
+//           <div className="flex items-center gap-4">
+//             {lastSaved && <span className="text-sm text-gray-500">Last saved: {lastSaved.toLocaleTimeString()}</span>}
+//           </div>
+//           <div className="flex gap-2">
+//             <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSavingDraft}>
+//               {isSavingDraft ? "Saving..." : "Save Draft"}
+//             </Button>
+//             <Button onClick={handleSave} className="bg-[#1A5CA1] hover:bg-[#154A80]" disabled={saving}>
+//               {saving ? "Submitting..." : "Submit"}
+//             </Button>
+//           </div>
 //         </div>
 //       </div>
 
@@ -1427,7 +1618,7 @@
 // }
 
 
-"use client"
+// "use client"
 
 import type React from "react"
 import { useState, useEffect } from "react"
@@ -1451,6 +1642,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { saveFormDraft, loadFormDraft, deleteFormDraft } from "@/app/dashboard/actions/saveFormDraft"
 
 interface PSOPEOItem {
   id: string
@@ -1461,6 +1653,7 @@ interface PSOPEOItem {
 interface CIEPlanningFormProps {
   lessonPlan: any
   setLessonPlan: React.Dispatch<React.SetStateAction<any>>
+  userData: any
 }
 
 // Date utility functions specifically for this component
@@ -1566,7 +1759,7 @@ const skillMappingOptions = [
   "Ethical, Social, and Environmental Awareness Skills",
 ]
 
-export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanningFormProps) {
+export default function CIEPlanningForm({ lessonPlan, setLessonPlan, userData }: CIEPlanningFormProps) {
   const [activeCIE, setActiveCIE] = useState(0)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [validationWarnings, setValidationWarnings] = useState<string[]>([])
@@ -1581,6 +1774,8 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
   const [saving, setSaving] = useState(false)
   const [warningDialogOpen, setWarningDialogOpen] = useState(false)
   const [currentWarning, setCurrentWarning] = useState("")
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
   // Field-specific error states
   const [typeError, setTypeError] = useState("")
@@ -1685,6 +1880,77 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
     loadPsoPeoData()
   }, [lessonPlan.subject?.id])
+
+  useEffect(() => {
+    const loadDraft = async () => {
+      if (!userData?.id || !lessonPlan?.subject?.id) return
+
+      try {
+        console.log("Loading CIE draft for:", lessonPlan?.faculty?.id || userData.id, lessonPlan.subject.id) // Debug log
+
+        const result = await loadFormDraft(
+          lessonPlan?.faculty?.id || userData.id,
+          lessonPlan.subject.id,
+          "cie_planning",
+        )
+
+        if (result.success && result.data) {
+          const data = result.data
+          console.log("Loaded CIE draft data:", data) // Debug log
+
+          // Check if we have valid CIE data
+          if (data.cies && Array.isArray(data.cies) && data.cies.length > 0) {
+            // Ensure each CIE has proper structure
+            const validCIEs = data.cies.map((cie: any, index: number) => ({
+              id: cie.id || `cie${index + 1}`,
+              type: cie.type || "",
+              units_covered: Array.isArray(cie.units_covered) ? cie.units_covered : [],
+              practicals_covered: Array.isArray(cie.practicals_covered) ? cie.practicals_covered : [],
+              date: cie.date || "",
+              marks: cie.marks || 50,
+              duration: cie.duration || 50,
+              blooms_taxonomy: Array.isArray(cie.blooms_taxonomy) ? cie.blooms_taxonomy : [],
+              evaluation_pedagogy: cie.evaluation_pedagogy || "",
+              other_pedagogy: cie.other_pedagogy || "",
+              co_mapping: Array.isArray(cie.co_mapping) ? cie.co_mapping : [],
+              pso_mapping: Array.isArray(cie.pso_mapping) ? cie.pso_mapping : [],
+              peo_mapping: Array.isArray(cie.peo_mapping) ? cie.peo_mapping : [],
+              skill_mapping:
+                Array.isArray(cie.skill_mapping) && cie.skill_mapping.length > 0
+                  ? cie.skill_mapping
+                  : [{ skill: "", details: "" }],
+            }))
+
+            setLessonPlan((prev: any) => ({
+              ...prev,
+              cies: validCIEs,
+              cie_remarks: data.remarks || "",
+            }))
+
+            console.log("CIE draft loaded successfully with", validCIEs.length, "CIEs") // Debug log
+            toast.success("Draft loaded successfully")
+          } else {
+            console.log("No valid CIE data found in draft") // Debug log
+          }
+        } else {
+          console.log("No CIE draft found or failed to load") // Debug log
+        }
+      } catch (error) {
+        console.error("Error loading CIE draft:", error)
+      }
+    }
+
+    // Only load draft if we don't already have CIEs or if CIEs are empty/default
+    const currentCIEs = lessonPlan?.cies || []
+    const hasDefaultCIEOnly =
+      currentCIEs.length === 1 &&
+      (!currentCIEs[0].type || currentCIEs[0].type === "") &&
+      (!currentCIEs[0].date || currentCIEs[0].date === "")
+
+    if (hasDefaultCIEOnly || currentCIEs.length === 0) {
+      loadDraft()
+    }
+  }, [userData?.id, lessonPlan?.subject?.id, setLessonPlan, lessonPlan?.faculty?.id])
 
   const handleCIEChange = (index: number, field: string, value: any) => {
     const updatedCIEs = [...(lessonPlan.cies || [])]
@@ -2173,6 +2439,75 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
     }))
   }
 
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true)
+
+    try {
+      // Ensure we have valid CIE data structure
+      const validCIEs = (lessonPlan.cies || []).map((cie: any) => ({
+        ...cie,
+        // Ensure all required fields have default values
+        id: cie.id || `cie${Date.now()}`,
+        type: cie.type || "",
+        units_covered: cie.units_covered || [],
+        practicals_covered: cie.practicals_covered || [],
+        date: cie.date || "",
+        marks: cie.marks || 50,
+        duration: cie.duration || 50,
+        blooms_taxonomy: cie.blooms_taxonomy || [],
+        evaluation_pedagogy: cie.evaluation_pedagogy || "",
+        other_pedagogy: cie.other_pedagogy || "",
+        co_mapping: cie.co_mapping || [],
+        pso_mapping: cie.pso_mapping || [],
+        peo_mapping: cie.peo_mapping || [],
+        skill_mapping: cie.skill_mapping || [{ skill: "", details: "" }],
+      }))
+
+      const formData = {
+        cies: validCIEs,
+        remarks: lessonPlan.cie_remarks || "",
+      }
+
+      console.log("Saving CIE draft data:", formData) // Debug log
+
+      const result = await saveFormDraft(
+        lessonPlan?.faculty?.id || userData?.id || "",
+        lessonPlan?.subject?.id || "",
+        "cie_planning",
+        formData,
+      )
+
+      if (result.success) {
+        setLastSaved(new Date())
+        toast.success("Draft saved successfully")
+      } else {
+        console.error("Draft save failed:", result.error)
+        toast.error(`Failed to save draft: ${result.error}`)
+      }
+    } catch (error) {
+      console.error("Error saving draft:", error)
+      toast.error("Failed to save draft")
+    } finally {
+      setIsSavingDraft(false)
+    }
+  }
+
+  const clearDraft = async () => {
+    try {
+      const result = await deleteFormDraft(
+        lessonPlan?.faculty?.id || userData?.id || "",
+        lessonPlan?.subject?.id || "",
+        "cie_planning",
+      )
+
+      if (result.success) {
+        console.log("CIE draft cleared after successful submission")
+      }
+    } catch (error) {
+      console.error("Error clearing CIE draft:", error)
+    }
+  }
+
   const handleSave = async () => {
     setSaving(true)
     resetFieldErrors()
@@ -2255,7 +2590,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
     try {
       const result = await saveCIEPlanningForm({
-        faculty_id: lessonPlan.faculty?.id || "",
+        faculty_id: lessonPlan.faculty?.id || userData?.id || "",
         subject_id: lessonPlan.subject?.id || "",
         cies: lessonPlan.cies,
         remarks: lessonPlan.cie_remarks,
@@ -2270,6 +2605,9 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
           ...prev,
           cie_planning_completed: true,
         }))
+
+        // Clear the draft after successful submission
+        await clearDraft()
       } else {
         toast.error(result.error || "Failed to save CIE details")
       }
@@ -2707,7 +3045,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
               CO Mapping{" "}
               {["Lecture CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"].includes(currentCIE.type)
                 ? "*"
-                : "(Optional)"}
+                : ""}
             </Label>
             <Select
               value=""
@@ -2757,7 +3095,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
           {/* PSO Mapping */}
           <div>
-            <Label>PSO Mapping (Optional)</Label>
+            <Label>PSO Mapping</Label>
             {loadingPsoPeo ? (
               <p className="text-sm text-gray-500 mt-2">Loading PSO data...</p>
             ) : departmentPsoPeo.pso_data.length > 0 ? (
@@ -2815,7 +3153,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
           {/* PEO Mapping */}
           <div>
-            <Label>PEO Mapping (Optional)</Label>
+            <Label>PEO Mapping</Label>
             {loadingPsoPeo ? (
               <p className="text-sm text-gray-500 mt-2">Loading PEO data...</p>
             ) : departmentPsoPeo.peo_data.length > 0 ? (
@@ -2957,10 +3295,18 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         </div>
 
         {/* Save Button */}
-        <div className="flex justify-end pt-6 border-t">
-          <Button onClick={handleSave} className="bg-[#1A5CA1] hover:bg-[#154A80]" disabled={saving}>
-            {saving ? "Saving..." : "Submit"}
-          </Button>
+        <div className="flex justify-between items-center pt-6 border-t">
+          <div className="flex items-center gap-4">
+            {lastSaved && <span className="text-sm text-gray-500">Last saved: {lastSaved.toLocaleTimeString()}</span>}
+          </div>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSavingDraft}>
+              {isSavingDraft ? "Saving..." : "Save Draft"}
+            </Button>
+            <Button onClick={handleSave} className="bg-[#1A5CA1] hover:bg-[#154A80]" disabled={saving}>
+              {saving ? "Submitting..." : "Submit"}
+            </Button>
+          </div>
         </div>
       </div>
 
