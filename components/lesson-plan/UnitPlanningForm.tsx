@@ -1,6 +1,8 @@
-// //@ts-nocheck
-// //@ts-ignore
-// "use client"
+
+//@ts-nocheck
+
+
+"use client"
 
 import type React from "react"
 import { useState, useEffect } from "react"
@@ -1356,3 +1358,4 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
     </form>
   )
 }
+
