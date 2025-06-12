@@ -193,6 +193,7 @@ export async function saveAdditionalInfoForm(data: {
       const updatedFormData = {
         ...existingFormData,
         additionalInfo: additionalInfoData,
+        additionalInfo: additionalInfoData,
       }
 
       const { error: updateError } = await supabase
@@ -214,6 +215,7 @@ export async function saveAdditionalInfoForm(data: {
       console.log("📝 Creating new form...")
       // Create new form with additional info
       const formData = {
+        additionalInfo: additionalInfoData,
         additionalInfo: additionalInfoData,
       }
 

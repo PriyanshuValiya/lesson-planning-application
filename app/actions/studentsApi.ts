@@ -96,3 +96,15 @@ export async function getStudentsByDivisionBatchAndSem(
   if (error) throw error;
   return data;
 }
+
+export async function getStudentAttendanceAverage(student_id: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc('get_attendance_average', {
+    student_id,
+  });
+
+  if (error) throw error;
+
+  return data ?? 0; // data is the average
+}

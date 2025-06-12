@@ -35,46 +35,74 @@ export async function deleteTimetable(id: string) {
 
 export async function getAllTimetables() {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('timetable').select();
+  // Fetch timetable with subject, faculty, and department names
+  const { data, error } = await supabase
+    .from('timetable')
+    .select(
+      '*, subjects:subject(code, name, departments(name)), faculty:faculty(name)'
+    );
   if (error) throw error;
-  return data;
+  if (!data || data.length === 0) return [];
+
+  // Flatten the subject, faculty, and department fields for convenience
+  return data.map((item) => {
+    const { subjects, faculty: facultyObj, ...rest } = item;
+    return {
+      id: item.id, 
+      subject_code: subjects?.code,
+      subject_name: subjects?.name,
+      faculty_name: facultyObj?.name,
+      department_name: subjects?.departments?.name,
+      ...rest,
+    };
+  });
 }
 
 export async function getTimetableById(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('timetable')
-    .select()
+    .select(
+      '*, subjects:subject(code, name, departments(name)), faculty:faculty(name)'
+    )
     .eq('id', id)
     .single();
   if (error) throw error;
-  return data;
+  if (!data) return null;
+  const { subjects, faculty: facultyObj, ...rest } = data;
+  const { id: _id, subject, faculty, department, ...finalResult } = rest;
+  return {
+    subject_code: subjects?.code,
+    subject_name: subjects?.name,
+    faculty_name: facultyObj?.name,
+    department_name: subjects?.departments?.name,
+    ...finalResult,
+  };
 }
 
 export async function getTimetablesByFacultyId(facultyId: string) {
   const supabase = await createClient();
-  // Use join (dot notation) to fetch subject code and name in one query
   const { data, error } = await supabase
     .from('timetable')
-    .select('*, subjects:subject(code, name)')
+    .select(
+      '*, subjects:subject(code, name, departments(name)), faculty:faculty(name)'
+    )
     .eq('faculty', facultyId);
   if (error) throw error;
   if (!data || data.length === 0) return [];
 
-  // Flatten the subject fields for convenience, but do not duplicate
-  const timetableWithSubjects = data.map((item) => {
-    const { subjects, ...rest } = item;
+  return data.map((item) => {
+    const { subjects, faculty: facultyObj, ...rest } = item;
     return {
-      ...rest,
+      id: item.id, // keep id for backend logic
       subject_code: subjects?.code,
       subject_name: subjects?.name,
+      faculty_name: facultyObj?.name,
+      department_name: subjects?.departments?.name,
+      ...rest,
     };
   });
-
-  return timetableWithSubjects;
 }
-
-// --- Merged from timetableAttendanceUtils.ts ---
 
 export async function getTimetableForDateAndFaculty(
   dateStr: string,
@@ -97,7 +125,9 @@ export async function getTimetableForDateAndFaculty(
   // Query timetable for that day and faculty, using date range for timestampz
   const { data, error } = await supabase
     .from('timetable')
-    .select()
+    .select(
+      '*, subjects:subject(code, name, departments(name)), faculty:faculty(name)'
+    )
     .eq('day', dayOfWeek)
     .eq('faculty', facultyId)
     .gte('from', dateStr)
@@ -106,7 +136,52 @@ export async function getTimetableForDateAndFaculty(
       new Date(new Date(dateStr).getTime() + 24 * 60 * 60 * 1000).toISOString()
     );
   if (error) throw error;
-  return data;
+  if (!data || data.length === 0) return [];
+
+  // Flatten the subject, faculty, and department fields for convenience
+  return data.map((item) => {
+    const { subjects, faculty: facultyObj, ...rest } = item;
+    // Keep id for backend logic, but you can filter it out in the API response if needed
+    return {
+      id: item.id, // keep id for backend logic
+      subject_code: subjects?.code,
+      subject_name: subjects?.name,
+      faculty_name: facultyObj?.name,
+      department_name: subjects?.departments?.name,
+      ...rest,
+    };
+  });
+}
+
+// Helper to get timetable for a specific day and faculty
+export async function getTimetableForDayAndFaculty(
+  day: string,
+  facultyId: string
+) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('timetable')
+    .select(
+      '*, subjects:subject(code, name, departments(name)), faculty:faculty(name)'
+    )
+    .eq('day', day)
+    .eq('faculty', facultyId);
+  if (error) throw error;
+  if (!data || data.length === 0) return [];
+
+  // Flatten the subject, faculty, and department fields for convenience
+  return data.map((item) => {
+    const { subjects, faculty: facultyObj, ...rest } = item;
+    // Keep id for backend logic, but you can filter it out in the API response if needed
+    return {
+      id: item.id, // keep id for backend logic
+      subject_code: subjects?.code,
+      subject_name: subjects?.name,
+      faculty_name: facultyObj?.name,
+      department_name: subjects?.departments?.name,
+      ...rest,
+    };
+  });
 }
 
 export async function isAttendanceTaken(timetableId: string, dateStr: string) {
@@ -137,19 +212,4 @@ export async function getTimetableAndAttendanceStatus(
     results.push({ ...timetable, attendanceTaken: taken });
   }
   return results;
-}
-
-// Helper to get timetable for a specific day and faculty
-export async function getTimetableForDayAndFaculty(
-  day: string,
-  facultyId: string
-) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('timetable')
-    .select()
-    .eq('day', day)
-    .eq('faculty', facultyId);
-  if (error) throw error;
-  return data;
 }

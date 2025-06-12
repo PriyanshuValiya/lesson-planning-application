@@ -47,6 +47,7 @@ const eventTypes = [
   "Idea/Innovation Contest",
   "Other",
 ]
+]
 
 const targetAudienceOptions = [
   "1st Semester",
@@ -58,6 +59,7 @@ const targetAudienceOptions = [
   "7th Semester",
   "8th Semester",
   "Staff",
+]
 ]
 
 const skillMappingOptions = [
@@ -115,7 +117,11 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
       classroom_conduct: lessonPlan?.additional_info?.classroom_conduct || "",
       attendance_policy: lessonPlan?.additional_info?.attendance_policy || "",
       lesson_planning_guidelines: lessonPlan?.additional_info?.lesson_planning_guidelines || "",
+      lesson_planning_guidelines: lessonPlan?.additional_info?.lesson_planning_guidelines || "",
       cie_guidelines: lessonPlan?.additional_info?.cie_guidelines || "",
+      self_study_guidelines: lessonPlan?.additional_info?.self_study_guidelines || "",
+      topics_beyond_syllabus: lessonPlan?.additional_info?.topics_beyond_syllabus || "",
+      reference_materials: lessonPlan?.additional_info?.reference_materials || "",
       self_study_guidelines: lessonPlan?.additional_info?.self_study_guidelines || "",
       topics_beyond_syllabus: lessonPlan?.additional_info?.topics_beyond_syllabus || "",
       reference_materials: lessonPlan?.additional_info?.reference_materials || "",
@@ -128,6 +134,7 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
       events: lessonPlan?.additional_info?.events || [],
     },
   })
+  })
 
   const {
     fields: eventFields,
@@ -136,6 +143,7 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
   } = useFieldArray({
     control,
     name: "events",
+  })
   })
 
   const addEvent = () => {
@@ -302,6 +310,7 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
       setValidationError("An unexpected error occurred. Please try again.")
     } finally {
       setIsSaving(false)
+      setIsSaving(false)
     }
   }
 
@@ -368,6 +377,7 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
     <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Additional Planning Information</h3>
+        <h3 className="text-lg font-semibold">Additional Planning Information</h3>
       </div>
 
       {/* Validation Error Alert */}
@@ -385,6 +395,7 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
         <div>
           <Label htmlFor="classroom_conduct">
             Classroom Conduct and Instructions <span className="text-red-500">*</span>
+            Classroom Conduct and Instructions <span className="text-red-500">*</span>
           </Label>
           <Textarea
             id="classroom_conduct"
@@ -394,10 +405,12 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
             rows={4}
           />
           {errors.classroom_conduct && <p className="text-red-500 text-sm mt-1">{errors.classroom_conduct.message}</p>}
+          {errors.classroom_conduct && <p className="text-red-500 text-sm mt-1">{errors.classroom_conduct.message}</p>}
         </div>
 
         <div>
           <Label htmlFor="attendance_policy">
+            Attendance Policy and Criteria <span className="text-red-500">*</span>
             Attendance Policy and Criteria <span className="text-red-500">*</span>
           </Label>
           <Textarea
@@ -433,10 +446,12 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
             rows={4}
           />
           {errors.cie_guidelines && <p className="text-red-500 text-sm mt-1">{errors.cie_guidelines.message}</p>}
+          {errors.cie_guidelines && <p className="text-red-500 text-sm mt-1">{errors.cie_guidelines.message}</p>}
         </div>
 
         <div>
           <Label htmlFor="self_study_guidelines">
+            Self-Study/Homework Guidelines <span className="text-red-500">*</span>
             Self-Study/Homework Guidelines <span className="text-red-500">*</span>
           </Label>
           <Textarea
@@ -470,6 +485,7 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
         <div>
           <Label htmlFor="reference_materials">
             Reference Materials and Tools <span className="text-red-500">*</span>
+            Reference Materials and Tools <span className="text-red-500">*</span>
           </Label>
           <Textarea
             id="reference_materials"
@@ -479,6 +495,7 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
             rows={4}
           />
           {errors.reference_materials && (
+            <p className="text-red-500 text-sm mt-1">{errors.reference_materials.message}</p>
             <p className="text-red-500 text-sm mt-1">{errors.reference_materials.message}</p>
           )}
         </div>
@@ -496,6 +513,7 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
           />
           {errors.academic_integrity && (
             <p className="text-red-500 text-sm mt-1">{errors.academic_integrity.message}</p>
+            <p className="text-red-500 text-sm mt-1">{errors.academic_integrity.message}</p>
           )}
         </div>
 
@@ -511,6 +529,7 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
             rows={4}
           />
           {errors.communication_channels && (
+            <p className="text-red-500 text-sm mt-1">{errors.communication_channels.message}</p>
             <p className="text-red-500 text-sm mt-1">{errors.communication_channels.message}</p>
           )}
         </div>
@@ -833,6 +852,7 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
           <div className="flex justify-between items-center">
             <CardTitle>Event Planning Details (Optional)</CardTitle>
             <Button type="button" onClick={addEvent} variant="outline" size="sm">
+            <Button type="button" onClick={addEvent} variant="outline" size="sm">
               <Plus className="mr-2 h-4 w-4" />
               Add Event
             </Button>
@@ -859,6 +879,7 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
                   <Label className="mb-2">Event Type</Label>
                   <Select
                     value={watch(`events.${index}.event_type`)}
+                    onValueChange={(value) => setValue(`events.${index}.event_type`, value as any)}
                     onValueChange={(value) => setValue(`events.${index}.event_type`, value as any)}
                   >
                     <SelectTrigger>
@@ -893,6 +914,7 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
                   <Label className="mb-2">Mode of Conduct</Label>
                   <Select
                     value={watch(`events.${index}.mode_of_conduct`)}
+                    onValueChange={(value) => setValue(`events.${index}.mode_of_conduct`, value as any)}
                     onValueChange={(value) => setValue(`events.${index}.mode_of_conduct`, value as any)}
                   >
                     <SelectTrigger>
@@ -1023,5 +1045,6 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
         </div>
       </div>
     </form>
+  )
   )
 }

@@ -2512,13 +2512,16 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan, userData }:
     setSaving(true)
     resetFieldErrors()
 
+
     // Validate current CIE fields
     let hasFieldErrors = false
+
 
     if (!currentCIE.type) {
       setTypeError("Type of evaluation is required")
       hasFieldErrors = true
     }
+
 
     if (currentCIE.type !== "Course Prerequisites CIE") {
       if (currentCIE.type === "Practical CIE" || currentCIE.type === "Internal Practical") {
@@ -2534,25 +2537,30 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan, userData }:
       }
     }
 
+
     if (!currentCIE.date) {
       setDateError("Date is required")
       hasFieldErrors = true
     }
+
 
     if (!currentCIE.marks || currentCIE.marks < 1) {
       setMarksError("Marks must be at least 1")
       hasFieldErrors = true
     }
 
+
     if (!currentCIE.duration || currentCIE.duration < 1) {
       setDurationError("Duration must be at least 1 minute")
       hasFieldErrors = true
     }
 
+
     if (!currentCIE.blooms_taxonomy || currentCIE.blooms_taxonomy.length === 0) {
       setBloomsError("At least one Bloom's taxonomy level is required")
       hasFieldErrors = true
     }
+
 
     if (!currentCIE.evaluation_pedagogy) {
       setPedagogyError("Evaluation pedagogy is required")
@@ -2564,6 +2572,12 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan, userData }:
       setCoMappingError(`CO mapping is required for ${currentCIE.type}`)
       hasFieldErrors = true
     }
+
+    if (
+      !currentCIE.skill_mapping ||
+      currentCIE.skill_mapping.length === 0 ||
+      currentCIE.skill_mapping.some((skill: any) => !skill.skill || !skill.details)
+    ) {
 
     if (
       !currentCIE.skill_mapping ||
@@ -3327,3 +3341,4 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan, userData }:
     </div>
   )
 }
+

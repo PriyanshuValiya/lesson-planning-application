@@ -384,6 +384,20 @@ export function isSubjectBoth(subject: any): boolean {
 export function calculateWeeksBetween(startDate: string | Date, endDate: string | Date): number {
   const start = parseDate(startDate)
   const end = parseDate(endDate)
+  return subject?.is_theory === true && subject?.is_practical === false
+}
+
+export function isSubjectPracticalOnly(subject: any): boolean {
+  return subject?.is_theory === false && subject?.is_practical === true
+}
+
+export function isSubjectBoth(subject: any): boolean {
+  return subject?.is_theory === true && subject?.is_practical === true
+}
+
+export function calculateWeeksBetween(startDate: string | Date, endDate: string | Date): number {
+  const start = parseDate(startDate)
+  const end = parseDate(endDate)
 
   if (!start || !end) return 0
 
