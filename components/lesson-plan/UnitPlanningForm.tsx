@@ -1,7 +1,6 @@
 
 // //@ts-nocheck
 
-
 // "use client"
 
 // import type React from "react"
@@ -95,6 +94,7 @@
 //                 other_pedagogy: "",
 //                 co_mapping: [],
 //                 skill_mapping: [],
+//                 other_skill: "",
 //                 skill_objectives: "",
 //                 interlink_topics: "",
 //                 topics_beyond_unit: "",
@@ -293,6 +293,7 @@
 //       other_pedagogy: "",
 //       co_mapping: [],
 //       skill_mapping: [],
+//       other_skill: "",
 //       skill_objectives: "",
 //       interlink_topics: "",
 //       topics_beyond_unit: "",
@@ -1069,7 +1070,7 @@
 //             {/* Teaching Pedagogy - Updated with 2 sections only */}
 //             <div>
 //               <Label className="mb-4 block text-base font-semibold">
-//                 Teaching Pedagogy <span className="text-red-500">*</span> 
+//                 Teaching Pedagogy <span className="text-red-500">*</span>
 //               </Label>
 
 //               {/* Traditional Pedagogy (1-2) */}
@@ -1245,9 +1246,14 @@
 //               <Select
 //                 value=""
 //                 onValueChange={(value) => {
-//                   const current = watch(`units.${activeUnit}.skill_mapping`) || []
-//                   if (!current.includes(value)) {
-//                     handleSkillMapping(activeUnit, value, true)
+//                   if (value === "Other") {
+//                     // Show the input field for "Other" skill
+//                     setValue(`units.${activeUnit}.show_other_skill_input`, true)
+//                   } else {
+//                     const current = watch(`units.${activeUnit}.skill_mapping`) || []
+//                     if (!current.includes(value)) {
+//                       handleSkillMapping(activeUnit, value, true)
+//                     }
 //                   }
 //                 }}
 //               >
@@ -1255,13 +1261,52 @@
 //                   <SelectValue placeholder="Select Skills" />
 //                 </SelectTrigger>
 //                 <SelectContent>
-//                   {skillMappingOptions.map((skill) => (
-//                     <SelectItem key={skill} value={skill}>
-//                       {skill}
-//                     </SelectItem>
-//                   ))}
+//                   {skillMappingOptions
+//                     .filter((skill) => skill !== "Other")
+//                     .map((skill) => (
+//                       <SelectItem key={skill} value={skill}>
+//                         {skill}
+//                       </SelectItem>
+//                     ))}
+//                   <SelectItem value="Other">Other</SelectItem>
 //                 </SelectContent>
 //               </Select>
+
+//               {/* Other Skill Input - Shows when "Other" is selected */}
+//               {watch(`units.${activeUnit}.show_other_skill_input`) && (
+//                 <div className="mt-3 flex gap-2">
+//                   <Input
+//                     placeholder="Enter other skill"
+//                     value={watch(`units.${activeUnit}.other_skill`) || ""}
+//                     onChange={(e) => setValue(`units.${activeUnit}.other_skill`, e.target.value)}
+//                     className="bg-white"
+//                   />
+//                   <Button
+//                     type="button"
+//                     variant="outline"
+//                     onClick={() => {
+//                       const otherValue = watch(`units.${activeUnit}.other_skill`)
+//                       if (otherValue && otherValue.trim()) {
+//                         handleSkillMapping(activeUnit, `Other: ${otherValue}`, true)
+//                         setValue(`units.${activeUnit}.other_skill`, "")
+//                         setValue(`units.${activeUnit}.show_other_skill_input`, false)
+//                       }
+//                     }}
+//                   >
+//                     Add
+//                   </Button>
+//                   <Button
+//                     type="button"
+//                     variant="ghost"
+//                     onClick={() => {
+//                       setValue(`units.${activeUnit}.show_other_skill_input`, false)
+//                       setValue(`units.${activeUnit}.other_skill`, "")
+//                     }}
+//                   >
+//                     Cancel
+//                   </Button>
+//                 </div>
+//               )}
 
 //               {/* Selected Skills */}
 //               <div className="mt-2 flex flex-wrap gap-2">
@@ -1358,7 +1403,6 @@
 //     </form>
 //   )
 // }
-
 
 
 //@ts-nocheck
@@ -1876,11 +1920,91 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
     }
   }
 
+  const validateDates = (unitIndex: number) => {
+    const startDate = watch(`units.${unitIndex}.probable_start_date`)
+    const endDate = watch(`units.${unitIndex}.probable_end_date`)
+
+    if (!startDate || !endDate) return true // Skip validation if dates are not provided
+
+    // Check if dates are in valid format
+    const startDateObj = new Date(startDate)
+    const endDateObj = new Date(endDate)
+
+    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+      toast.error(`Unit ${unitIndex + 1}: Invalid date format`)
+      return false
+    }
+
+    // Check if start date is before end date
+    if (startDateObj > endDateObj) {
+      toast.error(`Unit ${unitIndex + 1}: Start date must be before end date`)
+      return false
+    }
+
+    return true
+  }
+
+  // Add this function after the validateDates function
+  const validateDateOrder = (unitIndex: number) => {
+    const startDate = watch(`units.${unitIndex}.probable_start_date`)
+    const endDate = watch(`units.${unitIndex}.probable_end_date`)
+
+    if (!startDate || !endDate) return true // Skip validation if dates are not provided
+
+    // Check if dates are in valid format
+    const startDateObj = new Date(startDate)
+    const endDateObj = new Date(endDate)
+
+    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+      setValue(`units.${unitIndex}.dateFormatError`, "Invalid date format")
+      return false
+    }
+
+    // Check if start date is before end date
+    if (startDateObj > endDateObj) {
+      setValue(`units.${unitIndex}.dateOrderError`, "Start date must be before end date")
+      return false
+    }
+
+    // Clear any existing errors
+    setValue(`units.${unitIndex}.dateFormatError`, undefined)
+    setValue(`units.${unitIndex}.dateOrderError`, undefined)
+    return true
+  }
+
+  // Add this useEffect after the other useEffect hooks
+  useEffect(() => {
+    const subscription = watch((value, { name }) => {
+      if (name && (name.includes("probable_start_date") || name.includes("probable_end_date"))) {
+        const unitIndex = Number.parseInt(name.split(".")[1])
+        if (!isNaN(unitIndex)) {
+          validateDateOrder(unitIndex)
+        }
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [watch])
+
   const onSubmit = async (data: UnitPlanningFormValues) => {
     setIsSaving(true)
 
     // Save current unit to cache before submitting
     saveCurrentUnitToCache()
+
+    // Validate dates for all units
+    let hasDateErrors = false
+    for (let i = 0; i < data.units.length; i++) {
+      if (!validateDates(i)) {
+        hasDateErrors = true
+        break
+      }
+    }
+
+    if (hasDateErrors) {
+      setIsSaving(false)
+      return
+    }
 
     // Validate all fields in the current unit
     const fieldsToValidate = [
@@ -2348,9 +2472,21 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
                   id={`start-date-${activeUnit}`}
                   type="date"
                   {...register(`units.${activeUnit}.probable_start_date`)}
+                  className={
+                    watch(`units.${activeUnit}.dateFormatError`) || watch(`units.${activeUnit}.dateOrderError`)
+                      ? "border-red-500"
+                      : ""
+                  }
+                  onChange={(e) => {
+                    setValue(`units.${activeUnit}.probable_start_date`, e.target.value)
+                    validateDateOrder(activeUnit)
+                  }}
                 />
                 {errors.units?.[activeUnit]?.probable_start_date && (
                   <p className="text-red-500 text-sm mt-1">{errors.units[activeUnit]?.probable_start_date?.message}</p>
+                )}
+                {watch(`units.${activeUnit}.dateFormatError`) && (
+                  <p className="text-red-500 text-sm mt-1">{watch(`units.${activeUnit}.dateFormatError`)}</p>
                 )}
               </div>
 
@@ -2362,9 +2498,21 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
                   id={`end-date-${activeUnit}`}
                   type="date"
                   {...register(`units.${activeUnit}.probable_end_date`)}
+                  className={
+                    watch(`units.${activeUnit}.dateFormatError`) || watch(`units.${activeUnit}.dateOrderError`)
+                      ? "border-red-500"
+                      : ""
+                  }
+                  onChange={(e) => {
+                    setValue(`units.${activeUnit}.probable_end_date`, e.target.value)
+                    validateDateOrder(activeUnit)
+                  }}
                 />
                 {errors.units?.[activeUnit]?.probable_end_date && (
                   <p className="text-red-500 text-sm mt-1">{errors.units[activeUnit]?.probable_end_date?.message}</p>
+                )}
+                {watch(`units.${activeUnit}.dateOrderError`) && (
+                  <p className="text-red-500 text-sm mt-1">{watch(`units.${activeUnit}.dateOrderError`)}</p>
                 )}
               </div>
             </div>
