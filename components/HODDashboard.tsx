@@ -239,8 +239,6 @@ export default function HODDashboard() {
     return Array.from(facultyMap.values())
   }, [faculty])
 
-  console.log("Unique Faculty:", uniqueFaculty)
-
   const handleRoleChange = (roleName: string) => {
     const selectedRole = roleData.find((role) => role.role_name === roleName)
     if (selectedRole) {
