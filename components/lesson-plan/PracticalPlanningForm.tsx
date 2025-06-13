@@ -1,4 +1,5 @@
 
+
 // "use client"
 
 // import type React from "react"
@@ -170,6 +171,9 @@
 //   const [bloomsError, setBloomsError] = useState("")
 //   const [skillMappingError, setSkillMappingError] = useState("")
 //   const [skillObjectivesError, setSkillObjectivesError] = useState("")
+
+//   // Add this to your state variables at the top of the component
+//   const [isLoadingDraft, setIsLoadingDraft] = useState(true)
 
 //   // Initialize practicals if empty
 //   useEffect(() => {
@@ -403,11 +407,17 @@
 //   }, [lessonPlan?.subject?.code])
 
 //   useEffect(() => {
-//     const loadDraft = async () => {
-//       if (!userData?.id || !lessonPlan?.subject?.id) return
+//     // Auto-load draft immediately when component mounts
+//     const autoLoadDraft = async () => {
+//       if (!userData?.id || !lessonPlan?.subject?.id) {
+//         console.log("Missing required data for auto-loading draft")
+//         setIsLoadingDraft(false)
+//         return
+//       }
 
+//       setIsLoadingDraft(true)
 //       try {
-//         console.log("Loading practical draft for:", lessonPlan?.faculty?.id || userData.id, lessonPlan.subject.id)
+//         console.log("Auto-loading practical draft for:", lessonPlan?.faculty?.id || userData.id, lessonPlan.subject.id)
 
 //         const result = await loadFormDraft(
 //           lessonPlan?.faculty?.id || userData.id,
@@ -417,12 +427,14 @@
 
 //         if (result.success && result.data) {
 //           const data = result.data
-//           console.log("Loaded practical draft data:", data)
+//           console.log("Auto-loaded practical draft data:", data)
 
-//           // Check if we have valid practical data
+//           // Check if we have valid practical data structure
 //           if (data.practicals && Array.isArray(data.practicals) && data.practicals.length > 0) {
 //             // Ensure each practical has proper structure
 //             const validPracticals = data.practicals.map((practical: any, index: number) => ({
+//               ...practical,
+//               // Ensure all required fields have default values
 //               id: practical.id || `practical${index + 1}`,
 //               practical_aim: practical.practical_aim || "",
 //               associated_units: Array.isArray(practical.associated_units) ? practical.associated_units : [],
@@ -451,7 +463,12 @@
 //               practical_remarks: data.remarks || "",
 //             }))
 
-//             toast.success(`Draft loaded successfully with ${validPracticals.length} practical(s)`)
+//             toast.success(`Draft loaded automatically with ${validPracticals.length} practical(s)`)
+
+//             // Set last saved time if available
+//             if (data.timestamp) {
+//               setLastSaved(new Date(data.timestamp))
+//             }
 //           } else {
 //             console.log("No valid practical data found in draft")
 //           }
@@ -459,24 +476,41 @@
 //           console.log("No practical draft found or failed to load")
 //         }
 //       } catch (error) {
-//         console.error("Error loading practical draft:", error)
+//         console.error("Error auto-loading practical draft:", error)
+//       } finally {
+//         setIsLoadingDraft(false)
 //       }
 //     }
 
-//     // Load draft when component mounts and we have the required data
-//     // Also check if current practicals are empty/default
-//     const currentPracticals = lessonPlan?.practicals || []
-//     const shouldLoadDraft =
-//       currentPracticals.length === 0 ||
-//       (currentPracticals.length === 1 &&
-//         (!currentPracticals[0].practical_aim || currentPracticals[0].practical_aim === "") &&
-//         (!currentPracticals[0].probable_week || currentPracticals[0].probable_week === ""))
+//     // Call the auto-load function immediately
+//     autoLoadDraft()
 
-//     if (shouldLoadDraft && userData?.id && lessonPlan?.subject?.id) {
-//       loadDraft()
+//     // Only run this effect once when component mounts
+//   }, [])
+
+//   // Add page refresh effect for faculty members
+//   useEffect(() => {
+//     // Check if user data exists and this is a faculty member
+//     if (userData && userData.role === "faculty") {
+//       // Create a unique key for this specific page/component
+//       const refreshKey = `refreshed_practical_planning_${lessonPlan?.subject?.id || "default"}`
+
+//       // Check if this specific page has been refreshed in this browser session
+//       const hasRefreshed = sessionStorage.getItem(refreshKey)
+
+//       if (!hasRefreshed) {
+//         // Set the flag immediately to prevent any possibility of multiple refreshes
+//         sessionStorage.setItem(refreshKey, "true")
+
+//         console.log("Faculty detected - refreshing practical planning page automatically")
+
+//         // Use a short timeout to refresh quickly
+//         setTimeout(() => {
+//           window.location.reload()
+//         }, 100)
+//       }
 //     }
-//   }, [userData?.id, lessonPlan?.subject?.id, lessonPlan?.faculty?.id])
-
+//   }, [userData, lessonPlan?.subject?.id])
 //   const handlePracticalChange = (index: number, field: string, value: any) => {
 //     const updatedPracticals = [...(lessonPlan.practicals || [])]
 
@@ -829,7 +863,20 @@
 
 //   return (
 //     <div className="p-6">
-     
+//       {isLoadingDraft && (
+//         <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded-md flex items-center justify-center">
+//           <div className="animate-spin mr-2 h-4 w-4 border-2 border-blue-700 border-t-transparent rounded-full"></div>
+//           <span>Loading saved draft...</span>
+//         </div>
+//       )}
+//       {/* Auto-loading indicator */}
+//       {(lessonPlan.practicals?.length === 0 || !lessonPlan.practicals) && (
+//         <div className="mb-4 p-2 bg-blue-50 text-blue-700 rounded-md flex items-center">
+//           <Info className="h-4 w-4 mr-2" />
+//           <span>Loading saved drafts...</span>
+//         </div>
+//       )}
+
 //       {/* Validation Errors */}
 //       {validationErrors.length > 0 && (
 //         <div className="mb-6 border border-red-200 bg-red-50 rounded-lg p-4">
@@ -888,22 +935,32 @@
 //           <Button
 //             variant="outline"
 //             onClick={async () => {
-//               const result = await loadFormDraft(
-//                 lessonPlan?.faculty?.id || userData.id,
-//                 lessonPlan.subject.id,
-//                 "practical_planning",
-//               )
-//               if (result.success && result.data?.practicals) {
-//                 setLessonPlan((prev: any) => ({
-//                   ...prev,
-//                   practicals: result.data.practicals,
-//                   practical_remarks: result.data.remarks || "",
-//                 }))
-//                 toast.success("Draft loaded manually")
+//               setIsLoadingDraft(true)
+//               try {
+//                 const result = await loadFormDraft(
+//                   lessonPlan?.faculty?.id || userData.id,
+//                   lessonPlan.subject.id,
+//                   "practical_planning",
+//                 )
+//                 if (result.success && result.data?.practicals) {
+//                   setLessonPlan((prev: any) => ({
+//                     ...prev,
+//                     practicals: result.data.practicals,
+//                     practical_remarks: result.data.remarks || "",
+//                   }))
+//                   toast.success("Draft loaded manually")
+//                 } else {
+//                   toast.info("No draft found")
+//                 }
+//               } catch (error) {
+//                 console.error("Error loading draft:", error)
+//                 toast.error("Failed to load draft")
+//               } finally {
+//                 setIsLoadingDraft(false)
 //               }
 //             }}
 //           >
-//             Load Draft
+//             Reload Draft
 //           </Button>
 //         </div>
 //         {currentPracticals.length > 1 && (
@@ -1645,7 +1702,12 @@
 // }
 
 
-"use client"
+
+
+
+
+
+// "use client"
 
 import type React from "react"
 
@@ -1740,7 +1802,7 @@ const defaultPeoOptions = [
   { id: "peo-2", label: "PEO2", description: "Program Educational Objective 2" },
   { id: "peo-3", label: "PEO3", description: "Program Educational Objective 3" },
   { id: "peo-4", label: "PEO4", description: "Program Educational Objective 4" },
-  { id: "peo-5", label: "PEO5", description: "Program Educational Objective 5" },
+  { id: "pso-5", label: "PEO5", description: "Program Educational Objective 5" },
 ]
 
 export default function PracticalPlanningForm({ lessonPlan, setLessonPlan, userData }: PracticalPlanningFormProps) {
@@ -2051,111 +2113,212 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan, userD
     fetchTermDates()
   }, [lessonPlan?.subject?.code])
 
+  // Replace the existing useEffect for loading drafts with this improved implementation
   useEffect(() => {
-    // Auto-load draft immediately when component mounts
+    console.log("🔍 PRACTICAL AUTO-LOAD: useEffect triggered")
+    console.log("🔍 PRACTICAL AUTO-LOAD: Dependencies:", {
+      userId: userData?.id,
+      subjectId: lessonPlan?.subject?.id,
+      facultyId: lessonPlan?.faculty?.id,
+      hasUserData: !!userData,
+      hasLessonPlan: !!lessonPlan,
+      hasSubject: !!lessonPlan?.subject,
+    })
+
+    // Auto-load draft immediately when component mounts and required data is available
     const autoLoadDraft = async () => {
-      if (!userData?.id || !lessonPlan?.subject?.id) {
-        console.log("Missing required data for auto-loading draft")
+      console.log("🔍 PRACTICAL AUTO-LOAD: autoLoadDraft function called")
+
+      // Check if we have all required data - we need either userData.id OR faculty.id from lesson plan
+      const facultyId = lessonPlan?.faculty?.id || userData?.id
+      const subjectId = lessonPlan?.subject?.id
+
+      if (!facultyId || !subjectId) {
+        console.log("❌ PRACTICAL AUTO-LOAD: Missing required data:", {
+          facultyId,
+          subjectId,
+          userDataId: userData?.id,
+          lessonPlanFacultyId: lessonPlan?.faculty?.id,
+          hasLessonPlan: !!lessonPlan,
+          hasSubject: !!lessonPlan?.subject,
+        })
         setIsLoadingDraft(false)
         return
       }
 
-      setIsLoadingDraft(true)
-      try {
-        console.log("Auto-loading practical draft for:", lessonPlan?.faculty?.id || userData.id, lessonPlan.subject.id)
+      console.log("✅ PRACTICAL AUTO-LOAD: Required data available - Faculty ID:", facultyId, "Subject ID:", subjectId)
 
-        const result = await loadFormDraft(
-          lessonPlan?.faculty?.id || userData.id,
-          lessonPlan.subject.id,
-          "practical_planning",
-        )
+      // Check if we already have practicals data to avoid unnecessary loading
+      const currentPracticals = lessonPlan.practicals || []
+      const hasExistingData = currentPracticals.length > 0 && currentPracticals[0]?.practical_aim
+
+      console.log("🔍 PRACTICAL AUTO-LOAD: Existing data check:", {
+        practicalsLength: currentPracticals.length,
+        firstPracticalAim: currentPracticals[0]?.practical_aim,
+        hasExistingData,
+        fullPracticals: currentPracticals,
+      })
+
+      if (hasExistingData) {
+        console.log("⏭️ PRACTICAL AUTO-LOAD: Practicals already loaded, skipping auto-load")
+        setIsLoadingDraft(false)
+        return
+      }
+
+      console.log("🚀 PRACTICAL AUTO-LOAD: Starting auto-load process...")
+      setIsLoadingDraft(true)
+
+      try {
+        console.log("🔍 PRACTICAL AUTO-LOAD: Using faculty ID:", facultyId)
+        console.log("🔍 PRACTICAL AUTO-LOAD: Using subject ID:", subjectId)
+
+        console.log("📡 PRACTICAL AUTO-LOAD: Making API call to loadFormDraft...")
+        const result = await loadFormDraft(facultyId, subjectId, "practical_planning")
+
+        console.log("📡 PRACTICAL AUTO-LOAD: API response:", result)
 
         if (result.success && result.data) {
           const data = result.data
-          console.log("Auto-loaded practical draft data:", data)
+          console.log("✅ PRACTICAL AUTO-LOAD: Draft data received:", data)
 
           // Check if we have valid practical data structure
           if (data.practicals && Array.isArray(data.practicals) && data.practicals.length > 0) {
+            console.log("✅ PRACTICAL AUTO-LOAD: Valid practicals found:", data.practicals.length)
+
             // Ensure each practical has proper structure
-            const validPracticals = data.practicals.map((practical: any, index: number) => ({
-              ...practical,
-              // Ensure all required fields have default values
-              id: practical.id || `practical${index + 1}`,
-              practical_aim: practical.practical_aim || "",
-              associated_units: Array.isArray(practical.associated_units) ? practical.associated_units : [],
-              probable_week: practical.probable_week || "",
-              lab_hours: typeof practical.lab_hours === "number" ? practical.lab_hours : 2,
-              software_hardware_requirements: practical.software_hardware_requirements || "",
-              practical_tasks: practical.practical_tasks || "",
-              evaluation_methods: Array.isArray(practical.evaluation_methods) ? practical.evaluation_methods : [],
-              other_evaluation_method: practical.other_evaluation_method || "",
-              practical_pedagogy: practical.practical_pedagogy || "",
-              other_pedagogy: practical.other_pedagogy || "",
-              reference_material: practical.reference_material || "",
-              co_mapping: Array.isArray(practical.co_mapping) ? practical.co_mapping : [],
-              pso_mapping: Array.isArray(practical.pso_mapping) ? practical.pso_mapping : [],
-              peo_mapping: Array.isArray(practical.peo_mapping) ? practical.peo_mapping : [],
-              blooms_taxonomy: Array.isArray(practical.blooms_taxonomy) ? practical.blooms_taxonomy : [],
-              skill_mapping: Array.isArray(practical.skill_mapping) ? practical.skill_mapping : [],
-              skill_objectives: practical.skill_objectives || "",
-            }))
+            const validPracticals = data.practicals.map((practical: any, index: number) => {
+              const validPractical = {
+                ...practical,
+                // Ensure all required fields have default values
+                id: practical.id || `practical${index + 1}`,
+                practical_aim: practical.practical_aim || "",
+                associated_units: Array.isArray(practical.associated_units) ? practical.associated_units : [],
+                probable_week: practical.probable_week || "",
+                lab_hours: typeof practical.lab_hours === "number" ? practical.lab_hours : 2,
+                software_hardware_requirements: practical.software_hardware_requirements || "",
+                practical_tasks: practical.practical_tasks || "",
+                evaluation_methods: Array.isArray(practical.evaluation_methods) ? practical.evaluation_methods : [],
+                other_evaluation_method: practical.other_evaluation_method || "",
+                practical_pedagogy: practical.practical_pedagogy || "",
+                other_pedagogy: practical.other_pedagogy || "",
+                reference_material: practical.reference_material || "",
+                co_mapping: Array.isArray(practical.co_mapping) ? practical.co_mapping : [],
+                pso_mapping: Array.isArray(practical.pso_mapping) ? practical.pso_mapping : [],
+                peo_mapping: Array.isArray(practical.peo_mapping) ? practical.peo_mapping : [],
+                blooms_taxonomy: Array.isArray(practical.blooms_taxonomy) ? practical.blooms_taxonomy : [],
+                skill_mapping: Array.isArray(practical.skill_mapping) ? practical.skill_mapping : [],
+                skill_objectives: practical.skill_objectives || "",
+              }
+              console.log(`🔍 PRACTICAL AUTO-LOAD: Processed practical ${index + 1}:`, validPractical)
+              return validPractical
+            })
 
-            console.log("Setting practicals to lesson plan:", validPracticals)
+            console.log("🔄 PRACTICAL AUTO-LOAD: Setting practicals to lesson plan...")
 
-            setLessonPlan((prev: any) => ({
-              ...prev,
-              practicals: validPracticals,
-              practical_remarks: data.remarks || "",
-            }))
+            // Update the lesson plan with loaded data
+            setLessonPlan((prev: any) => {
+              console.log("🔄 PRACTICAL AUTO-LOAD: Previous lesson plan:", prev)
+              const updated = {
+                ...prev,
+                practicals: validPracticals,
+                practical_remarks: data.remarks || "",
+              }
+              console.log("🔄 PRACTICAL AUTO-LOAD: Updated lesson plan:", updated)
+              return updated
+            })
 
+            console.log("🎉 PRACTICAL AUTO-LOAD: Success! Showing toast...")
             toast.success(`Draft loaded automatically with ${validPracticals.length} practical(s)`)
 
             // Set last saved time if available
-            if (data.timestamp) {
-              setLastSaved(new Date(data.timestamp))
+            if (data.savedAt) {
+              setLastSaved(new Date(data.savedAt))
+              console.log("🔍 PRACTICAL AUTO-LOAD: Set last saved time:", data.savedAt)
+            } else {
+              setLastSaved(new Date())
+              console.log("🔍 PRACTICAL AUTO-LOAD: Set current time as last saved")
             }
           } else {
-            console.log("No valid practical data found in draft")
+            console.log("❌ PRACTICAL AUTO-LOAD: No valid practical data found in draft")
+            console.log("🔍 PRACTICAL AUTO-LOAD: Data structure:", {
+              hasPracticals: !!data.practicals,
+              isArray: Array.isArray(data.practicals),
+              length: data.practicals?.length,
+              practicals: data.practicals,
+            })
           }
         } else {
-          console.log("No practical draft found or failed to load")
+          console.log("❌ PRACTICAL AUTO-LOAD: No draft found or failed to load")
+          console.log("🔍 PRACTICAL AUTO-LOAD: Result details:", {
+            success: result.success,
+            hasData: !!result.data,
+            error: result.error,
+          })
         }
       } catch (error) {
-        console.error("Error auto-loading practical draft:", error)
+        console.error("💥 PRACTICAL AUTO-LOAD: Error occurred:", error)
+        toast.error("Failed to auto-load draft")
       } finally {
+        console.log("🏁 PRACTICAL AUTO-LOAD: Process completed, setting loading to false")
         setIsLoadingDraft(false)
       }
     }
 
-    // Call the auto-load function immediately
-    autoLoadDraft()
+    // Run auto-load when we have the required data (either userData.id OR faculty.id from lesson plan)
+    const facultyId = lessonPlan?.faculty?.id || userData?.id
+    const subjectId = lessonPlan?.subject?.id
 
-    // Only run this effect once when component mounts
-  }, [])
-
-  // Add page refresh effect for faculty members
-  useEffect(() => {
-    // Check if user data exists and this is a faculty member
-    if (userData && userData.role === "faculty") {
-      // Create a unique key for this specific page/component
-      const refreshKey = `refreshed_practical_planning_${lessonPlan?.subject?.id || "default"}`
-
-      // Check if this specific page has been refreshed in this browser session
-      const hasRefreshed = sessionStorage.getItem(refreshKey)
-
-      if (!hasRefreshed) {
-        // Set the flag immediately to prevent any possibility of multiple refreshes
-        sessionStorage.setItem(refreshKey, "true")
-
-        console.log("Faculty detected - refreshing practical planning page automatically")
-
-        // Use a short timeout to refresh quickly
-        setTimeout(() => {
-          window.location.reload()
-        }, 100)
-      }
+    if (facultyId && subjectId) {
+      console.log("✅ PRACTICAL AUTO-LOAD: Conditions met, calling autoLoadDraft")
+      autoLoadDraft()
+    } else {
+      console.log("❌ PRACTICAL AUTO-LOAD: Conditions not met, skipping auto-load")
+      console.log("🔍 PRACTICAL AUTO-LOAD: Missing:", {
+        facultyId: !!facultyId,
+        subjectId: !!subjectId,
+        userDataId: !!userData?.id,
+        lessonPlanFacultyId: !!lessonPlan?.faculty?.id,
+      })
+      setIsLoadingDraft(false)
     }
-  }, [userData, lessonPlan?.subject?.id])
+  }, [userData?.id, lessonPlan?.subject?.id, lessonPlan?.faculty?.id, lessonPlan, setLessonPlan])
+
+  // Remove or comment out the existing page refresh effect and the sessionStorage logic since they might be interfering with the auto-loading.
+  // useEffect(() => {
+  //   // Set a flag in localStorage to indicate this is the first load
+  //   const storageKey = `practical_form_loaded_${lessonPlan?.subject?.id || "default"}`
+  //   const hasLoaded = sessionStorage.getItem(storageKey)
+
+  //   if (!hasLoaded) {
+  //     // Set the flag to prevent future auto-loads in this session
+  //     sessionStorage.setItem(storageKey, "true")
+
+  //     // Force a data reload after a short delay
+  //     const reloadTimer = setTimeout(() => {
+  //       if (userData?.id && lessonPlan?.subject?.id) {
+  //         loadFormDraft(lessonPlan?.faculty?.id || userData.id, lessonPlan.subject.id, "practical_planning")
+  //           .then((result) => {
+  //             if (result.success && result.data) {
+  //               const data = result.data
+  //               if (data.practicals && Array.isArray(data.practicals) && data.practicals.length > 0) {
+  //                 setLessonPlan((prev: any) => ({
+  //                   ...prev,
+  //                   practicals: data.practicals,
+  //                   practical_remarks: data.remarks || "",
+  //                 }))
+  //                 toast.success("Draft data refreshed automatically")
+  //               }
+  //             }
+  //           })
+  //           .catch((err) => {
+  //             console.error("Error in forced reload:", err)
+  //           })
+  //       }
+  //     }, 1000)
+
+  //     return () => clearTimeout(reloadTimer)
+  //   }
+  // }, [userData?.id, lessonPlan?.subject?.id])
   const handlePracticalChange = (index: number, field: string, value: any) => {
     const updatedPracticals = [...(lessonPlan.practicals || [])]
 
@@ -2509,9 +2672,9 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan, userD
   return (
     <div className="p-6">
       {isLoadingDraft && (
-        <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded-md flex items-center justify-center">
-          <div className="animate-spin mr-2 h-4 w-4 border-2 border-blue-700 border-t-transparent rounded-full"></div>
-          <span>Loading saved draft...</span>
+        <div className="mb-4 p-3 bg-blue-100 border border-blue-300 text-blue-800 rounded-md flex items-center justify-center">
+          <div className="animate-spin mr-2 h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+          <span className="font-medium">Loading saved draft...</span>
         </div>
       )}
       {/* Auto-loading indicator */}
@@ -2522,6 +2685,7 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan, userD
         </div>
       )}
 
+      
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
         <div className="mb-6 border border-red-200 bg-red-50 rounded-lg p-4">
@@ -2577,7 +2741,7 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan, userD
             <Plus className="h-4 w-4 mr-1" />
             Add Practical
           </Button>
-          <Button
+          {/* <Button
             variant="outline"
             onClick={async () => {
               setIsLoadingDraft(true)
@@ -2604,9 +2768,17 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan, userD
                 setIsLoadingDraft(false)
               }
             }}
+            disabled={isLoadingDraft}
           >
-            Reload Draft
-          </Button>
+            {isLoadingDraft ? (
+              <>
+                <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                Loading...
+              </>
+            ) : (
+              "Reload Draft"
+            )}
+          </Button> */}
         </div>
         {currentPracticals.length > 1 && (
           <Button
