@@ -747,6 +747,7 @@
 "use client"
 
 import type React from "react"
+import type React from "react"
 
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
@@ -764,6 +765,9 @@ import { saveFormDraft, loadFormDraft } from "@/app/dashboard/actions/saveFormDr
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 
 interface GeneralDetailsFormProps {
+  lessonPlan: any
+  setLessonPlan: React.Dispatch<React.SetStateAction<any>>
+  openPdfViewer: (file: string) => void
   lessonPlan: any
   setLessonPlan: React.Dispatch<React.SetStateAction<any>>
   openPdfViewer: (file: string) => void
@@ -1015,6 +1019,25 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
     }
   }, [userData?.role]) // Only re-run if the user role changes
 
+  // Add page refresh effect for faculty members
+  useEffect(() => {
+    // Check if the user is a faculty member
+    if (userData?.role === "faculty") {
+      // Using sessionStorage to ensure refresh happens only once per session
+      const hasRefreshed = sessionStorage.getItem("hasRefreshedGeneralDetails")
+
+      if (!hasRefreshed) {
+        // Set the flag before refreshing to prevent infinite refresh loop
+        sessionStorage.setItem("hasRefreshedGeneralDetails", "true")
+
+        // Use setTimeout to ensure the component is fully mounted before refreshing
+        setTimeout(() => {
+          window.location.reload()
+        }, 500)
+      }
+    }
+  }, [userData?.role]) // Only re-run if the user role changes
+
   const handleAddCourseOutcome = () => {
     setCourseOutcomes([...courseOutcomes, { id: uuidv4(), text: "" }])
   }
@@ -1076,12 +1099,16 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    e.preventDefault()
+    setIsSubmitting(true)
 
     try {
       resetErrors()
       let hasErrors = false
 
       if (!division) {
+        setDivisionError("Division is required")
+        hasErrors = true
         setDivisionError("Division is required")
         hasErrors = true
       }
@@ -1095,6 +1122,8 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
       if (labHours < 0) {
         setLabHoursError("Lab hours cannot be negative")
         hasErrors = true
+        setLabHoursError("Lab hours cannot be negative")
+        hasErrors = true
       }
 
       if (credits < 1) {
@@ -1105,9 +1134,13 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
       if (!coursePrerequisites) {
         setCoursePrerequisitesError("Course prerequisites are required")
         hasErrors = true
+        setCoursePrerequisitesError("Course prerequisites are required")
+        hasErrors = true
       }
 
       if (!coursePrerequisitesMaterials) {
+        setCoursePrerequisitesMaterialsError("Course prerequisites materials are required")
+        hasErrors = true
         setCoursePrerequisitesMaterialsError("Course prerequisites materials are required")
         hasErrors = true
       }
@@ -1115,9 +1148,15 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
       if (courseOutcomes.length === 0 || courseOutcomes.some((co) => !co.text)) {
         setCourseOutcomesError("Please enter all CO's details")
         hasErrors = true
+      if (courseOutcomes.length === 0 || courseOutcomes.some((co) => !co.text)) {
+        setCourseOutcomesError("Please enter all CO's details")
+        hasErrors = true
       }
 
       if (hasErrors) {
+        setIsSubmitting(false)
+        toast.error("Please resolve validation errors before submitting")
+        return
         setIsSubmitting(false)
         toast.error("Please resolve validation errors before submitting")
         return
@@ -1135,6 +1174,7 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
         course_prerequisites_materials: coursePrerequisitesMaterials,
         courseOutcomes,
         remarks,
+      }
       }
 
       const result = await saveGeneralDetailsForm(formData)
@@ -1166,14 +1206,20 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
             ;(nextTab as HTMLElement).click()
           }
         }, 500)
+        }, 500)
       } else {
+        toast.error(result.error || "Failed to save general details")
+        console.error("Save error:", result)
         toast.error(result.error || "Failed to save general details")
         console.error("Save error:", result)
       }
     } catch (error) {
       console.error("Error saving general details:", error)
       toast.error("An unexpected error occurred")
+      console.error("Error saving general details:", error)
+      toast.error("An unexpected error occurred")
     } finally {
+      setIsSubmitting(false)
       setIsSubmitting(false)
     }
   }
@@ -1216,12 +1262,18 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="text-lg font-semibold">Course Prerequisites Instructions</h3>
               <Button variant="ghost" size="icon" onClick={() => setShowInstructions(false)}>
+              <h3 className="text-lg font-semibold">Course Prerequisites Instructions</h3>
+              <Button variant="ghost" size="icon" onClick={() => setShowInstructions(false)}>
                 <XCircle className="h-5 w-5" />
               </Button>
             </div>
             <div className="flex-1 p-6 overflow-auto">
               <h2 className="text-xl font-bold mb-4">Guidelines for learning materials</h2>
+              <h2 className="text-xl font-bold mb-4">Guidelines for learning materials</h2>
               <p className="mb-4">
+                It is mandatory to provide specific learning materials by ensuring the quality of content. Avoid
+                providing vague references such as just the name of a textbook, a chapter title, or a general media/web
+                link. Instead, ensure that the materials are clearly and precisely mentioned as follows:
                 It is mandatory to provide specific learning materials by ensuring the quality of content. Avoid
                 providing vague references such as just the name of a textbook, a chapter title, or a general media/web
                 link. Instead, ensure that the materials are clearly and precisely mentioned as follows:
@@ -1233,8 +1285,12 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
                   <p>
                     Include the book title, edition, author, chapter number and name, and the specific page numbers to
                     be referred.
+                    Include the book title, edition, author, chapter number and name, and the specific page numbers to
+                    be referred.
                   </p>
                   <p className="text-sm text-gray-600 italic">
+                    Example: "Machine Learning" (2nd Edition) by Tom M. Mitchell, Chapter 5: Neural Networks, Pages
+                    123–140
                     Example: "Machine Learning" (2nd Edition) by Tom M. Mitchell, Chapter 5: Neural Networks, Pages
                     123–140
                   </p>
@@ -1245,25 +1301,35 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
                   <p>
                     Provide the exact video link, and if only a portion is relevant, specify the start and end
                     timestamps.
+                    Provide the exact video link, and if only a portion is relevant, specify the start and end
+                    timestamps.
                   </p>
+                  <p className="text-sm text-gray-600 italic">Example: [YouTube link], watch from 02:15 to 10:30</p>
                   <p className="text-sm text-gray-600 italic">Example: [YouTube link], watch from 02:15 to 10:30</p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold">III. Web Material:</h3>
                   <p>Provide the full and direct URL to the web page/article that should be studied.</p>
+                  <p>Provide the full and direct URL to the web page/article that should be studied.</p>
                   <p className="text-sm text-gray-600 italic">
+                    Example: [https://www.analyticsvidhya.com/neural-network-basics]
                     Example: [https://www.analyticsvidhya.com/neural-network-basics]
                   </p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold">IV. Research Papers / Journal Articles:</h3>
+                  <h3 className="font-semibold">IV. Research Papers / Journal Articles:</h3>
                   <p>
+                    Provide the full title, author(s), publication year, journal/conference name, and either the PDF or
+                    DOI/link.
                     Provide the full title, author(s), publication year, journal/conference name, and either the PDF or
                     DOI/link.
                   </p>
                   <p className="text-sm text-gray-600 italic">
+                    Example: "A Survey on Deep Learning for Image Captioning" by Y. Zhang et al., IEEE Access, 2020,
+                    DOI: 10.1109/ACCESS.2020.299234
                     Example: "A Survey on Deep Learning for Image Captioning" by Y. Zhang et al., IEEE Access, 2020,
                     DOI: 10.1109/ACCESS.2020.299234
                   </p>
@@ -1271,15 +1337,20 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
 
                 <div>
                   <h3 className="font-semibold">V. Lecture Notes (Prepared by Faculty):</h3>
+                  <h3 className="font-semibold">V. Lecture Notes (Prepared by Faculty):</h3>
                   <p>
                     If you create custom lecture notes, share the direct file or link, and mention specific slide/page
                     numbers to be studied (If required to maintain continuity).
+                    If you create custom lecture notes, share the direct file or link, and mention specific slide/page
+                    numbers to be studied (If required to maintain continuity).
                   </p>
+                  <p className="text-sm text-gray-600 italic">Example: Note 1: "Introduction to Classification"</p>
                   <p className="text-sm text-gray-600 italic">Example: Note 1: "Introduction to Classification"</p>
                 </div>
               </div>
             </div>
             <div className="p-4 border-t flex justify-end">
+              <Button variant="outline" onClick={() => setShowInstructions(false)}>
               <Button variant="outline" onClick={() => setShowInstructions(false)}>
                 Close
               </Button>
@@ -1292,13 +1363,16 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
         <div>
           <Label htmlFor="subject-teacher-name">Subject Teacher Name</Label>
           <Input id="subject-teacher-name" value={lessonPlan?.faculty?.name || ""} disabled className="mt-1" />
+          <Input id="subject-teacher-name" value={lessonPlan?.faculty?.name || ""} disabled className="mt-1" />
         </div>
         <div>
           <Label htmlFor="subject-code">Subject Code</Label>
           <Input id="subject-code" value={lessonPlan?.subject?.code || ""} disabled className="mt-1" />
+          <Input id="subject-code" value={lessonPlan?.subject?.code || ""} disabled className="mt-1" />
         </div>
         <div>
           <Label htmlFor="subject-name">Subject Name</Label>
+          <Input id="subject-name" value={lessonPlan?.subject?.name || ""} disabled className="mt-1" />
           <Input id="subject-name" value={lessonPlan?.subject?.name || ""} disabled className="mt-1" />
         </div>
       </div>
@@ -1307,14 +1381,17 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
         <div>
           <Label htmlFor="department">Department</Label>
           <Input id="department" value={lessonPlan?.subject?.department?.name || ""} disabled className="mt-1" />
+          <Input id="department" value={lessonPlan?.subject?.department?.name || ""} disabled className="mt-1" />
         </div>
         <div>
           <Label htmlFor="semester">Semester</Label>
+          <Input id="semester" value={lessonPlan?.subject?.semester || ""} disabled className="mt-1" />
           <Input id="semester" value={lessonPlan?.subject?.semester || ""} disabled className="mt-1" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="division">Division</Label>
+            <Input id="semester" value={lessonPlan?.division || ""} disabled className="mt-1" />
             <Input id="semester" value={lessonPlan?.division || ""} disabled className="mt-1" />
           </div>
           <div>
@@ -1326,6 +1403,7 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
               onChange={(e) => setCredits(Number(e.target.value))}
               className="mt-1"
             />
+            {creditsError && <p className="text-red-500 text-xs mt-1">{creditsError}</p>}
             {creditsError && <p className="text-red-500 text-xs mt-1">{creditsError}</p>}
           </div>
         </div>
@@ -1356,6 +1434,7 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
             onChange={(e) => setLabHours(Number(e.target.value))}
             className="mt-1"
           />
+          {labHoursError && <p className="text-red-500 text-xs mt-1">{labHoursError}</p>}
           {labHoursError && <p className="text-red-500 text-xs mt-1">{labHoursError}</p>}
         </div>
         <div>
@@ -1395,6 +1474,7 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
           rows={4}
         />
         {coursePrerequisitesError && <p className="text-red-500 text-xs mt-1">{coursePrerequisitesError}</p>}
+        {coursePrerequisitesError && <p className="text-red-500 text-xs mt-1">{coursePrerequisitesError}</p>}
       </div>
 
       <div>
@@ -1423,6 +1503,7 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
         />
         {coursePrerequisitesMaterialsError && (
           <p className="text-red-500 text-xs mt-1">{coursePrerequisitesMaterialsError}</p>
+          <p className="text-red-500 text-xs mt-1">{coursePrerequisitesMaterialsError}</p>
         )}
       </div>
 
@@ -1438,6 +1519,7 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
               <Input
                 placeholder={`Enter Course Outcome ${index + 1}`}
                 value={outcome.text}
+                onChange={(e) => handleCourseOutcomeChange(index, e.target.value)}
                 onChange={(e) => handleCourseOutcomeChange(index, e.target.value)}
               />
             </div>
@@ -1455,7 +1537,9 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
           </div>
         ))}
         {courseOutcomesError && <p className="text-red-500 text-xs mt-1">{courseOutcomesError}</p>}
+        {courseOutcomesError && <p className="text-red-500 text-xs mt-1">{courseOutcomesError}</p>}
 
+        <Button type="button" onClick={handleAddCourseOutcome} className="bg-[#1A5CA1] hover:bg-[#154A80]">
         <Button type="button" onClick={handleAddCourseOutcome} className="bg-[#1A5CA1] hover:bg-[#154A80]">
           <PlusCircle className="h-4 w-4 mr-2" />
           Add Course Outcome
@@ -1488,5 +1572,6 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
         </div>
       </div>
     </form>
+  )
   )
 }
