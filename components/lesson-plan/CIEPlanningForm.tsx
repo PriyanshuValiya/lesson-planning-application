@@ -4304,7 +4304,6 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan, userData }:
             <Button variant="outline" onClick={() => setWarningDialogOpen(false)}>
               OK
             </Button>
-            
           </DialogFooter>
         </DialogContent>
       </Dialog>
