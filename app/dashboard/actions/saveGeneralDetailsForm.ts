@@ -1,11 +1,11 @@
 //@ts-nocheck
+//@ts-nocheck
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 
 export async function saveGeneralDetailsForm(formData: any) {
-  console.log("Server action received form data:", formData)
 
   try {
     const supabase = await createClient()
@@ -20,8 +20,6 @@ export async function saveGeneralDetailsForm(formData: any) {
       console.error("Authentication error:", authError)
       return { success: false, error: "User not authenticated" }
     }
-
-    console.log("Authenticated user:", user.id)
 
     // Find the user record in the users table
     const { data: userData, error: userError } = await supabase
@@ -53,8 +51,6 @@ export async function saveGeneralDetailsForm(formData: any) {
       }
     }
 
-    console.log("Found user in database:", userData)
-
     const faculty_id = userData.id
 
     // Check if a form already exists for this faculty and subject
@@ -65,14 +61,15 @@ export async function saveGeneralDetailsForm(formData: any) {
       .eq("subject_id", formData.subject_id)
       .single()
 
-    console.log("Existing form check:", existingForm, fetchError)
-
     // Ensure dates are properly formatted as Date objects for storage
     const term_start_date =
       formData.term_start_date instanceof Date ? formData.term_start_date : new Date(formData.term_start_date)
 
     const term_end_date =
       formData.term_end_date instanceof Date ? formData.term_end_date : new Date(formData.term_end_date)
+
+    // Ensure dates are properly formatted as Date objects for storage
+    
 
     // Prepare the form data in BSON format structure with Date objects
     const formDataToSave = {
@@ -83,14 +80,15 @@ export async function saveGeneralDetailsForm(formData: any) {
         credits: formData.credits,
         term_start_date: term_start_date, // Store as Date object
         term_end_date: term_end_date, // Store as Date object
+        term_start_date: term_start_date, // Store as Date object
+        term_end_date: term_end_date, // Store as Date object
         course_prerequisites: formData.course_prerequisites,
         course_prerequisites_materials: formData.course_prerequisites_materials,
         courseOutcomes: formData.courseOutcomes,
         remarks: formData.remarks || "",
+        remarks: formData.remarks || "",
       },
     }
-
-    console.log("Form data to save:", formDataToSave)
 
     let result
 
@@ -105,7 +103,6 @@ export async function saveGeneralDetailsForm(formData: any) {
 
       result = await supabase.from("forms").update({ form: updatedFormData }).eq("id", existingForm.id)
     } else {
-      console.log("Creating new form...")
       // Create new form
       result = await supabase.from("forms").insert({
         faculty_id: faculty_id,
@@ -113,8 +110,6 @@ export async function saveGeneralDetailsForm(formData: any) {
         form: formDataToSave,
       })
     }
-
-    console.log("Database operation result:", result)
 
     if (result.error) {
       console.error("Error saving form:", result.error)
