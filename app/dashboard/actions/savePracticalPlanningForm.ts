@@ -487,7 +487,7 @@ export async function savePracticalPlanningForm({
       .from("forms")
       .update({ complete_practical: true })
       .eq("id", existingForm.id)
-      .single();
+      .single(); 
 
     revalidatePath("/dashboard/lesson-plans");
     return {

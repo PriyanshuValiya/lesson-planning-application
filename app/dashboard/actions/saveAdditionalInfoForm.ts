@@ -531,7 +531,7 @@ export async function saveAdditionalInfoForm(data: {
       .from("forms")
       .update({ complete_additional: true })
       .eq("id", existingForm.id)
-      .single();
+      .single(); 
 
     // Force revalidation of the lesson plans page
     revalidatePath("/dashboard/lesson-plans");

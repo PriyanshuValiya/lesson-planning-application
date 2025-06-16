@@ -551,7 +551,7 @@ export async function saveCIEPlanningForm(formData: CIEPlanningFormData) {
       .update({ complete_cie: true })
       .eq("faculty_id", formData.faculty_id)
       .eq("subject_id", formData.subject_id)
-      .single();
+      .single(); 
 
     console.log("🔍 SAVE: Successfully saved CIE planning");
     return {

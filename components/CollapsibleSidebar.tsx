@@ -18,7 +18,7 @@ import { useDashboardContext } from "@/context/DashboardContext";
 import { usePathname } from "next/navigation";
 import PsoPeoManagementModal from "@/components/modals/PsoPeoManagementModal";
 import ProfilePhotoUploadModal from "@/components/modals/ProfilePhotoUploadModal";
-import GuidelineModel from "./modals/GuidelineModel";
+import GuidelineModel from "@/components/modals/GuidelineModel";
 
 interface FacultySidebarProps {
   signOut: () => void;
@@ -257,8 +257,7 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
         currentPhotoUrl={userData.profile_photo}
         onPhotoUploaded={handlePhotoUploaded}
         onPhotoDeleted={handlePhotoDeleted}
-      />
-
+      /> 
       <GuidelineModel
         isOpen={isGuidelineModalOpen}
         onClose={() => setIsGuidelineModalOpen(false)}

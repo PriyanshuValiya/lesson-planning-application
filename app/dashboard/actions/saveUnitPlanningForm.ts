@@ -151,7 +151,7 @@ export async function saveUnitPlanningForm(
       .update({ complete_unit: true })
       .eq("faculty_id", faculty_id)
       .eq("subject_id", validatedData.subject_id)
-      .single();
+      .single(); 
 
     revalidatePath("/dashboard/lesson-plans");
     return { success: true };
