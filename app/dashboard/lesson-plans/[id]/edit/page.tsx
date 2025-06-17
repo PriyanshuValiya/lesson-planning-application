@@ -1711,7 +1711,7 @@ export default function EditLessonPlanPage() {
     }
   }, [params.id, userData.id])
 
-  useEffect(() => {
+  useEffect(() => { 
     const loadCopyLP = async () => {
       if (!lessonPlan?.subject?.code) {
         console.log("No subject code found")
