@@ -912,6 +912,8 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
   const [coursePrerequisitesMaterialsError, setCoursePrerequisitesMaterialsError] = useState("")
   const [courseOutcomesError, setCourseOutcomesError] = useState("")
 
+  console.log(lessonPlan)
+
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
@@ -1566,7 +1568,7 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
           <Input
             id="term-start-date"
             type="text"
-            value={facultyTermDates.termStartDate || "Not set by HOD"}
+            value={lessonPlan?.subject?.metadata?.term_start_date || "Not set by HOD"}
             disabled
             className="mt-1"
           />
@@ -1576,7 +1578,7 @@ export default function GeneralDetailsForm({ lessonPlan, setLessonPlan, openPdfV
           <Input
             id="term-end-date"
             type="text"
-            value={facultyTermDates.termEndDate || "Not set by HOD"}
+            value={lessonPlan?.subject?.metadata?.term_end_date || "Not set by HOD"}
             disabled
             className="mt-1"
           />
