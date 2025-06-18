@@ -62,8 +62,6 @@ function ViewLessonPlanPage() {
     );
   }
 
-  console.log("Lesson Plan Data:", lessonPlan);
-
   const formatDate = (dateString: string) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
