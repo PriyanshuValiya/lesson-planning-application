@@ -427,7 +427,7 @@ export default function FormsTable({ forms, userrole, allDepartments }: FormsTab
                             handleOnView(safeAccess(form, "users.auth_id"), safeAccess(form, "subjects.id"), form)
                           }
                           disabled={loadingActions[viewActionKey]}
-                          className="min-w-[80px] flex items-center justify-center"
+                          className="min-w-[40px] flex items-center justify-center"
                         >
                           {loadingActions[viewActionKey] ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -445,7 +445,7 @@ export default function FormsTable({ forms, userrole, allDepartments }: FormsTab
                             handleOnPrint(safeAccess(form, "users.auth_id"), safeAccess(form, "subjects.id"), form)
                           }
                           disabled={loadingActions[printActionKey]}
-                          className="min-w-[80px] flex items-center justify-center"
+                          className="min-w-[40px] flex items-center justify-center"
                         >
                           {loadingActions[printActionKey] ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
