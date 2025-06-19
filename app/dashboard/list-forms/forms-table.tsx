@@ -265,26 +265,6 @@ export default function FormsTable({
         )}
       </div>
 
-      {/* Summary Stats */}
-      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <div className="text-2xl font-bold text-blue-600">{sortedForms.length}</div>
-          <div className="text-sm text-blue-800">Total Forms</div>
-        </div>
-        <div className="bg-green-50 p-4 rounded-lg">
-          <div className="text-2xl font-bold text-green-600">
-            {sortedForms.filter((form) => getCompletionStatus(form).status === "Complete").length}
-          </div>
-          <div className="text-sm text-green-800">Completed Forms</div>
-        </div>
-        <div className="bg-orange-50 p-4 rounded-lg">
-          <div className="text-2xl font-bold text-orange-600">
-            {sortedForms.filter((form) => getCompletionStatus(form).status === "Not Started").length}
-          </div>
-          <div className="text-sm text-orange-800">Pending Forms</div>
-        </div>
-      </div> */}
-
       {/* Table */}
       <div className="rounded-md border">
         <Table>
@@ -327,7 +307,7 @@ export default function FormsTable({
                     onClick={() => handleSort("department")}
                     className="h-auto p-0 font-bold text-lg hover:bg-transparent"
                   >
-                    Department
+                    Depart.
                     {getSortIcon("department")}
                   </Button>
                 </TableHead>
@@ -365,9 +345,9 @@ export default function FormsTable({
                 const completionStatus = getCompletionStatus(form);
                 return (
                   <TableRow className="hover:bg-gray-50 text-lg" key={form.id}>
-                    <TableCell className="pl-5">{form.users.name}</TableCell>
-                    <TableCell className="pl-5">{form.subjects.name}</TableCell>
-                    <TableCell className="pl-5">{form.subjects.code}</TableCell>
+                    <TableCell className="pl-4 scale-95">{form.users.name}</TableCell>
+                    <TableCell className="pl-4 scale-95">{form.subjects.name}</TableCell>
+                    <TableCell className="pl-4 scale-95">{form.subjects.code}</TableCell>
                     {isPrincipal && (
                       <TableCell className="pl-5">
                         {form.subjects.departments.abbreviation_depart}
