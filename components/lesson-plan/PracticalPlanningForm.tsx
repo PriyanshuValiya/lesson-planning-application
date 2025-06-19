@@ -268,7 +268,7 @@ export default function PracticalPlanningForm({
           weeks.push(
             `Week ${i + 1} (${formatDate(weekStartDate)} - ${formatDate(
               weekEndDate
-            )})`
+            )})` 
           );
         }
 
