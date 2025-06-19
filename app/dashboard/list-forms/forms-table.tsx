@@ -1,110 +1,116 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
+"use client"
 
-import { useState, useMemo } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { EyeIcon, ArrowUpDown, Printer } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
-import { supabase } from "@/utils/supabase/client";
-import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { EyeIcon, ArrowUpDown, Printer, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { supabase } from "@/utils/supabase/client"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 type Form = {
-  id: string;
-  created_at: string;
-  form: any;
-  complete_general?: boolean;
-  complete_unit?: boolean;
-  complete_practical?: boolean;
-  complete_cie?: boolean;
-  complete_additional?: boolean;
+  id: string
+  created_at: string
+  form: any
+  complete_general?: boolean
+  complete_unit?: boolean
+  complete_practical?: boolean
+  complete_cie?: boolean
+  complete_additional?: boolean
   users: {
-    id: string;
-    auth_id: string;
-    name: string;
-    email: string;
-  };
+    id: string
+    auth_id: string
+    name: string
+    email: string
+  }
   subjects: {
-    id: string;
-    name: string;
-    code: string;
+    id: string
+    name: string
+    code: string
+    semester?: string | number
     departments: {
-      id: string;
-      name: string;
-      abbreviation_depart: string;
+      id: string
+      name: string
+      abbreviation_depart: string
       institutes: {
-        id: string;
-        name: string;
-      };
-    };
-  };
-};
+        id: string
+        name: string
+      }
+    }
+  }
+}
 
 type UserRole = {
-  id: string;
-  user_id: string;
-  role_name: string;
-  depart_id: string;
-  institute?: string;
+  id: string
+  user_id: string
+  role_name: string
+  depart_id: string
+  institute?: string
   departments?: {
-    id: string;
-    name: string;
-  };
+    id: string
+    name: string
+  }
   institutes?: {
-    id: string;
-    name: string;
-  };
-};
+    id: string
+    name: string
+  }
+}
 
 type Department = {
-  id: string;
-  name: string;
-};
+  id: string
+  name: string
+}
 
 type FormsTableProps = {
-  forms: Form[];
-  userrole: UserRole[];
-  allDepartments: Department[];
-};
+  forms: Form[]
+  userrole: UserRole[]
+  allDepartments: Department[]
+}
 
-export default function FormsTable({
-  forms,
-  userrole,
-  allDepartments,
-}: FormsTableProps) {
-  const router = useRouter();
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
-  const [sortField, setSortField] = useState<string>("");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+export default function FormsTable({ forms, userrole, allDepartments }: FormsTableProps) {
+  const router = useRouter()
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("all")
+  const [sortField, setSortField] = useState<string>("")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
+  const [loadingActions, setLoadingActions] = useState<{
+    [key: string]: boolean
+  }>({})
 
-  // Get user role information
-  const userRole = userrole[0];
-  const isPrincipal = userRole?.role_name === "Principal";
-  let isHOD = false;
+  const userRole = userrole[0]
+  const isPrincipal = userRole?.role_name === "Principal"
+  let isHOD = false
 
   for (const role of userrole) {
     if (role.role_name === "HOD") {
-      isHOD = true;
-      break;
+      isHOD = true
+      break
     }
   }
-  // Get completion status
+
+  const safeAccess = (obj: any, path: string, defaultValue: any = "") => {
+    try {
+      return path.split(".").reduce((current, key) => {
+        return current && current[key] !== undefined && current[key] !== null ? current[key] : defaultValue
+      }, obj)
+    } catch {
+      return defaultValue
+    }
+  }
+
+  const hasInitiatedLPD = (form: Form) => {
+    const completionFields = [
+      form.complete_general,
+      form.complete_unit,
+      form.complete_practical,
+      form.complete_cie,
+      form.complete_additional,
+    ]
+    return completionFields.some((field) => field === true)
+  }
+
   const getCompletionStatus = (form: Form) => {
     const completionFields = [
       form.complete_general,
@@ -112,138 +118,207 @@ export default function FormsTable({
       form.complete_practical,
       form.complete_cie,
       form.complete_additional,
-    ];
-
-    const completedCount = completionFields.filter(Boolean).length;
-    const totalFields = completionFields.length;
+    ]
+    const completedCount = completionFields.filter(Boolean).length
+    const totalFields = completionFields.length
 
     if (completedCount === totalFields) {
-      return { status: "Complete", variant: "default" as const };
+      return { status: "Complete", variant: "default" as const }
     } else if (completedCount > 0) {
       return {
         status: `${completedCount}/${totalFields} Complete`,
         variant: "secondary" as const,
-      };
+      }
     } else {
-      return { status: "Not Started", variant: "destructive" as const };
+      return { status: "Not Started", variant: "destructive" as const }
     }
-  };
+  }
 
-  // Filter forms by selected department (for principal)
   const departmentFilteredForms = useMemo(() => {
     if (!isPrincipal || selectedDepartment === "all") {
-      return forms;
+      return forms
     }
-    return forms.filter(
-      (form) => form.subjects.departments.id === selectedDepartment
-    );
-  }, [forms, selectedDepartment, isPrincipal]);
+    return forms.filter((form) => {
+      const departmentId = safeAccess(form, "subjects.departments.id")
+      return departmentId === selectedDepartment
+    })
+  }, [forms, selectedDepartment, isPrincipal])
 
-  // Sort forms
   const sortedForms = useMemo(() => {
-    if (!sortField) return departmentFilteredForms;
+    if (!sortField) return departmentFilteredForms
 
     return [...departmentFilteredForms].sort((a, b) => {
-      let aValue = "";
-      let bValue = "";
+      let aValue: any = ""
+      let bValue: any = ""
 
       switch (sortField) {
         case "faculty":
-          aValue = a.users.name;
-          bValue = b.users.name;
-          break;
+          aValue = safeAccess(a, "users.name")
+          bValue = safeAccess(b, "users.name")
+          break
         case "subject":
-          aValue = a.subjects.name;
-          bValue = b.subjects.name;
-          break;
+          aValue = safeAccess(a, "subjects.name")
+          bValue = safeAccess(b, "subjects.name")
+          break
         case "code":
-          aValue = a.subjects.code;
-          bValue = b.subjects.code;
-          break;
+          aValue = safeAccess(a, "subjects.code")
+          bValue = safeAccess(b, "subjects.code")
+          break
         case "department":
-          aValue = a.subjects.departments.name;
-          bValue = b.subjects.departments.name;
-          break;
+          aValue = safeAccess(a, "subjects.departments.name")
+          bValue = safeAccess(b, "subjects.departments.name")
+          break
         case "date":
-          aValue = a.created_at;
-          bValue = b.created_at;
-          break;
+          aValue = a.created_at || ""
+          bValue = b.created_at || ""
+          break
+        case "semester":
+          const aSemester = safeAccess(a, "subjects.semester", "")
+          const bSemester = safeAccess(b, "subjects.semester", "")
+          const aNum = !isNaN(Number(aSemester)) ? Number(aSemester) : aSemester
+          const bNum = !isNaN(Number(bSemester)) ? Number(bSemester) : bSemester
+          if (typeof aNum === "number" && typeof bNum === "number") {
+            return sortOrder === "asc" ? aNum - bNum : bNum - aNum
+          }
+          aValue = String(aSemester)
+          bValue = String(bSemester)
+          break
         default:
-          return 0;
+          return 0
       }
 
-      const comparison = aValue.localeCompare(bValue);
-      return sortOrder === "asc" ? comparison : -comparison;
-    });
-  }, [departmentFilteredForms, sortField, sortOrder]);
+      if (sortField !== "semester") {
+        const comparison = String(aValue).localeCompare(String(bValue))
+        return sortOrder === "asc" ? comparison : -comparison
+      }
+
+      const comparison = aValue.localeCompare(bValue)
+      return sortOrder === "asc" ? comparison : -comparison
+    })
+  }, [departmentFilteredForms, sortField, sortOrder])
 
   const handleSort = (field: string) => {
     if (sortField === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc")
     } else {
-      setSortField(field);
-      setSortOrder("asc");
+      setSortField(field)
+      setSortOrder("asc")
     }
-  };
+  }
 
   const getSortIcon = (field: string) => {
     if (sortField !== field) {
-      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
     }
-    return (
-      <ArrowUpDown
-        className={`ml-2 h-4 w-4 ${sortOrder === "desc" ? "rotate-180" : ""}`}
-      />
-    );
-  };
+    return <ArrowUpDown className={`ml-2 h-4 w-4 ${sortOrder === "desc" ? "rotate-180" : ""}`} />
+  }
 
-  const handleOnView = async (userId: string, formId: string) => {
-    const { data: IdData, error: IdError } = await supabase
-      .from("user_role")
-      .select("*")
-      .eq("subject_id", formId)
-      .eq("user_id", userId);
-      // .single();
+  // Helper function to clear loading state
+  const clearLoadingState = (actionKey: string) => {
+    setLoadingActions((prev) => {
+      const newState = { ...prev }
+      delete newState[actionKey]
+      return newState
+    })
+  }
 
-    if (IdError) {
-      console.error("Error fetching user role for form:", IdError);
-      return;
+  const handleOnView = async (userId: string, formId: string, form: Form) => {
+    const actionKey = `view-${formId}`
+
+    // Set loading state
+    setLoadingActions((prev) => ({ ...prev, [actionKey]: true }))
+
+    try {
+      // Check if LPD has been initiated
+      if (!hasInitiatedLPD(form)) {
+        toast(
+          `The LPD for ${safeAccess(
+            form,
+            "subjects.name",
+            "this subject",
+          )} has not been started by ${form?.users.name} !!`,
+        )
+        return
+      }
+
+      const { data: IdData, error: IdError } = await supabase
+        .from("user_role")
+        .select("*")
+        .eq("subject_id", formId)
+        .eq("user_id", userId)
+
+      if (IdError) {
+        console.error("Error fetching user role for form:", IdError)
+        toast("Failed to fetch user role information. Please try again.")
+        return
+      }
+
+      if (IdData && IdData.length > 0) {
+        // Navigate to the view page
+        router.push(`/dashboard/lesson-plans/${IdData[0].id}/view-lp`)
+      } else {
+        toast("Unable to access lesson plan. Please contact administrator.")
+      }
+    } catch (error) {
+      console.error("Error in handleOnView:", error)
+      toast("An unexpected error occurred. Please try again.")
+    } finally {
+      // Always clear loading state
+      clearLoadingState(actionKey)
     }
-    
-    router.push(`/dashboard/lesson-plans/${IdData[0].id}/view-lp`);
-  };
+  }
 
-  
-  const handleOnPrint = async (userId: string, formId: string) => {
-    const { data: IdData, error: IdError } = await supabase
-      .from("user_role")
-      .select("*")
-      .eq("subject_id", formId)
-      .eq("user_id", userId);
-      // .single();
+  const handleOnPrint = async (userId: string, formId: string, form: Form) => {
+    const actionKey = `print-${formId}`
 
-    if (IdError) {
-      console.error("Error fetching user role for form:", IdError);
-      return;
+    // Set loading state
+    setLoadingActions((prev) => ({ ...prev, [actionKey]: true }))
+
+    try {
+      // Check if LPD has been initiated
+      if (!hasInitiatedLPD(form)) {
+        toast(
+          `The LPD for ${safeAccess(
+            form,
+            "subjects.name",
+            "this subject",
+          )} has not been started by ${form?.users.name} !!`,
+        )
+        return
+      }
+
+      const { data: IdData, error: IdError } = await supabase
+        .from("user_role")
+        .select("*")
+        .eq("subject_id", formId)
+        .eq("user_id", userId)
+
+      if (IdError) {
+        console.error("Error fetching user role for form:", IdError)
+        toast("Failed to fetch user role information. Please try again.")
+        return
+      }
+
+      if (IdData && IdData.length > 0) {
+        // Navigate to the print page
+        router.push(`/print/${IdData[0].id}`)
+      } else {
+        toast("Unable to access lesson plan for printing. Please contact administrator.")
+      }
+    } catch (error) {
+      console.error("Error in handleOnPrint:", error)
+      toast("An unexpected error occurred. Please try again.")
+    } finally {
+      // Always clear loading state
+      clearLoadingState(actionKey)
     }
-
-    if(!IdData || IdData.length === 0) {
-      console.error("No user role found for the given form and user.");
-      return;
-    }
-    
-    router.push(`/print/${IdData[0].id}`);
-  };
+  }
 
   return (
     <div className="space-y-4">
-      {/* Header with role info and department filter */}
       <div className="flex justify-end items-center">
         {isPrincipal && allDepartments.length > 1 && (
-          <Select
-            value={selectedDepartment}
-            onValueChange={setSelectedDepartment}
-          >
+          <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
             <SelectTrigger className="w-[300px] cursor-pointer">
               <SelectValue placeholder="Select Department" />
             </SelectTrigger>
@@ -252,11 +327,7 @@ export default function FormsTable({
                 All Departments
               </SelectItem>
               {allDepartments.map((dept) => (
-                <SelectItem
-                  key={dept.id}
-                  value={dept.id}
-                  className="cursor-pointer"
-                >
+                <SelectItem key={dept.id} value={dept.id} className="cursor-pointer">
                   {dept.name}
                 </SelectItem>
               ))}
@@ -265,7 +336,6 @@ export default function FormsTable({
         )}
       </div>
 
-      {/* Table */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -300,6 +370,16 @@ export default function FormsTable({
                   {getSortIcon("code")}
                 </Button>
               </TableHead>
+              <TableHead className="text-black font-bold text-lg">
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort("semester")}
+                  className="h-auto p-0 font-bold text-lg hover:bg-transparent"
+                >
+                  Sem
+                  {getSortIcon("semester")}
+                </Button>
+              </TableHead>
               {isPrincipal && (
                 <TableHead className="text-black font-bold text-lg">
                   <Button
@@ -312,84 +392,78 @@ export default function FormsTable({
                   </Button>
                 </TableHead>
               )}
-              <TableHead className="text-black font-bold text-lg">
-                Status
-              </TableHead>
-              {/* <TableHead className="text-black font-bold text-lg">
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("date")}
-                  className="h-auto p-0 font-bold text-lg hover:bg-transparent"
-                >
-                  Created Date
-                  {getSortIcon("date")}
-                </Button>
-              </TableHead> */}
-              <TableHead className="text-black font-bold text-lg">
-                Action
-              </TableHead>
+              <TableHead className="text-black font-bold text-lg">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sortedForms.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={isPrincipal ? 7 : 6}
-                  className="text-center py-8 text-gray-500"
-                >
+                <TableCell colSpan={isPrincipal ? 6 : 5} className="text-center py-8 text-gray-500">
                   No lesson plan forms found.
                 </TableCell>
               </TableRow>
             ) : (
               sortedForms.map((form) => {
-                const completionStatus = getCompletionStatus(form);
+                const viewActionKey = `view-${form.id}`
+                const printActionKey = `print-${form.id}`
+
                 return (
                   <TableRow className="hover:bg-gray-50 text-lg" key={form.id}>
-                    <TableCell className="pl-4 scale-95">{form.users.name}</TableCell>
-                    <TableCell className="pl-4 scale-95">{form.subjects.name}</TableCell>
-                    <TableCell className="pl-4 scale-95">{form.subjects.code}</TableCell>
+                    <TableCell className="pl-5">{safeAccess(form, "users.name", "N/A")}</TableCell>
+                    <TableCell className="pl-5">{safeAccess(form, "subjects.name", "N/A")}</TableCell>
+                    <TableCell className="pl-5">{safeAccess(form, "subjects.code", "N/A")}</TableCell>
+                    <TableCell className="pl-5">{safeAccess(form, "subjects.semester", "N/A")}</TableCell>
                     {isPrincipal && (
                       <TableCell className="pl-5">
-                        {form.subjects.departments.abbreviation_depart}
+                        {safeAccess(form, "subjects.departments.abbreviation_depart", "N/A")}
                       </TableCell>
                     )}
-                    <TableCell className="">
-                      <Badge variant={completionStatus.variant}>
-                        {completionStatus.status}
-                      </Badge>
-                    </TableCell>
-                    {/* <TableCell className="pl-5">
-                      {new Date(form.created_at).toLocaleDateString()}
-                    </TableCell> */}
                     <TableCell>
                       <div className="flex space-x-2">
-                        {/* <Link
-                          href={`/dashboard/lesson-plans/${form.subjects.id}/view-lp`}
-                        > */}
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleOnView(form.users.auth_id, form.subjects.id)}
+                          onClick={() =>
+                            handleOnView(safeAccess(form, "users.auth_id"), safeAccess(form, "subjects.id"), form)
+                          }
+                          disabled={loadingActions[viewActionKey]}
+                          className="min-w-[80px] flex items-center justify-center"
                         >
-                          <EyeIcon className="w-4 h-4 mr-1" />
+                          {loadingActions[viewActionKey] ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <EyeIcon className="w-4 h-4 mr-1" />
+                            </>
+                          )}
                         </Button>
 
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleOnPrint(form.users.auth_id, form.subjects.id)}
+                          onClick={() =>
+                            handleOnPrint(safeAccess(form, "users.auth_id"), safeAccess(form, "subjects.id"), form)
+                          }
+                          disabled={loadingActions[printActionKey]}
+                          className="min-w-[80px] flex items-center justify-center"
                         >
-                            <Printer className="w-4 h-4 mr-1" />
+                          {loadingActions[printActionKey] ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Printer className="w-4 h-4 mr-1" />
+                            </>
+                          )}
                         </Button>
                       </div>
                     </TableCell>
                   </TableRow>
-                );
+                )
               })
             )}
           </TableBody>
         </Table>
       </div>
     </div>
-  );
+  )
 }
