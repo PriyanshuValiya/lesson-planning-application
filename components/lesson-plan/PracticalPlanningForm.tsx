@@ -288,17 +288,18 @@ export default function PracticalPlanningForm({
     if (!lessonPlan?.subject?.code || loadingWeeks) return;
 
     setLoadingWeeks(true);
+    console.log(lessonPlan.subject)
 
     try {
       // OPTIMIZED: Single database call with specific field selection
       const { data, error } = await supabase
         .from("subjects")
         .select("metadata")
-        .eq("code", lessonPlan.subject.code)
+        .eq("id", lessonPlan.subject.id)
         .single();
 
       if (error || !data?.metadata) {
-        console.warn("No metadata found for subject");
+        console.error("No metadata found for subject");
         setLoadingWeeks(false);
         return;
       }
