@@ -766,9 +766,52 @@ export default function PrintLessonPlanPage() {
                       <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
                         {index + 1}
                       </td>
-                      <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
+                      {/* <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                         {cie.units_covered}
-                      </td>
+                      </td> */}
+
+
+<td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
+  {(() => {
+    // Handle units_covered mapping
+    if (typeof cie.units_covered === "string") {
+      // Check if it's a comma-separated list of unit IDs
+      const unitIds = cie.units_covered.split(",").map((id) => id.trim())
+
+      // If it looks like UUIDs, try to map them to unit names
+      if (unitIds.some((id) => id.length > 20 && id.includes("-"))) {
+        const mappedUnits = unitIds.map((unitId) => {
+          const unit = lessonPlan.units?.find((u: any) => u.id === unitId)
+          if (unit) {
+            const unitIndex = lessonPlan.units.findIndex((u: any) => u.id === unitId)
+            return `Unit ${unitIndex + 1}: ${unit.unit_name}`
+          }
+          return unitId // Fallback to original ID if not found
+        })
+        return mappedUnits.join(", ")
+      }
+
+      // If it's already readable text, return as is
+      return cie.units_covered
+    }
+
+    // Handle array format
+    if (Array.isArray(cie.units_covered)) {
+      return cie.units_covered
+        .map((unitId) => {
+          const unit = lessonPlan.units?.find((u: any) => u.id === unitId)
+          if (unit) {
+            const unitIndex = lessonPlan.units.findIndex((u: any) => u.id === unitId)
+            return `Unit ${unitIndex + 1}: ${unit.unit_name}`
+          }
+          return unitId
+        })
+        .join(", ")
+    }
+
+    return cie.units_covered || "N/A"
+  })()}
+</td>
                       <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
                         {cie.date}
                       </td>
