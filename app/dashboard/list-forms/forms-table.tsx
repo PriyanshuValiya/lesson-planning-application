@@ -409,12 +409,12 @@ export default function FormsTable({ forms, userrole, allDepartments }: FormsTab
 
                 return (
                   <TableRow className="hover:bg-gray-50 text-lg" key={form.id}>
-                    <TableCell className="pl-5">{safeAccess(form, "users.name", "N/A")}</TableCell>
-                    <TableCell className="pl-5">{safeAccess(form, "subjects.name", "N/A")}</TableCell>
-                    <TableCell className="pl-5">{safeAccess(form, "subjects.code", "N/A")}</TableCell>
-                    <TableCell className="pl-5">{safeAccess(form, "subjects.semester", "N/A")}</TableCell>
+                    <TableCell className="pl-5 scale-95">{safeAccess(form, "users.name", "N/A")}</TableCell>
+                    <TableCell className="pl-5 scale-95">{safeAccess(form, "subjects.name", "N/A")}</TableCell>
+                    <TableCell className="pl-5 scale-95">{safeAccess(form, "subjects.code", "N/A")}</TableCell>
+                    <TableCell className="pl-5 scale-95">{safeAccess(form, "subjects.semester", "N/A")}</TableCell>
                     {isPrincipal && (
-                      <TableCell className="pl-5">
+                      <TableCell className="pl-5 scale-95">
                         {safeAccess(form, "subjects.departments.abbreviation_depart", "N/A")}
                       </TableCell>
                     )}
