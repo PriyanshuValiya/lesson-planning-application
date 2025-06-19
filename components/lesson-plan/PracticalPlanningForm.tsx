@@ -33,6 +33,7 @@ import {
   loadFormDraft,
   deleteFormDraft,
 } from "@/app/dashboard/actions/saveFormDraft";
+import { start } from "repl";
 
 interface PSOPEOItem {
   id: string;
@@ -231,10 +232,14 @@ export default function PracticalPlanningForm({
         const startDate = parseDate(startDateStr);
         const endDate = parseDate(endDateStr);
 
+        console.log(startDate, endDate);
+
         // OPTIMIZED: Calculate weeks more efficiently
         const diffTime = endDate.getTime() - startDate.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         const numWeeks = Math.min(Math.ceil(diffDays / 7), 20); // Cap at 20 weeks for performance
+
+        console.log(numWeeks, diffDays);
 
         // OPTIMIZED: Pre-calculate format function
         const formatDate = (date: Date): string => {
@@ -263,10 +268,11 @@ export default function PracticalPlanningForm({
           weeks.push(
             `Week ${i + 1} (${formatDate(weekStartDate)} - ${formatDate(
               weekEndDate
-            )})`
+            )})` 
           );
         }
 
+        console.log("Generated weeks:", weeks);
         return weeks;
       } catch (error) {
         console.error("Error generating week options:", error);

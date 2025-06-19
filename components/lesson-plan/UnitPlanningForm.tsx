@@ -941,9 +941,9 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
                 </div>
                 <div>
                   <h3 className="font-semibold">Lecture Count:</h3>
-                  <p>
+                  {/* <p>
                     Total number of lectures across all units must equal Credits × 15 to maintain academic standards.
-                  </p>
+                  </p> */}
                 </div>
                 <div>
                   <h3 className="font-semibold">Skill Mapping:</h3>
