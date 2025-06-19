@@ -246,17 +246,17 @@ function validateUnitPlanning(
   }
 
   // Validation 4: Total lectures must equal credits × 15
-  const totalLectures = units.reduce(
-    (sum: number, unit: any) => sum + unit.no_of_lectures,
-    0
-  );
-  const expectedLectures = subjectData.credits * 15;
+  // const totalLectures = units.reduce(
+  //   (sum: number, unit: any) => sum + unit.no_of_lectures,
+  //   0
+  // );
+  // const expectedLectures = subjectData.credits * 15;
 
-  if (totalLectures !== expectedLectures) {
-    errors.push(
-      `Total lectures (${totalLectures}) must equal credits × 15 (${expectedLectures}).`
-    );
-  }
+  // if (totalLectures !== expectedLectures) {
+  //   errors.push(
+  //     `Total lectures (${totalLectures}) must equal credits × 15 (${expectedLectures}).`
+  //   );
+  // }
 
   // Validation 5: At least one skill must be filled including details
   const hasSkillMapping = units.some(
