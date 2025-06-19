@@ -7,6 +7,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+
 import {
   Select,
   SelectContent,
@@ -1281,6 +1283,539 @@ export default function PracticalPlanningForm({
             <p className="text-red-500 text-xs mt-1">{softwareHardwareError}</p>
           )}
         </div>
+
+
+
+
+        {/* Practical Tasks */}
+        <div>
+          <Label htmlFor="practical-tasks">
+            Practical Tasks/Problem Statement <span className="text-red-500">*</span>
+          </Label>
+          <Textarea
+            id="practical-tasks"
+            value={currentPractical.practical_tasks || ""}
+            onChange={(e) => handlePracticalChange(activePractical, "practical_tasks", e.target.value)}
+            placeholder="Enter practical tasks or problem statement"
+            className="mt-1"
+            rows={4}
+          />
+          {practicalTasksError && <p className="text-red-500 text-xs mt-1">{practicalTasksError}</p>}
+        </div>
+
+        {/* Evaluation Methods */}
+        <div>
+          <Label className="mb-2 block">
+            Evaluation Methods <span className="text-red-500">*</span>
+          </Label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {evaluationMethodOptions
+              .filter((method) => method !== "Other")
+              .map((method) => (
+                <div key={method} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`evaluation-${method}`}
+                    checked={(currentPractical.evaluation_methods || []).includes(method)}
+                    onCheckedChange={(checked) => {
+                      const current = currentPractical.evaluation_methods || []
+                      if (checked) {
+                        handlePracticalChange(activePractical, "evaluation_methods", [...current, method])
+                      } else {
+                        handlePracticalChange(
+                          activePractical,
+                          "evaluation_methods",
+                          current.filter((m: string) => m !== method),
+                        )
+                      }
+                    }}
+                  />
+                  <Label
+                    htmlFor={`evaluation-${method}`}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {method}
+                  </Label>
+                </div>
+              ))}
+
+            {/* Other option */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="evaluation-other"
+                checked={
+                  showOtherEvaluationInput ||
+                  (currentPractical.evaluation_methods || []).some((m) => m.startsWith("Other:"))
+                }
+                onCheckedChange={(checked) => {
+                  setShowOtherEvaluationInput(!!checked)
+                  if (!checked) {
+                    // Remove any "Other:" entries when unchecked
+                    const current = currentPractical.evaluation_methods || []
+                    handlePracticalChange(
+                      activePractical,
+                      "evaluation_methods",
+                      current.filter((m: string) => !m.startsWith("Other:")),
+                    )
+                  }
+                }}
+              />
+              <Label
+                htmlFor="evaluation-other"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Other
+              </Label>
+            </div>
+          </div>
+
+          {/* Other Evaluation Method Input */}
+          {showOtherEvaluationInput && (
+            <div className="mt-3 flex gap-2">
+              <Input
+                placeholder="Enter other evaluation method"
+                value={otherEvaluationValue}
+                onChange={(e) => setOtherEvaluationValue(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (otherEvaluationValue.trim()) {
+                    const current = currentPractical.evaluation_methods || []
+                    handlePracticalChange(activePractical, "evaluation_methods", [
+                      ...current,
+                      `Other: ${otherEvaluationValue.trim()}`,
+                    ])
+                    setOtherEvaluationValue("")
+                  }
+                }}
+              >
+                Add
+              </Button>
+            </div>
+          )}
+
+          {/* Display selected evaluation methods */}
+          {(currentPractical.evaluation_methods || []).length > 0 && (
+            <div className="mt-2">
+              <Label className="text-sm text-gray-500">Selected Methods:</Label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {(currentPractical.evaluation_methods || []).map((method: string, idx: number) => (
+                  <Badge key={`${method}-${idx}`} variant="secondary" className="text-xs">
+                    {method}
+                    <button
+                      onClick={() => {
+                        const updated = (currentPractical.evaluation_methods || []).filter(
+                          (m: string, i: number) => i !== idx,
+                        )
+                        handlePracticalChange(activePractical, "evaluation_methods", updated)
+                      }}
+                      className="ml-1 text-red-500 hover:text-red-700"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {evaluationMethodsError && <p className="text-red-500 text-xs mt-1">{evaluationMethodsError}</p>}
+        </div>
+
+        {/* Practical Pedagogy */}
+        <div>
+          <Label htmlFor="practical-pedagogy">
+            Practical Pedagogy <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={currentPractical.practical_pedagogy || ""}
+            onValueChange={(value) => {
+              if (value === "Other") {
+                setShowOtherPedagogyInput(true)
+              } else {
+                handlePracticalChange(activePractical, "practical_pedagogy", value)
+                setShowOtherPedagogyInput(false)
+              }
+            }}
+          >
+            <SelectTrigger id="practical-pedagogy" className="mt-1">
+              <SelectValue placeholder="Select practical pedagogy" />
+            </SelectTrigger>
+            <SelectContent>
+              {practicalPedagogyOptions
+                .filter((option) => option !== "Other")
+                .map((pedagogy) => (
+                  <SelectItem key={pedagogy} value={pedagogy}>
+                    {pedagogy}
+                  </SelectItem>
+                ))}
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Other Pedagogy Input */}
+          {showOtherPedagogyInput && (
+            <div className="mt-3 flex gap-2">
+              <Input
+                placeholder="Enter other pedagogy"
+                value={otherPedagogyValue}
+                onChange={(e) => setOtherPedagogyValue(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (otherPedagogyValue.trim()) {
+                    handlePracticalChange(activePractical, "practical_pedagogy", `Other: ${otherPedagogyValue.trim()}`)
+                    setOtherPedagogyValue("")
+                    setShowOtherPedagogyInput(false)
+                  }
+                }}
+              >
+                Add
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setShowOtherPedagogyInput(false)
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
+
+          {practicalPedagogyError && <p className="text-red-500 text-xs mt-1">{practicalPedagogyError}</p>}
+        </div>
+
+        {/* Reference Material */}
+        <div>
+          <Label htmlFor="reference-material">
+            Reference Material <span className="text-red-500">*</span>
+          </Label>
+          <Textarea
+            id="reference-material"
+            value={currentPractical.reference_material || ""}
+            onChange={(e) => handlePracticalChange(activePractical, "reference_material", e.target.value)}
+            placeholder="Enter reference material"
+            className="mt-1"
+            rows={3}
+          />
+          {referenceError && <p className="text-red-500 text-xs mt-1">{referenceError}</p>}
+        </div>
+
+        {/* CO, PSO, PEO Mapping */}
+        <div className="grid grid-cols-1 gap-6">
+          {/* CO Mapping */}
+          <div>
+            <Label>
+              CO Mapping <span className="text-red-500">*</span>
+            </Label>
+            <Select
+              value=""
+              onValueChange={(value) => {
+                const current = currentPractical.co_mapping || []
+                if (!current.includes(value)) {
+                  handlePracticalChange(activePractical, "co_mapping", [...current, value])
+                }
+              }}
+            >
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue placeholder="Select Course Outcomes" />
+              </SelectTrigger>
+              <SelectContent>
+                {(lessonPlan.courseOutcomes || []).map((co: any, index: number) => (
+                  <SelectItem key={co.id} value={co.id}>
+                    CO{index + 1}: {co.text}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Selected COs */}
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(currentPractical.co_mapping || []).map((coId: string) => {
+                const co = (lessonPlan.courseOutcomes || []).find((c: any) => c.id === coId)
+                const coIndex = (lessonPlan.courseOutcomes || []).findIndex((c: any) => c.id === coId)
+                return (
+                  <Badge key={coId} variant="secondary" className="text-xs">
+                    CO{(coIndex || 0) + 1}: {co?.text || "Unknown"}
+                    <button
+                      onClick={() => {
+                        const updated = (currentPractical.co_mapping || []).filter((id: string) => id !== coId)
+                        handlePracticalChange(activePractical, "co_mapping", updated)
+                      }}
+                      className="ml-1 text-red-500 hover:text-red-700"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )
+              })}
+            </div>
+            {coMappingError && <p className="text-red-500 text-xs mt-1">{coMappingError}</p>}
+          </div>
+
+          {/* PSO Mapping */}
+          <div>
+            <Label>PSO Mapping</Label>
+            <Select
+              value=""
+              onValueChange={(value) => {
+                const current = currentPractical.pso_mapping || []
+                if (!current.includes(value)) {
+                  handlePracticalChange(activePractical, "pso_mapping", [...current, value])
+                }
+              }}
+            >
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue placeholder="Select PSO" />
+              </SelectTrigger>
+              <SelectContent>
+                {departmentPsoPeo.pso_data.map((pso, index) => (
+                  <SelectItem key={pso.id} value={pso.id}>
+                    {pso.label || `PSO${index + 1}`}: {pso.description}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Selected PSOs */}
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(currentPractical.pso_mapping || []).map((psoId: string) => {
+                const pso = departmentPsoPeo.pso_data.find((p) => p.id === psoId)
+                const psoIndex = departmentPsoPeo.pso_data.findIndex((p) => p.id === psoId)
+                return (
+                  <Badge key={psoId} variant="secondary" className="text-xs">
+                    {pso?.label || `PSO${psoIndex + 1}`}: {pso?.description || "Unknown"}
+                    <button
+                      onClick={() => {
+                        const updated = (currentPractical.pso_mapping || []).filter((id: string) => id !== psoId)
+                        handlePracticalChange(activePractical, "pso_mapping", updated)
+                      }}
+                      className="ml-1 text-red-500 hover:text-red-700"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* PEO Mapping */}
+          <div>
+            <Label>PEO Mapping</Label>
+            <Select
+              value=""
+              onValueChange={(value) => {
+                const current = currentPractical.peo_mapping || []
+                if (!current.includes(value)) {
+                  handlePracticalChange(activePractical, "peo_mapping", [...current, value])
+                }
+              }}
+            >
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue placeholder="Select PEO" />
+              </SelectTrigger>
+              <SelectContent>
+                {departmentPsoPeo.peo_data.map((peo, index) => (
+                  <SelectItem key={peo.id} value={peo.id}>
+                    {peo.label || `PEO${index + 1}`}: {peo.description}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Selected PEOs */}
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(currentPractical.peo_mapping || []).map((peoId: string) => {
+                const peo = departmentPsoPeo.peo_data.find((p) => p.id === peoId)
+                const peoIndex = departmentPsoPeo.peo_data.findIndex((p) => p.id === peoId)
+                return (
+                  <Badge key={peoId} variant="secondary" className="text-xs">
+                    {peo?.label || `PEO${peoIndex + 1}`}: {peo?.description || "Unknown"}
+                    <button
+                      onClick={() => {
+                        const updated = (currentPractical.peo_mapping || []).filter((id: string) => id !== peoId)
+                        handlePracticalChange(activePractical, "peo_mapping", updated)
+                      }}
+                      className="ml-1 text-red-500 hover:text-red-700"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Bloom's Taxonomy */}
+        <div>
+          <Label className="mb-2 block">
+            Bloom&apos;s Taxonomy <span className="text-red-500">*</span>
+          </Label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {bloomsTaxonomyOptions.map((taxonomy) => (
+              <div key={taxonomy} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`taxonomy-${taxonomy}`}
+                  checked={(currentPractical.blooms_taxonomy || []).includes(taxonomy)}
+                  onCheckedChange={(checked) => {
+                    const current = currentPractical.blooms_taxonomy || []
+                    if (checked) {
+                      handlePracticalChange(activePractical, "blooms_taxonomy", [...current, taxonomy])
+                    } else {
+                      handlePracticalChange(
+                        activePractical,
+                        "blooms_taxonomy",
+                        current.filter((t: string) => t !== taxonomy),
+                      )
+                    }
+                  }}
+                />
+                <Label
+                  htmlFor={`taxonomy-${taxonomy}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {taxonomy}
+                </Label>
+              </div>
+            ))}
+          </div>
+          {bloomsError && <p className="text-red-500 text-xs mt-1">{bloomsError}</p>}
+        </div>
+
+        {/* Skill Mapping */}
+        <div>
+          <Label className="mb-2 block">
+            Skill Mapping <span className="text-red-500">*</span>
+          </Label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {skillMappingOptions.map((skill) => (
+              <div key={skill} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`skill-${skill}`}
+                  checked={(currentPractical.skill_mapping || []).includes(skill)}
+                  onCheckedChange={(checked) => {
+                    const current = currentPractical.skill_mapping || []
+                    if (checked) {
+                      handlePracticalChange(activePractical, "skill_mapping", [...current, skill])
+                    } else {
+                      handlePracticalChange(
+                        activePractical,
+                        "skill_mapping",
+                        current.filter((s: string) => s !== skill),
+                      )
+                    }
+                  }}
+                />
+                <Label
+                  htmlFor={`skill-${skill}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {skill}
+                </Label>
+              </div>
+            ))}
+
+            {/* Other option */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="skill-other"
+                checked={
+                  showOtherSkillInput || (currentPractical.skill_mapping || []).some((s) => s.startsWith("Other:"))
+                }
+                onCheckedChange={(checked) => {
+                  setShowOtherSkillInput(!!checked)
+                  if (!checked) {
+                    // Remove any "Other:" entries when unchecked
+                    const current = currentPractical.skill_mapping || []
+                    handlePracticalChange(
+                      activePractical,
+                      "skill_mapping",
+                      current.filter((s: string) => !s.startsWith("Other:")),
+                    )
+                  }
+                }}
+              />
+              <Label
+                htmlFor="skill-other"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Other
+              </Label>
+            </div>
+          </div>
+
+          {/* Other Skill Input */}
+          {showOtherSkillInput && (
+            <div className="mt-3 flex gap-2">
+              <Input
+                placeholder="Enter other skill"
+                value={otherSkillValue}
+                onChange={(e) => setOtherSkillValue(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (otherSkillValue.trim()) {
+                    const current = currentPractical.skill_mapping || []
+                    handlePracticalChange(activePractical, "skill_mapping", [
+                      ...current,
+                      `Other: ${otherSkillValue.trim()}`,
+                    ])
+                    setOtherSkillValue("")
+                  }
+                }}
+              >
+                Add
+              </Button>
+            </div>
+          )}
+
+          {skillMappingError && <p className="text-red-500 text-xs mt-1">{skillMappingError}</p>}
+        </div>
+
+        {/* Skill Objectives */}
+        <div>
+          <Label htmlFor="skill-objectives">
+            Skill Objectives <span className="text-red-500">*</span>
+          </Label>
+          <Textarea
+            id="skill-objectives"
+            value={currentPractical.skill_objectives || ""}
+            onChange={(e) => handlePracticalChange(activePractical, "skill_objectives", e.target.value)}
+            placeholder="Enter skill objectives"
+            className="mt-1"
+            rows={3}
+          />
+          {skillObjectivesError && <p className="text-red-500 text-xs mt-1">{skillObjectivesError}</p>}
+        </div>
+
+        {/* Remarks */}
+        <div>
+          <Label htmlFor="remarks">Remarks</Label>
+          <Textarea
+            id="remarks"
+            value={lessonPlan.practical_remarks || ""}
+            onChange={(e) =>
+              setLessonPlan((prev: any) => ({
+                ...prev,
+                practical_remarks: e.target.value,
+              }))
+            }
+            placeholder="Enter any additional remarks"
+            className="mt-1"
+            rows={3}
+          />
+        </div>
+
+
 
         {/* Action Buttons */}
         <div className="flex justify-between mt-8">
