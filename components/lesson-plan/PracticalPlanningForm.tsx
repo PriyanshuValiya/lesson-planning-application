@@ -1256,9 +1256,6 @@ export default function PracticalPlanningForm({
           </div>
         </div>
 
-        {/* Rest of the form fields remain the same... */}
-        {/* I'll include just a few more key fields for brevity */}
-
         {/* Software/Hardware Requirements */}
         <div>
           <Label htmlFor="software-hardware">
@@ -1276,16 +1273,13 @@ export default function PracticalPlanningForm({
               )
             }
             placeholder="Enter software/hardware requirements"
-            className="mt-1"
+            className="mt-2"
             rows={3}
           />
           {softwareHardwareError && (
             <p className="text-red-500 text-xs mt-1">{softwareHardwareError}</p>
           )}
         </div>
-
-
-
 
         {/* Practical Tasks */}
         <div>
@@ -1297,7 +1291,7 @@ export default function PracticalPlanningForm({
             value={currentPractical.practical_tasks || ""}
             onChange={(e) => handlePracticalChange(activePractical, "practical_tasks", e.target.value)}
             placeholder="Enter practical tasks or problem statement"
-            className="mt-1"
+            className="mt-2"
             rows={4}
           />
           {practicalTasksError && <p className="text-red-500 text-xs mt-1">{practicalTasksError}</p>}
@@ -1500,7 +1494,7 @@ export default function PracticalPlanningForm({
             value={currentPractical.reference_material || ""}
             onChange={(e) => handlePracticalChange(activePractical, "reference_material", e.target.value)}
             placeholder="Enter reference material"
-            className="mt-1"
+            className="mt-2"
             rows={3}
           />
           {referenceError && <p className="text-red-500 text-xs mt-1">{referenceError}</p>}
@@ -1791,7 +1785,7 @@ export default function PracticalPlanningForm({
             value={currentPractical.skill_objectives || ""}
             onChange={(e) => handlePracticalChange(activePractical, "skill_objectives", e.target.value)}
             placeholder="Enter skill objectives"
-            className="mt-1"
+            className="mt-2"
             rows={3}
           />
           {skillObjectivesError && <p className="text-red-500 text-xs mt-1">{skillObjectivesError}</p>}
@@ -1810,13 +1804,11 @@ export default function PracticalPlanningForm({
               }))
             }
             placeholder="Enter any additional remarks"
-            className="mt-1"
+            className="mt-2"
             rows={3}
           />
         </div>
-
-
-
+        
         {/* Action Buttons */}
         <div className="flex justify-between mt-8">
           <div className="flex items-center">
