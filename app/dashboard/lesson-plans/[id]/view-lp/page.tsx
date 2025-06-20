@@ -148,7 +148,7 @@ function ViewLessonPlanPage() {
                     Term Duration:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {lessonPlan.subject.metadata.term_start_date} -{" "}
+                    {lessonPlan.subject.metadata.term_start_date} to{" "}
                     {lessonPlan.subject.metadata.term_end_date}
                   </td>
                 </tr>
@@ -633,50 +633,67 @@ function ViewLessonPlanPage() {
                           {cie.units_covered}
                         </td> */}
 
+                        <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
+                          {(() => {
+                            // Handle units_covered mapping
+                            if (typeof cie.units_covered === "string") {
+                              // Check if it's a comma-separated list of unit IDs
+                              const unitIds = cie.units_covered
+                                .split(",")
+                                .map((id) => id.trim());
 
+                              // If it looks like UUIDs, try to map them to unit names
+                              if (
+                                unitIds.some(
+                                  (id) => id.length > 20 && id.includes("-")
+                                )
+                              ) {
+                                const mappedUnits = unitIds.map((unitId) => {
+                                  const unit = lessonPlan.units?.find(
+                                    (u: any) => u.id === unitId
+                                  );
+                                  if (unit) {
+                                    const unitIndex =
+                                      lessonPlan.units.findIndex(
+                                        (u: any) => u.id === unitId
+                                      );
+                                    return `Unit ${unitIndex + 1}: ${
+                                      unit.unit_name
+                                    }`;
+                                  }
+                                  return unitId; // Fallback to original ID if not found
+                                });
+                                return mappedUnits.join(", ");
+                              }
 
+                              // If it's already readable text, return as is
+                              return cie.units_covered;
+                            }
 
-<td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-  {(() => {
-    // Handle units_covered mapping
-    if (typeof cie.units_covered === "string") {
-      // Check if it's a comma-separated list of unit IDs
-      const unitIds = cie.units_covered.split(",").map((id) => id.trim())
+                            // Handle array format
+                            if (Array.isArray(cie.units_covered)) {
+                              return cie.units_covered
+                                .map((unitId) => {
+                                  const unit = lessonPlan.units?.find(
+                                    (u: any) => u.id === unitId
+                                  );
+                                  if (unit) {
+                                    const unitIndex =
+                                      lessonPlan.units.findIndex(
+                                        (u: any) => u.id === unitId
+                                      );
+                                    return `Unit ${unitIndex + 1}: ${
+                                      unit.unit_name
+                                    }`;
+                                  }
+                                  return unitId;
+                                })
+                                .join(", ");
+                            }
 
-      // If it looks like UUIDs, try to map them to unit names
-      if (unitIds.some((id) => id.length > 20 && id.includes("-"))) {
-        const mappedUnits = unitIds.map((unitId) => {
-          const unit = lessonPlan.units?.find((u: any) => u.id === unitId)
-          if (unit) {
-            const unitIndex = lessonPlan.units.findIndex((u: any) => u.id === unitId)
-            return `Unit ${unitIndex + 1}: ${unit.unit_name}`
-          }
-          return unitId // Fallback to original ID if not found
-        })
-        return mappedUnits.join(", ")
-      }
-
-      // If it's already readable text, return as is
-      return cie.units_covered
-    }
-
-    // Handle array format
-    if (Array.isArray(cie.units_covered)) {
-      return cie.units_covered
-        .map((unitId) => {
-          const unit = lessonPlan.units?.find((u: any) => u.id === unitId)
-          if (unit) {
-            const unitIndex = lessonPlan.units.findIndex((u: any) => u.id === unitId)
-            return `Unit ${unitIndex + 1}: ${unit.unit_name}`
-          }
-          return unitId
-        })
-        .join(", ")
-    }
-
-    return cie.units_covered || "N/A"
-  })()}
-</td>
+                            return cie.units_covered || "N/A";
+                          })()}
+                        </td>
                         <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
                           {cie.date}
                         </td>
@@ -709,13 +726,11 @@ function ViewLessonPlanPage() {
                     ))}
                     {/* Total Row */}
                     <tr className="font-bold">
-                      <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                      </td>
+                      <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
                       <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
                         Total
                       </td>
-                      <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                      </td>
+                      <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
                       <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
                         {(() => {
                           const totalDuration = lessonPlan.cies.reduce(
@@ -737,10 +752,8 @@ function ViewLessonPlanPage() {
                           0
                         )}
                       </td>
-                      <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                      </td>
-                      <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                      </td>
+                      <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
+                      <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
                     </tr>
                   </tbody>
                 </table>

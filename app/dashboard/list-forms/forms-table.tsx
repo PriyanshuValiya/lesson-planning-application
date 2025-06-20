@@ -75,9 +75,7 @@ export default function FormsTable({ forms, userrole, allDepartments }: FormsTab
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all")
   const [sortField, setSortField] = useState<string>("")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
-  const [loadingActions, setLoadingActions] = useState<{
-    [key: string]: boolean
-  }>({})
+  const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set())
 
   const userRole = userrole[0]
   const isPrincipal = userRole?.role_name === "Principal"
@@ -134,6 +132,7 @@ export default function FormsTable({ forms, userrole, allDepartments }: FormsTab
     }
   }
 
+  // Filter forms by department (for Principal view)
   const departmentFilteredForms = useMemo(() => {
     if (!isPrincipal || selectedDepartment === "all") {
       return forms
@@ -213,30 +212,41 @@ export default function FormsTable({ forms, userrole, allDepartments }: FormsTab
     return <ArrowUpDown className={`ml-2 h-4 w-4 ${sortOrder === "desc" ? "rotate-180" : ""}`} />
   }
 
-  // Helper function to clear loading state
-  const clearLoadingState = (actionKey: string) => {
-    setLoadingActions((prev) => {
-      const newState = { ...prev }
-      delete newState[actionKey]
-      return newState
+  // Helper functions for loading state management
+  const setLoading = (actionKey: string) => {
+    setLoadingActions(prev => new Set(prev).add(actionKey))
+  }
+
+  const clearLoading = (actionKey: string) => {
+    setLoadingActions(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(actionKey)
+      return newSet
     })
+  }
+
+  const isLoading = (actionKey: string) => {
+    return loadingActions.has(actionKey)
   }
 
   const handleOnView = async (userId: string, formId: string, form: Form) => {
     const actionKey = `view-${formId}`
 
+    // Prevent multiple clicks
+    if (isLoading(actionKey)) return
+
     // Set loading state
-    setLoadingActions((prev) => ({ ...prev, [actionKey]: true }))
+    setLoading(actionKey)
 
     try {
       // Check if LPD has been initiated
       if (!hasInitiatedLPD(form)) {
-        toast(
+        toast.error(
           `The LPD for ${safeAccess(
             form,
             "subjects.name",
             "this subject",
-          )} has not been started by ${form?.users.name} !!`,
+          )} has not been started by ${form?.users.name}!`
         )
         return
       }
@@ -249,7 +259,7 @@ export default function FormsTable({ forms, userrole, allDepartments }: FormsTab
 
       if (IdError) {
         console.error("Error fetching user role for form:", IdError)
-        toast("Failed to fetch user role information. Please try again.")
+        toast.error("Failed to fetch user role information. Please try again.")
         return
       }
 
@@ -257,32 +267,35 @@ export default function FormsTable({ forms, userrole, allDepartments }: FormsTab
         // Navigate to the view page
         router.push(`/dashboard/lesson-plans/${IdData[0].id}/view-lp`)
       } else {
-        toast("Unable to access lesson plan. Please contact administrator.")
+        toast.error("Unable to access lesson plan. Please contact administrator.")
       }
     } catch (error) {
       console.error("Error in handleOnView:", error)
-      toast("An unexpected error occurred. Please try again.")
+      toast.error("An unexpected error occurred. Please try again.")
     } finally {
       // Always clear loading state
-      clearLoadingState(actionKey)
+      clearLoading(actionKey)
     }
   }
 
   const handleOnPrint = async (userId: string, formId: string, form: Form) => {
     const actionKey = `print-${formId}`
 
+    // Prevent multiple clicks
+    if (isLoading(actionKey)) return
+
     // Set loading state
-    setLoadingActions((prev) => ({ ...prev, [actionKey]: true }))
+    setLoading(actionKey)
 
     try {
       // Check if LPD has been initiated
       if (!hasInitiatedLPD(form)) {
-        toast(
+        toast.error(
           `The LPD for ${safeAccess(
             form,
             "subjects.name",
             "this subject",
-          )} has not been started by ${form?.users.name} !!`,
+          )} has not been started by ${form?.users.name}!`
         )
         return
       }
@@ -295,22 +308,23 @@ export default function FormsTable({ forms, userrole, allDepartments }: FormsTab
 
       if (IdError) {
         console.error("Error fetching user role for form:", IdError)
-        toast("Failed to fetch user role information. Please try again.")
+        toast.error("Failed to fetch user role information. Please try again.")
         return
       }
 
       if (IdData && IdData.length > 0) {
-        // Navigate to the print page
-        router.push(`/print/${IdData[0].id}`)
+        // Navigate to the print page in a new tab
+        window.open(`/print/${IdData[0].id}`, '_blank')
+        toast.success("Opening print page...")
       } else {
-        toast("Unable to access lesson plan for printing. Please contact administrator.")
+        toast.error("Unable to access lesson plan for printing. Please contact administrator.")
       }
     } catch (error) {
       console.error("Error in handleOnPrint:", error)
-      toast("An unexpected error occurred. Please try again.")
+      toast.error("An unexpected error occurred. Please try again.")
     } finally {
       // Always clear loading state
-      clearLoadingState(actionKey)
+      clearLoading(actionKey)
     }
   }
 
@@ -426,14 +440,15 @@ export default function FormsTable({ forms, userrole, allDepartments }: FormsTab
                           onClick={() =>
                             handleOnView(safeAccess(form, "users.auth_id"), safeAccess(form, "subjects.id"), form)
                           }
-                          disabled={loadingActions[viewActionKey]}
+                          disabled={isLoading(viewActionKey)}
                           className="min-w-[40px] flex items-center justify-center"
                         >
-                          {loadingActions[viewActionKey] ? (
+                          {isLoading(viewActionKey) ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
                             <>
                               <EyeIcon className="w-4 h-4 mr-1" />
+                              <span className="hidden sm:inline">View</span>
                             </>
                           )}
                         </Button>
@@ -444,14 +459,15 @@ export default function FormsTable({ forms, userrole, allDepartments }: FormsTab
                           onClick={() =>
                             handleOnPrint(safeAccess(form, "users.auth_id"), safeAccess(form, "subjects.id"), form)
                           }
-                          disabled={loadingActions[printActionKey]}
+                          disabled={isLoading(printActionKey)}
                           className="min-w-[40px] flex items-center justify-center"
                         >
-                          {loadingActions[printActionKey] ? (
+                          {isLoading(printActionKey) ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
                             <>
                               <Printer className="w-4 h-4 mr-1" />
+                              <span className="hidden sm:inline">Print</span>
                             </>
                           )}
                         </Button>
