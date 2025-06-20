@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createClient } from "@/utils/supabase/server"
-import FormsTable from "./forms-table"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Suspense } from "react"
-import { Skeleton } from "@/components/ui/skeleton"
+import { createClient } from "@/utils/supabase/server";
+import FormsTable from "./forms-table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Loading component for the forms table
 function FormsTableSkeleton() {
   return (
     <div className="space-y-4">
@@ -20,179 +19,284 @@ function FormsTableSkeleton() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 async function FormsContent() {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser()
-
+  } = await supabase.auth.getUser();
   if (authError || !user) {
-    return <div className="text-red-600">Authentication error. Please log in again.</div>
+    return (
+      <div className="text-red-600">
+        Authentication error. Please log in again.
+      </div>
+    );
   }
 
-  // Fetch user role data with better error handling
-  const { data: userData, error: userError } = await supabase
+  // Get user roles with department and institute info
+  const { data: userRoles, error: rolesError } = await supabase
     .from("user_role")
-    .select(`
+    .select(
+      `
       *,
       departments(*),
       institutes(*)
-    `)
-    .eq("user_id", user.id)
+    `
+    )
+    .eq("user_id", user.id);
 
-  if (userError) {
-    console.error("Error fetching user roles:", userError)
-    return <div className="text-red-600">Error loading user roles. Please try again later.</div>
+  if (rolesError || !userRoles || userRoles.length === 0) {
+    return (
+      <div className="text-red-600">
+        No role assigned. Please contact administrator.
+      </div>
+    );
   }
 
-  if (!userData || userData.length === 0) {
-    return <div className="text-yellow-600">No role assigned. Please contact administrator.</div>
-  }
-
-  const userRole = userData[0]
-  const isPrincipal = userRole?.role_name === "Principal"
-  const isHOD = userData.some((role) => role.role_name === "HOD")
+  // Determine user role
+  const isPrincipal = userRoles.some((role) => role.role_name === "Principal");
+  const isHOD = userRoles.some((role) => role.role_name === "HOD");
 
   if (!isPrincipal && !isHOD) {
-    return <div className="text-red-600">You are not authorized to access this page.</div>
+    return (
+      <div className="text-red-600">
+        You are not authorized to access this page.
+      </div>
+    );
   }
 
-  // Step 1: Get department IDs based on user role
-  let allowedDepartmentIds: string[] = []
+  // Get department IDs based on role
+  let departmentIds: string[] = [];
+  let instituteId: string | null = null;
 
-  if (isHOD && !isPrincipal) {
-    // HOD: Get their department(s)
-    allowedDepartmentIds = userData
-      .filter(role => role.role_name === "HOD" && role.depart_id)
-      .map(role => role.depart_id)
+  if (isHOD) {
+    // HOD: Get only their assigned departments
+    departmentIds = userRoles
+      .filter((role) => role.role_name === "HOD" && role.depart_id)
+      .map((role) => role.depart_id);
   } else if (isPrincipal) {
-    // Principal: Get all departments from their institute
-    if (userRole.institute) {
-      const { data: instituteDepartments, error: deptError } = await supabase
-        .from("departments")
-        .select("id")
-        .eq("institute_id", userRole.institute)
-      
-      if (deptError) {
-        console.error("Error fetching institute departments:", deptError)
-        return <div className="text-red-600">Error loading departments. Please try again later.</div>
-      }
-      
-      allowedDepartmentIds = instituteDepartments?.map(dept => dept.id) || []
-    }
+    // Principal: Get institute ID
+    instituteId = userRoles.find((role) => role.institute)?.institute || null;
   }
 
-  if (allowedDepartmentIds.length === 0) {
-    return <div className="text-yellow-600">No departments assigned to your role.</div>
+  if (isHOD && departmentIds.length === 0) {
+    return (
+      <div className="text-red-600">
+        No departments assigned to your HOD role.
+      </div>
+    );
   }
 
-  // Step 2: Get all subjects from the allowed departments
-  const { data: subjects, error: subjectsError } = await supabase
+  // Get subjects based on role
+  // let subjectsQuery = supabase
+  //   .from("subjects")
+  //   .select(
+  //     `
+  //     id,
+  //     name,
+  //     code,
+  //     semester,
+  //     department_id,
+  //     departments!subjects_department_id_fkey(
+  //       id,
+  //       name,
+  //       abbreviation_depart,
+  //       institute_id
+  //     )
+  //   `
+  //   )
+  //   .order("name", { ascending: true });
+
+    let subjectsQuery = supabase
     .from("subjects")
-    .select(`
+    .select(
+      `
       id,
       name,
       code,
       semester,
-      departments!subjects_department_id_fkey(
+      department_id,
+      departments(*)
+    `
+    )
+    .order("name", { ascending: true });
+
+  if (isHOD) {
+    subjectsQuery = subjectsQuery.in("department_id", departmentIds);
+  } else if (isPrincipal && instituteId) {
+    // Get all departments in institute first
+    const { data: departments, error } = await supabase
+      .from("departments")
+      .select("id")
+      .eq("institute_id", instituteId);
+
+    if (error || !departments) {
+      return <div className="text-red-600">Error loading departments !!</div>;
+    }
+    subjectsQuery = subjectsQuery.in(
+      "department_id",
+      departments.map((d) => d.id)
+    );
+  }
+
+  const { data: subjects, error: subjectsError } = await subjectsQuery;
+
+  if (subjectsError || !subjects || subjects.length === 0) {
+    return <div className="text-red-600">No subjects found !!</div>;
+  }
+
+  // Get faculty assignments - IMPORTANT: Filter by department for HODs
+  let assignmentsQuery = supabase
+    .from("user_role")
+    .select(
+      `
+      id,
+      user_id,
+      subject_id,
+      depart_id,
+      users!user_role_user_id_fkey(
         id,
+        auth_id,
         name,
-        abbreviation_depart,
-        institutes!departments_institute_id_fkey(
-          id,
-          name
-        )
+        email,
+        department
       )
-    `)
-    .in("department_id", allowedDepartmentIds)
+    `
+    )
+    .in(
+      "subject_id",
+      subjects.map((sub) => sub.id)
+    )
+    .not("subject_id", "is", null);
 
-  if (subjectsError) {
-    console.error("Error fetching subjects:", subjectsError)
-    return <div className="text-red-600">Error loading subjects. Please try again later.</div>
+  if (isHOD) {
+    assignmentsQuery = assignmentsQuery.in("depart_id", departmentIds);
   }
 
-  if (!subjects || subjects.length === 0) {
-    return <div className="text-yellow-600">No subjects found for your department(s).</div>
+  const { data: assignments, error: assignmentsError } = await assignmentsQuery;
+
+  if (assignmentsError) {
+    console.error("Error fetching faculty assignments:", assignmentsError);
+    return (
+      <div className="text-red-600">Error loading faculty assignments.</div>
+    );
   }
 
-  // Step 3: Get all subject IDs for forms lookup
-  const subjectIds = subjects.map(subject => subject.id)
-
-  // Step 4: Get all forms for these subjects
   const { data: forms, error: formsError } = await supabase
     .from("forms")
-    .select(`
-      *,
+    .select(
+      `
+      id,
+      created_at,
+      faculty_id,
+      subject_id,
       users!forms_faculty_id_fkey(
         id,
         auth_id,
         name,
         email
       )
-    `)
-    .in("subject_id", subjectIds)
+    `
+    )
+    .in(
+      "subject_id",
+      subjects.map((sub) => sub.id)
+    );
 
   if (formsError) {
-    console.error("Error fetching forms:", formsError)
-    return <div className="text-red-600">Error loading forms. Please try again later.</div>
+    console.error("Error fetching forms:", formsError);
+    return <div className="text-red-600">Error loading forms.</div>;
   }
 
-  // Step 5: Combine forms with subject data
-  const formsWithSubjects = (forms || []).map(form => {
-    const subject = subjects.find(sub => sub.id === form.subject_id)
-    return {
-      ...form,
-      subjects: subject || null
-    }
-  }).filter(form => form.subjects !== null) // Filter out forms without valid subjects
+  const tableData = subjects
+  //@ts-expect-error
+    .flatMap((subject) => {
+      const subjectAssignments = isHOD
+        ? assignments?.filter(
+            (a) =>
+              a.subject_id === subject.id && departmentIds.includes(a.depart_id)
+          ) || []
+        : assignments?.filter((a) => a.subject_id === subject.id) || [];
 
-  // Filter out forms with null/invalid data
-  const validForms = formsWithSubjects.filter((form) => {
-    return (
-      form &&
-      form.users &&
-      form.users.name &&
-      form.subjects &&
-      form.subjects.name &&
-      form.subjects.departments &&
-      form.subjects.departments.name
-    )
-  })
+      if (subjectAssignments.length === 0) {
+        return [
+          {
+            faculty_name: "Not assigned",
+            subject_name: subject.name,
+            subject_code: subject.code,
+            semester: subject.semester,
+            department_id: subject.department_id,
+            //@ts-expect-error
+            department_name: subject.departments?.name || "",
+            //@ts-expect-error
+            abbreviation: subject.departments?.abbreviation_depart || "-",
+            form_id: null,
+            has_form: false,
+          },
+        ];
+      }
 
-  // Step 6: Get departments data for filtering dropdown
-  let departmentsData: any[] = []
-  if (isPrincipal && allowedDepartmentIds.length > 1) {
-    // Principal: Get all their institute departments for filtering
-    const { data: instituteDepartments } = await supabase
+      return subjectAssignments.map((assignment) => {
+        const facultyForms =
+          forms?.filter(
+            (f) =>
+              f.subject_id === subject.id &&
+              //@ts-expect-error
+              f.users?.auth_id === assignment.users?.auth_id
+          ) || [];
+
+        const mostRecentForm = facultyForms.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )[0];
+
+        return {
+          subject_id: subject.id,
+          //@ts-expect-error
+          faculty_name: assignment.users?.name || "",
+          //@ts-expect-error
+          faculty_id: assignment.users?.auth_id || "",
+          subject_name: subject.name,
+          subject_code: subject.code,
+          semester: subject.semester,
+          department_id: subject.department_id,
+          //@ts-expect-error
+          department_name: subject.departments?.name || "",
+            //@ts-expect-error
+            abbreviation: subject.departments?.abbreviation_depart || "-",
+          form_id: mostRecentForm?.id || null,
+          has_form: !!mostRecentForm,
+        };
+      });
+    })
+    //@ts-expect-error
+    .filter((item) => item.faculty_name !== "");
+
+  // Get all departments for filter dropdown (for Principal only)
+  let allDepartments: any[] = [];
+  if (isPrincipal && instituteId) {
+    const { data: departments } = await supabase
       .from("departments")
       .select("*")
-      .in("id", allowedDepartmentIds)
-      .order("name")
+      .eq("institute_id", instituteId)
+      .order("name");
 
-    departmentsData = instituteDepartments || []
-  } else if (isHOD && !isPrincipal) {
-    // HOD: Get their department(s)
-    const { data: hodDepartments } = await supabase
-      .from("departments")
-      .select("*")
-      .in("id", allowedDepartmentIds)
-      .order("name")
-
-    departmentsData = hodDepartments || []
+    allDepartments = departments || [];
   }
 
-  console.log("Query Flow Results:")
-  console.log("- Allowed Department IDs:", allowedDepartmentIds)
-  console.log("- Subjects found:", subjects.length)
-  console.log("- Forms found:", forms?.length || 0)
-  console.log("- Valid forms:", validForms.length)
-
-  return <FormsTable forms={validForms} userrole={userData} allDepartments={departmentsData} />
+  return (
+    <FormsTable
+      forms={tableData}
+      userrole={userRoles}
+      allDepartments={allDepartments}
+      isPrincipal={isPrincipal}
+      currentDepartmentIds={isHOD ? departmentIds : []}
+    />
+  );
 }
 
 export default async function DepartmentFormsPage() {
@@ -211,5 +315,5 @@ export default async function DepartmentFormsPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -2384,7 +2384,7 @@ export default function EditLessonPlanPage() {
               disabled={isCopying}
             >
               <Copy className="mr-2" />
-              {isCopying ? "Copying..." : "Copy"}
+              {isCopying ? "Fetching..." : "Fetch"}
             </Button>
           )}
         </div>
