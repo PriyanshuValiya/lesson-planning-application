@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -16,8 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
-import { EyeIcon, Printer, ArrowUpDown } from "lucide-react";
+import { EyeIcon, Printer, ArrowUpDown, Loader2 } from "lucide-react";
+import { supabase } from "@/utils/supabase/client";
+import { toast } from "sonner";
 
 export default function FormsTable({
   forms,
@@ -32,24 +35,23 @@ export default function FormsTable({
   userrole: any[];
   currentDepartmentIds: string[];
 }) {
+  const router = useRouter();
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [sortConfig, setSortConfig] = useState<{
     key: string;
     direction: "ascending" | "descending";
   } | null>(null);
+  const [loadingRow, setLoadingRow] = useState<string | null>(null);
 
-  // Get current user's name and department for display
   const currentUser = userrole[0]?.users?.name || "User";
   const currentDepartment = userrole[0]?.departments?.name || "Department";
 
-  // Filter forms based on selected department (for Principal) or current department (for HOD)
   const filteredForms = isPrincipal
     ? selectedDepartment === "all"
       ? forms
       : forms.filter((form) => form.department_id === selectedDepartment)
     : forms.filter((form) => currentDepartmentIds.includes(form.department_id));
 
-  // Sort the forms
   const sortedForms = [...filteredForms];
   if (sortConfig !== null) {
     sortedForms.sort((a, b) => {
@@ -75,15 +77,39 @@ export default function FormsTable({
     setSortConfig({ key, direction });
   };
 
-  const handleOnClick = (userID: string, subjectID: string, action: string) => {
-    console.log(userID, subjectID, action);
-  }
+  const handleOnClick = async (
+    userID: string,
+    subjectID: string,
+    action: string
+  ) => {
+    const rowKey = `${userID}-${subjectID}-${action}`;
+    setLoadingRow(rowKey);
 
-  console.log(forms[0]);
+    const { data: formData, error: formError } = await supabase
+      .from("user_role")
+      .select("id")
+      .eq("user_id", userID)
+      .eq("subject_id", subjectID);
+
+    if (formError || !formData || formData.length === 0) {
+      toast.error(
+        `No lesson planning form found for ${currentUser} in ${currentDepartment} for the selected subject.`
+      );
+      console.error("Error fetching form data:", formError);
+      setLoadingRow(null);
+      return;
+    }
+
+    const targetUrl =
+      action === "view"
+        ? `/dashboard/lesson-plans/${formData[0].id}/view-lp`
+        : `/print/${formData[0].id}`;
+
+    router.push(targetUrl);
+  };
 
   return (
     <div className="space-y-4">
-      {/* User header */}
       <div className="flex justify-end items-center">
         {isPrincipal && allDepartments.length > 1 && (
           <Select
@@ -94,9 +120,9 @@ export default function FormsTable({
               <SelectValue placeholder="Filter by department" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all" className="cursor-pointer">All Departments</SelectItem>
+              <SelectItem value="all">All Departments</SelectItem>
               {allDepartments.map((dept) => (
-                <SelectItem key={dept.id} value={dept.id} className="cursor-pointer">
+                <SelectItem key={dept.id} value={dept.id}>
                   {dept.name}
                 </SelectItem>
               ))}
@@ -105,7 +131,6 @@ export default function FormsTable({
         )}
       </div>
 
-      {/* Forms table */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -116,8 +141,7 @@ export default function FormsTable({
                   onClick={() => requestSort("faculty_name")}
                   className="p-0 text-lg"
                 >
-                  Faculty Name
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
+                  Faculty Name <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
               </TableHead>
               <TableHead>
@@ -126,8 +150,7 @@ export default function FormsTable({
                   onClick={() => requestSort("subject_name")}
                   className="p-0 text-lg"
                 >
-                  Subject Name
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
+                  Subject Name <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
               </TableHead>
               <TableHead>
@@ -136,8 +159,7 @@ export default function FormsTable({
                   onClick={() => requestSort("subject_code")}
                   className="p-0 text-lg"
                 >
-                  Subject Code
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
+                  Subject Code <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
               </TableHead>
               <TableHead>
@@ -146,8 +168,7 @@ export default function FormsTable({
                   onClick={() => requestSort("semester")}
                   className="p-0 text-lg"
                 >
-                  Sem
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
+                  Sem <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
               </TableHead>
               {isPrincipal && (
@@ -157,8 +178,7 @@ export default function FormsTable({
                     onClick={() => requestSort("department_name")}
                     className="p-0 text-lg"
                   >
-                    Depart.
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                    Depart. <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </TableHead>
               )}
@@ -167,40 +187,83 @@ export default function FormsTable({
           </TableHeader>
           <TableBody>
             {sortedForms.length > 0 ? (
-              sortedForms.map((form, index) => (
-                <TableRow key={index}>
-                  <TableCell className="text-base pl-5">
-                    {form.faculty_name}
-                  </TableCell>
-                  <TableCell className="text-base pl-5">{form.subject_name}</TableCell>
-                  <TableCell className="text-base pl-5">{form.subject_code}</TableCell>
-                  <TableCell className="text-base pl-5">{form.semester}</TableCell>
-                  {isPrincipal && <TableCell className="text-base pl-5">{form.abbreviation}</TableCell>}
-                  <TableCell className="space-x-2">
-                    {form.has_form ? (
-                      <>
-                        <Button variant="outline" size="sm" onClick={() => handleOnClick(form.faculty_id, form.subject_id, 'view')}>
-                          <EyeIcon />
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleOnClick(form.faculty_id, form.subject_id, 'print')}>
-                          <Printer />
-                        </Button>
-                      </>
-                    ) : (
-                      <span className="text-gray-500">
+              sortedForms.map((form, index) => {
+                const rowKeyView = `${form.faculty_id}-${form.subject_id}-view`;
+                const rowKeyPrint = `${form.faculty_id}-${form.subject_id}-print`;
+
+                return (
+                  <TableRow key={index}>
+                    <TableCell className="text-base pl-5">
+                      {form.faculty_name}
+                    </TableCell>
+                    <TableCell className="text-base pl-5">
+                      {form.subject_name}
+                    </TableCell>
+                    <TableCell className="text-base pl-5">
+                      {form.subject_code}
+                    </TableCell>
+                    <TableCell className="text-base pl-5">
+                      {form.semester}
+                    </TableCell>
+                    {isPrincipal && (
+                      <TableCell className="text-base pl-5">
+                        {form.abbreviation}
+                      </TableCell>
+                    )}
+                    <TableCell className="space-x-2">
+                      {form.has_form ? (
                         <>
-                          <Button variant="outline" size="sm" disabled>
-                            <EyeIcon />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={loadingRow === rowKeyView}
+                            onClick={() =>
+                              handleOnClick(
+                                form.faculty_id,
+                                form.subject_id,
+                                "view"
+                              )
+                            }
+                          >
+                            {loadingRow === rowKeyView ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <EyeIcon className="h-4 w-4" />
+                            )}
                           </Button>
-                          <Button variant="outline" size="sm" disabled>
-                            <Printer />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={loadingRow === rowKeyPrint}
+                            onClick={() =>
+                              handleOnClick(
+                                form.faculty_id,
+                                form.subject_id,
+                                "print"
+                              )
+                            }
+                          >
+                            {loadingRow === rowKeyPrint ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Printer className="h-4 w-4" />
+                            )}
                           </Button>
                         </>
-                      </span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
+                      ) : (
+                        <>
+                          <Button variant="outline" size="sm" disabled>
+                            <EyeIcon className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm" disabled>
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             ) : (
               <TableRow>
                 <TableCell

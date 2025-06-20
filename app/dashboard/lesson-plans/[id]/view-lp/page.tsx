@@ -100,7 +100,9 @@ function ViewLessonPlanPage() {
               <h3 className="text-xl font-bold">
                 Department of {lessonPlan.subject.department.name}
               </h3>
-              <h4 className="text-xl font-bold">Lesson Planning</h4>
+              <h4 className="text-xl font-bold">
+                Lesson Planning Document (LPD)
+              </h4>
             </div>
           </CardTitle>
         </CardHeader>
@@ -148,7 +150,7 @@ function ViewLessonPlanPage() {
                     Term Duration:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {lessonPlan.subject.metadata.term_start_date} to{" "}
+                    {lessonPlan.subject.metadata.term_start_date} -{" "}
                     {lessonPlan.subject.metadata.term_end_date}
                   </td>
                 </tr>
@@ -179,18 +181,19 @@ function ViewLessonPlanPage() {
                     Academic Year:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {lessonPlan.academic_year}
+                    {lessonPlan.academic_year}-{" "}
+                    {(lessonPlan.academic_year % 100) + 1}
                   </td>
                 </tr>
                 <tr>
                   <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
-                    Lecture Hours:
+                    Lecture Hours/week:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                     {lessonPlan.lecture_hours}
                   </td>
                   <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
-                    Lab Hours:
+                    Lab Hours/week:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                     {lessonPlan.lab_hours}
@@ -251,7 +254,7 @@ function ViewLessonPlanPage() {
                         Faculty Name:
                       </td>
                       <td className="border border-black p-2 w-[30%]">
-                        {lessonPlan.units[index].faculty_name}
+                        {lessonPlan.faculty.name}
                       </td>
                     </tr>
                     <tr>
@@ -417,7 +420,7 @@ function ViewLessonPlanPage() {
                                 Faculty Name:
                               </td>
                               <td className="border border-black p-2 w-[30%]">
-                                {practical.faculty_name}
+                                {lessonPlan.faculty.name}
                               </td>
                               <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
                                 Lab Hours:
@@ -870,7 +873,7 @@ function ViewLessonPlanPage() {
             )}
 
           {/* 6. STATUS */}
-          <h2 className="text-lg font-bold mb-2">6. STATUS</h2>
+          {/* <h2 className="text-lg font-bold mb-2">6. STATUS</h2>
           <div className="mb-6">
             <table className="w-full border-collapse">
               <tbody>
@@ -938,7 +941,7 @@ function ViewLessonPlanPage() {
                 )}
               </tbody>
             </table>
-          </div>
+          </div> */}
 
           {/* 7. COMPLETION STATUS */}
           <h2 className="text-lg font-bold mb-2">7. COMPLETION STATUS</h2>
