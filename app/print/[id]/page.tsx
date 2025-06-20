@@ -38,11 +38,11 @@ export default function PrintLessonPlanPage() {
   useEffect(() => {
     if (lessonPlan && !isLoading && !hasPrinted.current) {
       setTimeout(() => {
-        window.print()
-        hasPrinted.current = true
-      }, 200)
+        window.print();
+        hasPrinted.current = true;
+      }, 200);
     }
-  }, [lessonPlan, isLoading])
+  }, [lessonPlan, isLoading]);
 
   const handlePrint = () => {
     window.print();
@@ -255,56 +255,56 @@ export default function PrintLessonPlanPage() {
 
         {/* 1. GENERAL DETAILS */}
         <div className="mb-6">
-          <h2 className="text-lg font-bold mb-2">1. GENERAL DETAILS</h2>
+          <h2 className="text-xl font-bold mb-2">1. GENERAL DETAILS</h2>
           <table className="w-full border-collapse table-fixed">
             <tbody>
               <tr>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   Faculty Name:
                 </td>
-                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   {lessonPlan.faculty.name}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[10%]">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[10%] text-xl">
                   Faculty Email:
                 </td>
-                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 w-[25%]">
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 w-[25%] text-xl">
                   {lessonPlan.faculty.email}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[11%]">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[11%] text-xl">
                   Department:
                 </td>
-                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 w-[25%]">
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 w-[25%] text-xl">
                   {lessonPlan.subject.department.name} (
                   {lessonPlan.subject.department.abbreviation_depart})
                 </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   Subject Code:
                 </td>
-                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   {lessonPlan.subject.code}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[10%]">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[10%] text-xl">
                   Subject Name:
                 </td>
-                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   {lessonPlan.subject.name}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   Term Duration:
                 </td>
-                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                  {formatDate(lessonPlan.term_start_date)} to{" "}
-                  {formatDate(lessonPlan.term_end_date)}
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 text-xl">
+                  {lessonPlan.subject.metadata.term_start_date} to{" "}
+                  {lessonPlan.subject.metadata.term_end_date}
                 </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   Semester:
                 </td>
-                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   {lessonPlan.subject.semester}
                   <sup>
                     {lessonPlan.subject.semester === 1
@@ -317,56 +317,56 @@ export default function PrintLessonPlanPage() {
                   </sup>{" "}
                   semester
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   Division:
                 </td>
-                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   {lessonPlan.division}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   Academic Year:
                 </td>
-                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   {lessonPlan.academic_year}
                 </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   Lecture Hours:
                 </td>
-                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                  {lessonPlan.subject.lecture_hours}
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 text-xl">
+                  {lessonPlan.lecture_hours}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   Lab Hours:
                 </td>
-                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                  {lessonPlan.subject.lab_hours}
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 text-xl">
+                  {lessonPlan.lab_hours}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   Credits:
                 </td>
-                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                  {lessonPlan.subject.credits}
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 text-xl">
+                  {lessonPlan.credits}
                 </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   Course Prerequisites:
                 </td>
                 <td
-                  className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0"
+                  className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 text-xl"
                   colSpan={5}
                 >
                   {lessonPlan.course_prerequisites || "N/A"}
                 </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
                   Course Prerequisites Materials:
                 </td>
                 <td
-                  className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0"
+                  className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 text-xl"
                   colSpan={5}
                 >
                   {lessonPlan.course_prerequisites_materials || "N/A"}
@@ -378,152 +378,159 @@ export default function PrintLessonPlanPage() {
 
         {/* 2. UNIT DETAILS */}
         <div className="mb-6 units-section">
-          <h2 className="text-lg font-bold mb-2">2. UNIT DETAILS</h2>
+          <h2 className="text-xl font-bold mb-2">2. UNIT DETAILS</h2>
 
           {lessonPlan.units.map((unit: any, index: number) => (
             <div key={unit.id} className={index > 0 ? "section-break" : ""}>
-              <h3 className="text-lg font-semibold mb-2 mt-5">
+              <h3 className="text-xl font-semibold mb-2 mt-5">
                 Unit {index + 1}
               </h3>
 
               <table className="w-full border-collapse table-fixed mb-4">
                 <tbody>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
+                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%] text-xl">
                       Unit Name:
                     </td>
-                    <td className="border border-black p-2 w-[30%]">
+                    <td className="border border-black p-2 w-[30%] text-xl">
                       {unit.unit_name}
                     </td>
-                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
+                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%] text-xl">
                       Faculty Name:
                     </td>
-                    <td className="border border-black p-2 w-[30%]">
+                    <td className="border border-black p-2 w-[30%] text-xl">
                       {lessonPlan.units[index].faculty_name}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
+                    <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                       Start Date:
                     </td>
-                    <td className="border border-black p-2">
+                    <td className="border border-black p-2 text-xl">
                       {formatDate(unit.probable_start_date)}
                     </td>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
+                    <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                       End Date:
                     </td>
-                    <td className="border border-black p-2">
+                    <td className="border border-black p-2 text-xl">
                       {formatDate(unit.probable_end_date)}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
+                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%] text-xl">
                       No. of Lectures:
                     </td>
-                    <td className="border border-black p-2 w-[30%]">
+                    <td className="border border-black p-2 w-[30%] text-xl">
                       {unit.no_of_lectures}
                     </td>
-                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
+                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%] text-xl">
                       CO Mapping:
                     </td>
-                    <td className="border border-black p-2" colSpan={3}>
-                      {unit.co_mapping.join(", ")}
+                    <td className="border border-black p-2 text-xl" colSpan={3}>
+                      {unit.co_mapping
+                        .map((coId: any) => {
+                          const outcome = lessonPlan.courseOutcomes.find(
+                            (co: any) => co.id === coId
+                          );
+                          return outcome ? outcome.text : coId;
+                        })
+                        .join(", ")}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
+                    <td className="border border-black p-2 font-bold bg-gray-5 text-xl">
                       Unit Topics:
                     </td>
                     <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
+                      className="border border-black p-2 break-words whitespace-normal text-xl"
                       colSpan={3}
                     >
                       {unit.unit_topics}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
+                    <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                       Self Study Topics:
                     </td>
                     <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
+                      className="border border-black p-2 text-xl break-words whitespace-normal"
                       colSpan={3}
                     >
                       {unit.self_study_topics || "N/A"}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
+                    <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                       Self Study Materials:
                     </td>
                     <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
+                      className="border border-black p-2 text-xl break-words whitespace-normal"
                       colSpan={3}
                     >
                       {unit.self_study_materials || "N/A"}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
+                    <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                       Teaching Pedagogy:
                     </td>
                     <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
+                      className="border border-black p-2 text-xl break-words whitespace-normal"
                       colSpan={3}
                     >
                       {unit.teaching_pedagogy.join(", ")}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
+                    <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                       Skill Mapping:
                     </td>
                     <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
+                      className="border border-black p-2 text-xl break-words whitespace-normal"
                       colSpan={3}
                     >
                       {unit.skill_mapping.join(", ")}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
+                    <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                       Unit Materials:
                     </td>
                     <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
+                      className="border border-black p-2 text-xl break-words whitespace-normal"
                       colSpan={3}
                     >
                       {unit.unit_materials || "N/A"}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
+                    <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                       Skill Objectives:
                     </td>
                     <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
+                      className="border border-black p-2 text-xl break-words whitespace-normal"
                       colSpan={3}
                     >
                       {unit.skill_objectives || "N/A"}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
+                    <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                       Topics Beyond Unit:
                     </td>
                     <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
+                      className="border border-black p-2 text-xl break-words whitespace-normal"
                       colSpan={3}
                     >
                       {unit.topics_beyond_unit || "N/A"}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
+                    <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                       Interlink Topics:
                     </td>
                     <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
+                      className="border border-black p-2 text-xl break-words whitespace-normal"
                       colSpan={3}
                     >
                       {unit.interlink_topics || "N/A"}
@@ -537,53 +544,58 @@ export default function PrintLessonPlanPage() {
 
         {/* 3. PRACTICAL DETAILS */}
         <div className="mb-6 section-break practicals-section">
-          <h2 className="text-lg font-bold mb-2">3. PRACTICAL DETAILS</h2>
+          <h2 className="text-xl font-bold mb-2">3. PRACTICAL DETAILS</h2>
           {lessonPlan.practicals && lessonPlan.practicals.length > 0 && (
             <div className="mb-6">
               {lessonPlan.practicals.map((practical: any, index: number) => (
                 <div key={index} className={index > 0 ? "section-break" : ""}>
-                  <h3 className="text-lg font-semibold mb-2">
+                  <h3 className="text-xl font-semibold mb-2">
                     Practical {index + 1}
                   </h3>
 
                   <table className="w-full border-collapse table-fixed mb-4">
                     <tbody>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
+                        <td className="border border-black p-2 font-bold bg-gray-50 w-[20%] text-xl">
                           Faculty Name:
                         </td>
-                        <td className="border border-black p-2 w-[30%]">
+                        <td className="border border-black p-2 w-[30%] text-xl">
                           {practical.faculty_name}
                         </td>
-                        <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
+                        <td className="border border-black p-2 font-bold bg-gray-50 w-[20%] text-xl">
                           Lab Hours:
                         </td>
-                        <td className="border border-black p-2 w-[30%]">
+                        <td className="border border-black p-2 w-[30%] text-xl">
                           {practical.lab_hours}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
+                        <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                           Probable Week:
                         </td>
-                        <td className="border border-black p-2">
+                        <td className="border border-black p-2 text-xl">
                           {practical.probable_week}
                         </td>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
+                        <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                           CO Mapping:
                         </td>
-                        <td className="border border-black p-2">
-                          {Array.isArray(practical.co_mapping)
-                            ? practical.co_mapping.join(", ")
-                            : practical.co_mapping}
+                        <td className="border border-black p-2 text-xl">
+                          {practical.co_mapping
+                            .map((coId: any) => {
+                              const outcome = lessonPlan.courseOutcomes.find(
+                                (co: any) => co.id === coId
+                              );
+                              return outcome ? outcome.text : coId;
+                            })
+                            .join(", ")}
                         </td>
                       </tr>
                       {practical.pso_mapping.length > 0 && (
                         <tr>
-                          <td className="border border-black p-2 font-bold bg-gray-50">
+                          <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                             PSO Mapping:
                           </td>
-                          <td className="border border-black p-2" colSpan={3}>
+                          <td className="border border-black p-2 text-xl" colSpan={3}>
                             {Array.isArray(practical.pso_mapping)
                               ? practical.pso_mapping.join(", ")
                               : practical.pso_mapping}
@@ -592,44 +604,44 @@ export default function PrintLessonPlanPage() {
                       )}
 
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
+                        <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                           Practical Aim:
                         </td>
                         <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
+                          className="border border-black p-2 break-words whitespace-normal text-xl"
                           colSpan={3}
                         >
                           {practical.practical_aim}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
+                        <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                           Practical Tasks:
                         </td>
                         <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
+                          className="border border-black p-2 text-xl break-words whitespace-normal"
                           colSpan={3}
                         >
                           {practical.practical_tasks}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
+                        <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                           Practical Pedagogy:
                         </td>
                         <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
+                          className="border border-black p-2 text-xl break-words whitespace-normal"
                           colSpan={3}
                         >
                           {practical.practical_pedagogy}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
+                        <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                           Evaluation Methods:
                         </td>
                         <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
+                          className="border border-black p-2 text-xl break-words whitespace-normal"
                           colSpan={3}
                         >
                           {Array.isArray(practical.evaluation_methods)
@@ -638,11 +650,11 @@ export default function PrintLessonPlanPage() {
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
+                        <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                           Associated Units:
                         </td>
                         <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
+                          className="border border-black p-2 text-xl break-words whitespace-normal"
                           colSpan={3}
                         >
                           {Array.isArray(practical.associated_units)
@@ -651,11 +663,11 @@ export default function PrintLessonPlanPage() {
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
+                        <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                           Blooms Taxonomy:
                         </td>
                         <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
+                          className="border border-black p-2 text-xl break-words whitespace-normal"
                           colSpan={3}
                         >
                           {Array.isArray(practical.blooms_taxonomy)
@@ -664,11 +676,11 @@ export default function PrintLessonPlanPage() {
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
+                        <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                           Skill Mapping:
                         </td>
                         <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
+                          className="border border-black p-2 text-xl break-words whitespace-normal"
                           colSpan={3}
                         >
                           {Array.isArray(practical.skill_mapping)
@@ -677,33 +689,33 @@ export default function PrintLessonPlanPage() {
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
+                        <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                           Skill Objectives:
                         </td>
                         <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
+                          className="border border-black p-2 text-xl break-words whitespace-normal"
                           colSpan={3}
                         >
                           {practical.skill_objectives}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
+                        <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                           Reference Material:
                         </td>
                         <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
+                          className="border border-black p-2 text-xl break-words whitespace-normal"
                           colSpan={3}
                         >
                           {practical.reference_material}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
+                        <td className="border border-black p-2 font-bold bg-gray-50 text-xl">
                           Software/Hardware Requirements:
                         </td>
                         <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
+                          className="border border-black p-2 text-xl break-words whitespace-normal"
                           colSpan={3}
                         >
                           {practical.software_hardware_requirements}
@@ -719,32 +731,32 @@ export default function PrintLessonPlanPage() {
 
         {/* 4. CIE DETAILS */}
         <div className="mb-6 cie-section">
-          <h2 className="text-lg font-bold mb-2">4. CIE DETAILS</h2>
+          <h2 className="text-xl font-bold mb-2">4. CIE DETAILS</h2>
           {lessonPlan.cies && lessonPlan.cies.length > 0 && (
             <div className="mb-6">
               <table className="w-full border-collapse table-fixed">
                 <thead>
                   <tr>
-                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0">
-                      CIE No.
+                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[5%]">
+                      No.
                     </th>
-                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0">
+                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[38%]">
                       Units Covered
                     </th>
-                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0">
+                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[11%]">
                       Date
                     </th>
-                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0">
+                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[11%]">
                       Duration
                     </th>
-                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0">
+                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[6%]">
                       Marks
                     </th>
-                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0">
+                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[34%]">
                       Evaluation Method
                     </th>
-                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0">
-                      CO Mapping
+                    <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[10%]">
+                      COs
                     </th>
                   </tr>
                 </thead>
@@ -754,26 +766,130 @@ export default function PrintLessonPlanPage() {
                       <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
                         {index + 1}
                       </td>
-                      <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
+                      {/* <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                         {cie.units_covered}
+                      </td> */}
+
+                      <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
+                        {(() => {
+                          // Handle units_covered mapping
+                          if (typeof cie.units_covered === "string") {
+                            // Check if it's a comma-separated list of unit IDs
+                            const unitIds = cie.units_covered
+                              .split(",")
+                              .map((id: any) => id.trim());
+
+                            // If it looks like UUIDs, try to map them to unit names
+                            if (
+                              unitIds.some(
+                                (id: any) => id.length > 20 && id.includes("-")
+                              )
+                            ) {
+                              const mappedUnits = unitIds.map((unitId: any) => {
+                                const unit = lessonPlan.units?.find(
+                                  (u: any) => u.id === unitId
+                                );
+                                if (unit) {
+                                  const unitIndex = lessonPlan.units.findIndex(
+                                    (u: any) => u.id === unitId
+                                  );
+                                  return `Unit ${unitIndex + 1}: ${
+                                    unit.unit_name
+                                  }`;
+                                }
+                                return unitId; // Fallback to original ID if not found
+                              });
+                              return mappedUnits.join(", ");
+                            }
+
+                            // If it's already readable text, return as is
+                            return cie.units_covered;
+                          }
+
+                          // Handle array format
+                          if (Array.isArray(cie.units_covered)) {
+                            return cie.units_covered
+                              .map((unitId: any) => {
+                                const unit = lessonPlan.units?.find(
+                                  (u: any) => u.id === unitId
+                                );
+                                if (unit) {
+                                  const unitIndex = lessonPlan.units.findIndex(
+                                    (u: any) => u.id === unitId
+                                  );
+                                  return `Unit ${unitIndex + 1}: ${
+                                    unit.unit_name
+                                  }`;
+                                }
+                                return unitId;
+                              })
+                              .join(", ");
+                          }
+
+                          return cie.units_covered || "N/A";
+                        })()}
                       </td>
                       <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                        {formatDate(cie.date)}
+                        {cie.date}
                       </td>
                       <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                        {cie.duration} mins
+                        {cie.duration >= 60
+                          ? `${
+                              cie.duration % 60 === 0
+                                ? (cie.duration / 60).toFixed(0)
+                                : (cie.duration / 60).toFixed(2)
+                            } hours`
+                          : `${cie.duration} mins`}
                       </td>
                       <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
                         {cie.marks}
                       </td>
                       <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                        {cie.evaluation_method}
+                        {cie.evaluation_pedagogy}
                       </td>
                       <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                        {cie.co_mapping}
+                        {cie.co_mapping
+                          .map((coId: any) => {
+                            const outcome = lessonPlan.courseOutcomes.find(
+                              (co: any) => co.id === coId
+                            );
+                            return outcome ? outcome.text : coId;
+                          })
+                          .join(", ")}
                       </td>
                     </tr>
                   ))}
+                  {/* Total Row */}
+                  <tr className="font-bold">
+                    <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
+                    <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
+                      Total
+                    </td>
+                    <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
+                    <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
+                      {(() => {
+                        const totalDuration = lessonPlan.cies.reduce(
+                          (sum: number, cie: any) => sum + cie.duration,
+                          0
+                        );
+                        return totalDuration >= 60
+                          ? `${
+                              totalDuration % 60 === 0
+                                ? (totalDuration / 60).toFixed(0)
+                                : (totalDuration / 60).toFixed(2)
+                            } hours`
+                          : `${totalDuration} mins`;
+                      })()}
+                    </td>
+                    <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
+                      {lessonPlan.cies.reduce(
+                        (sum: number, cie: any) => sum + cie.marks,
+                        0
+                      )}
+                    </td>
+                    <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
+                    <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -782,7 +898,7 @@ export default function PrintLessonPlanPage() {
 
         {/* 5. ADDITIONAL DETAILS */}
         <div className="mb-6 additional-section">
-          <h2 className="text-lg font-bold mb-2">5. ADDITIONAL DETAILS</h2>
+          <h2 className="text-xl font-bold mb-2">5. ADDITIONAL DETAILS</h2>
           {lessonPlan.additional_info &&
             Object.keys(lessonPlan.additional_info).length > 0 && (
               <div className="mb-6">
@@ -791,13 +907,13 @@ export default function PrintLessonPlanPage() {
                     {lessonPlan.additional_info.academic_integrity && (
                       <tr>
                         <td
-                          className="border border-black p-3 font-bold bg-gray-50 align-top"
+                          className="border border-black p-3 font-bold bg-gray-50 align-top text-xl"
                           style={{ width: "250px", minWidth: "250px" }}
                         >
                           Academic Integrity:
                         </td>
                         <td
-                          className="border border-black p-3 align-top"
+                          className="border border-black p-3 align-top text-xl"
                           style={{
                             wordBreak: "break-word",
                             whiteSpace: "pre-wrap",
@@ -810,13 +926,13 @@ export default function PrintLessonPlanPage() {
                     {lessonPlan.additional_info.attendance_policy && (
                       <tr>
                         <td
-                          className="border border-black p-3 font-bold bg-gray-50 align-top"
+                          className="border border-black p-3 font-bold bg-gray-50 align-top text-xl"
                           style={{ width: "250px", minWidth: "250px" }}
                         >
                           Attendance Policy:
                         </td>
                         <td
-                          className="border border-black p-3 align-top"
+                          className="border border-black p-3 align-top text-xl"
                           style={{
                             wordBreak: "break-word",
                             whiteSpace: "pre-wrap",
@@ -829,13 +945,13 @@ export default function PrintLessonPlanPage() {
                     {lessonPlan.additional_info.cie_guidelines && (
                       <tr>
                         <td
-                          className="border border-black p-3 font-bold bg-gray-50 align-top"
+                          className="border border-black p-3 font-bold bg-gray-50 align-top text-xl"
                           style={{ width: "250px", minWidth: "250px" }}
                         >
                           CIE Guidelines:
                         </td>
                         <td
-                          className="border border-black p-3 align-top"
+                          className="border border-black p-3 align-top text-xl"
                           style={{
                             wordBreak: "break-word",
                             whiteSpace: "pre-wrap",
@@ -848,13 +964,13 @@ export default function PrintLessonPlanPage() {
                     {lessonPlan.additional_info.classroom_conduct && (
                       <tr>
                         <td
-                          className="border border-black p-3 font-bold bg-gray-50 align-top"
+                          className="border border-black p-3 font-bold bg-gray-50 align-top text-xl"
                           style={{ width: "250px", minWidth: "250px" }}
                         >
                           Classroom Conduct:
                         </td>
                         <td
-                          className="border border-black p-3 align-top"
+                          className="border border-black p-3 align-top text-xl"
                           style={{
                             wordBreak: "break-word",
                             whiteSpace: "pre-wrap",
@@ -867,13 +983,13 @@ export default function PrintLessonPlanPage() {
                     {lessonPlan.additional_info.communication_channels && (
                       <tr>
                         <td
-                          className="border border-black p-3 font-bold bg-gray-50 align-top"
+                          className="border border-black p-3 font-bold bg-gray-50 align-top text-xl"
                           style={{ width: "250px", minWidth: "250px" }}
                         >
                           Communication Channels:
                         </td>
                         <td
-                          className="border border-black p-3 align-top"
+                          className="border border-black p-3 align-top text-xl"
                           style={{
                             wordBreak: "break-word",
                             whiteSpace: "pre-wrap",
@@ -891,7 +1007,7 @@ export default function PrintLessonPlanPage() {
         </div>
 
         {/* DIGITAL SIGNATURE */}
-        <p className="text-right text-sm mt-10">
+        <p className="text-right text-xl mt-10">
           {lessonPlan.faculty.name} | {formatDate(new Date().toISOString())}
         </p>
       </div>
