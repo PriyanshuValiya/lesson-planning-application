@@ -3,30 +3,79 @@ import { Edit, Eye } from "lucide-react";
 import Image from "next/image";
 
 interface SubjectCardProps {
-  lecture: DummyLecture;
-  setLecture: (lecture: DummyLecture) => void;
+  lecture: any; // Changed from DummyLecture to any to handle timetable data
+  setLecture: (lecture: any) => void;
   setShowList: (show: boolean) => void;
   setFillAttendance?: (fill: boolean) => void;
 }
 
 const SubjectCard = ({ lecture, setLecture, setShowList, setFillAttendance }: SubjectCardProps) => {
+  // Helper function to safely get values with fallbacks
+  const getSubjectName = () => lecture.subject_name || lecture.name || 'Unknown Subject';
+  const getSubjectCode = () => lecture.subject_code || lecture.code || 'N/A';
+  const getSemester = () => lecture.sem || 'N/A';  const getDate = () => {
+    if (lecture.date) return lecture.date;
+    // If no date, try to format today's date or use a placeholder
+    return new Date().toLocaleDateString('en-GB', { 
+      day: '2-digit', 
+      month: '2-digit' 
+    });
+  };
+  
+  const formatTime = (timeString: string) => {
+    if (!timeString || timeString === 'N/A') return 'N/A';
+    
+    // Handle different time formats
+    try {
+      // If it's already in HH:MM format, convert to 12-hour format
+      if (timeString.includes(':')) {
+        const [hours, minutes] = timeString.split(':');
+        const hour = parseInt(hours);
+        const min = minutes || '00';
+        
+        if (hour === 0) return `12:${min} AM`;
+        if (hour < 12) return `${hour}:${min} AM`;
+        if (hour === 12) return `12:${min} PM`;
+        return `${hour - 12}:${min} PM`;
+      }
+      
+      // If it's a timestamp, parse it
+      const date = new Date(timeString);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+      }
+      
+      return timeString; // Return as-is if can't format
+    } catch (error) {
+      return timeString; // Return as-is if error
+    }
+  };
+  
+  const getFromTime = () => formatTime(lecture.from || lecture.fromTime || 'N/A');
+  const getToTime = () => formatTime(lecture.to || lecture.toTime || 'N/A');
+  const getStatus = () => lecture.status || 'Pending';
+
   return (
     <div className="flex flex-col gap-2 bg-white p-4 rounded-[20px] border-2 w-[340px] h-[239px]">
       <div className="flex flex-row gap-2 justify-between">
         <div>
-            <h2 className="text-xl text-primary-blue font-bold">{lecture.name}</h2>
+            <h2 className="text-xl text-primary-blue font-bold">{getSubjectName()}</h2>
         </div>
         <div className="w-[74px] h-[29px] bg-primary-blue font-semibold text-xs text-white rounded-full flex items-center justify-center">
-            <p>Sem {lecture.sem}</p>
+            <p>Sem {getSemester()}</p>
         </div>
       </div>
 
       <div className="flex gap-2">
         <div className="flex h-[29px] border-2 rounded-full w-[82px] justify-center items-center">
-          <p className="text-xs font-semibold">{lecture.code}</p>
+          <p className="text-xs font-semibold">{getSubjectCode()}</p>
         </div>
-        <div className={`flex h-[29px] rounded-full w-[82px] justify-center items-center ${lecture.status === "Submitted" ? "bg-[#1aa1643f] text-[#1AA164]" : "bg-[#a11a1a42] text-[#a11a1a]"}`}>
-          <p className="text-xs font-semibold">{lecture.status}</p>
+        <div className={`flex h-[29px] rounded-full w-[82px] justify-center items-center ${getStatus() === "Submitted" ? "bg-[#1aa1643f] text-[#1AA164]" : "bg-[#a11a1a42] text-[#a11a1a]"}`}>
+          <p className="text-xs font-semibold">{getStatus()}</p>
         </div>
       </div>
 
@@ -37,7 +86,7 @@ const SubjectCard = ({ lecture, setLecture, setShowList, setFillAttendance }: Su
             <p className="text-xs font-semibold">Date</p>
           </div>
           <div className="flex justify-center items-center h-1/2 w-full">
-            <p className="text-xs font-semibold">{lecture.date}</p>
+            <p className="text-xs font-semibold">{getDate()}</p>
           </div>
         </div>
         <div className="flex flex-col h-[68px] w-[138px] border-2 rounded-lg">
@@ -46,7 +95,7 @@ const SubjectCard = ({ lecture, setLecture, setShowList, setFillAttendance }: Su
             <p className="text-xs font-semibold">Time</p>
           </div>
           <div className="flex justify-center items-center h-1/2 w-full">
-            <p className="text-xs font-semibold">{lecture.fromTime} to {lecture.toTime}</p>
+            <p className="text-xs font-semibold">{getFromTime()} to {getToTime()}</p>
           </div>
         </div>
       </div>      <div className="flex gap-2">
