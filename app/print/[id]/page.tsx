@@ -35,14 +35,14 @@ export default function PrintLessonPlanPage() {
     }
   }, [params.id]);
 
-  // useEffect(() => {
-  //   if (lessonPlan && !isLoading && !hasPrinted.current) {
-  //     setTimeout(() => {
-  //       window.print();
-  //       hasPrinted.current = true;
-  //     }, 200);
-  //   }
-  // }, [lessonPlan, isLoading]);
+  useEffect(() => {
+    if (lessonPlan && !isLoading && !hasPrinted.current) {
+      setTimeout(() => {
+        window.print();
+        hasPrinted.current = true;
+      }, 200);
+    }
+  }, [lessonPlan, isLoading]);
 
   const handlePrint = () => {
     window.print();
