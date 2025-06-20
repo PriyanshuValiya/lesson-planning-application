@@ -35,14 +35,14 @@ export default function PrintLessonPlanPage() {
     }
   }, [params.id]);
 
-  // useEffect(() => {
-  //   if (lessonPlan && !isLoading && !hasPrinted.current) {
-  //     setTimeout(() => {
-  //       window.print();
-  //       hasPrinted.current = true;
-  //     }, 200);
-  //   }
-  // }, [lessonPlan, isLoading]);
+  useEffect(() => {
+    if (lessonPlan && !isLoading && !hasPrinted.current) {
+      setTimeout(() => {
+        window.print();
+        hasPrinted.current = true;
+      }, 200);
+    }
+  }, [lessonPlan, isLoading]);
 
   const handlePrint = () => {
     window.print();
@@ -438,7 +438,7 @@ export default function PrintLessonPlanPage() {
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-5 text-xl0">
+                    <td className="border border-black p-2 font-bold bg-gray-5 text-xl">
                       Unit Topics:
                     </td>
                     <td
