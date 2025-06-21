@@ -296,8 +296,8 @@ export default function PrintLessonPlanPage() {
                   Term Duration:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                  {lessonPlan.metadata.term_start_date} to{" "}
-                  {lessonPlan.metadata.term_end_date}
+                  {lessonPlan.subject.metadata.term_start_date} to{" "}
+                  {lessonPlan.subject.metadata.term_end_date}
                 </td>
               </tr>
               <tr>
