@@ -222,11 +222,13 @@ interface Student_data {
 }
 
 interface Timetable {
+  id: string;
+  day: string;
   date: string;
   type: string;
   subject: string;
   faculty: string;
-  department: string;
+  department: number | string | null;
   to: string;
   from: string;
   division: string;
