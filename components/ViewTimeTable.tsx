@@ -2,11 +2,9 @@
 
 import { useState } from "react";
 import {
-  timeTableData,
   academicYears,
   terms,
   loadDetails,
-  TimeTable,
 } from "@/services/timeTableDummy";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,8 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Timetable } from "@/types/types";
 
-const ViewTimeTable = () => {
+const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
   const [selectedAcademicYear, setSelectedAcademicYear] = useState("2025-2026");
   const [selectedTerm, setSelectedTerm] = useState("Odd");
   const [selectedLoadDetail, setSelectedLoadDetail] = useState("Time Table");
@@ -68,7 +67,7 @@ const ViewTimeTable = () => {
 
     return "";
   };
-  const getSubjectsForSlot = (day: string, timeSlot: string): TimeTable[] => {
+  const getSubjectsForSlot = (day: string, timeSlot: string): Timetable[] => {
     const subjects = timeTableData.filter((entry) => {
       const entryDay = entry.day.toLowerCase();
       const targetDay = day.toLowerCase();
@@ -110,7 +109,7 @@ const ViewTimeTable = () => {
     }
   };
   const renderSubjectCell = (
-    subject: TimeTable,
+    subject: Timetable,
     isLab: boolean = false,
     isMultiple: boolean = false
   ) => {
@@ -149,7 +148,7 @@ const ViewTimeTable = () => {
     );
   };
   const renderMultipleSubjects = (
-    subjects: TimeTable[],
+    subjects: Timetable[],
     isLab: boolean = false
   ) => {
     const height = isLab ? "h-32" : "h-16";

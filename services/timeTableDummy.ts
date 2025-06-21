@@ -1,18 +1,7 @@
-export interface TimeTable {
-  id: string;
-  day: string;
-  type: string;
-  subject: string;
-  faculty: string;
-  department: string;
-  to: string;
-  from: string;
-  division: number;
-  batch: string | null;
-  sem: number;
-}
+import { Timetable } from "@/types/types";
 
-export const timeTableData: TimeTable[] = [
+
+export const timeTableData: Timetable[] = [
   {
     id: "361f11ef-69f0-4d34-8f4a-c835155b107f",
     day: "Monday",
