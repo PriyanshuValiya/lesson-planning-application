@@ -98,6 +98,8 @@ export default function FormsTable({
       console.error("Error fetching form data:", formError);
       setLoadingRow(null);
       return;
+    } else {
+      console.log("Form data fetched successfully:", formData);
     }
 
     const targetUrl =
