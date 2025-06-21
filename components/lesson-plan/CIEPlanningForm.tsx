@@ -3620,8 +3620,8 @@ useEffect(() => {
     }
 
     // Validate Mid-term duration
-    if (cie.type === "Mid-term/Internal Exam" && cie.duration <= 60) {
-      errors.push(`CIE ${index + 1}: Warning - Mid-term exam duration should be more than 60 minutes`)
+    if (cie.type === "Mid-term/Internal Exam" && cie.duration < 60) {
+      errors.push(`CIE ${index + 1}: Warning - Mid-term exam duration should be minimum 60 minutes`)
     }
 
     // VALIDATION 5: Validate Open Book Assessment
