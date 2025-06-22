@@ -6,6 +6,7 @@ import { AuthProvider } from "@/lib/AuthContext";
 import { DashboardProvider } from "@/context/DashboardContext";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { Timetable } from "@/types/types";
 
 export default async function AttendanceModulePage() {
   const supabase = await createClient();
@@ -59,7 +60,19 @@ export default async function AttendanceModulePage() {
   }
 
   // Fetch timetable for the specified faculty ID using existing backend function
-  const timetable = await getTimetablesByFacultyId("2d8711ec-57eb-4bd6-8028-3f0593af8638");
+  let timeTableData: Timetable[];
+  // console.log('data:', roleData);
+  
+
+  try {
+    timeTableData = await getTimetablesByFacultyId(
+      userData.id || userData.auth_id || user.id
+    );
+    console.log("Time Table Data:", timeTableData);
+  } catch (error) {
+    console.error("Error fetching time table data:", error);
+    timeTableData = [];
+  }
   
   return (
     <AuthProvider>
@@ -67,7 +80,7 @@ export default async function AttendanceModulePage() {
         <div className="flex h-screen bg-gray-100">
           <FacultySidebar signOut={signOut} />
           <main className="flex-1 overflow-y-auto">
-            <ClientAttendanceModule timetable={timetable} />
+            <ClientAttendanceModule timetable={timeTableData} />
           </main>
         </div>
       </DashboardProvider>
