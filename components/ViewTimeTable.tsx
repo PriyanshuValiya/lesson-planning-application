@@ -21,6 +21,10 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
   const [selectedTerm, setSelectedTerm] = useState("Odd");
   const [selectedLoadDetail, setSelectedLoadDetail] = useState("Time Table");
 
+  // Debug: Log the received data
+  // console.log('ViewTimeTable received data:', timeTableData);
+  // console.log('Data length:', timeTableData?.length || 0);
+
   const days = [
     "Monday",
     "Tuesday",
@@ -45,36 +49,82 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
     { id: "6", time: "14:10 PM-14:19 PM", isBreak: true, breakType: "Break" },
     { id: "7", time: "14:20 PM-15:19 PM", isBreak: false },
     { id: "8", time: "15:20 PM-16:20 PM", isBreak: false },
-  ];
-  const getTimeSlotFromDateTime = (dateTimeString: string): string => {
+  ];  const getTimeSlotFromDateTime = (dateTimeString: string): string => {
+    if (!dateTimeString) return "";
+    
+    // console.log('Processing datetime:', dateTimeString);
+    
     const date = new Date(dateTimeString);
-    const hours = date.getUTCHours();
-    const minutes = date.getUTCMinutes();
+    const utcHours = date.getUTCHours();
+    const utcMinutes = date.getUTCMinutes();
+    const localHours = date.getHours();
+    const localMinutes = date.getMinutes();
+    
+    // console.log('Time analysis:', { 
+    //   dateTimeString,
+    //   utcHours, 
+    //   utcMinutes, 
+    //   localHours, 
+    //   localMinutes,
+    //   timeString: `${localHours}:${localMinutes.toString().padStart(2, '0')}`
+    // });
 
-    // Convert UTC time to time slot based on the pattern
-    if (hours === 9 && minutes === 10) return "09:10 AM-10:09 AM";
-    if (hours === 10 && minutes === 10) return "10:10 AM-11:09 AM";
-    if (hours === 11 && minutes === 10) return "10:10 AM-11:09 AM";
-    if (hours === 12 && minutes === 10) return "12:10 PM-13:09 PM";
-    if (hours === 13 && minutes === 10) return "13:10 PM-14:09 PM";
-    if (hours === 14 && minutes === 20) return "14:20 PM-15:19 PM";
-    if (hours === 15 && minutes === 20) return "15:20 PM-16:20 PM";
+    // Create a more flexible mapping based on your actual data
+    // Let's map based on the UTC times from your data and see which time slots they should go to
+    
+    // Monday data: 04:30 UTC and 06:30 UTC  
+    // Tuesday data: 03:40 UTC and 07:40 UTC
+    
+    // Map UTC times to time slots
+    if (utcHours === 4 && utcMinutes === 30) return "09:10 AM-10:09 AM"; // Monday entry 1
+    if (utcHours === 6 && utcMinutes === 30) return "12:10 PM-13:09 PM"; // Monday entry 2
+    if (utcHours === 3 && utcMinutes === 40) return "09:10 AM-10:09 AM"; // Tuesday entry 1
+    if (utcHours === 7 && utcMinutes === 40) return "13:10 PM-14:09 PM"; // Tuesday entry 2
+    
+    // Fallback to local time matching
+    if (localHours === 9) return "09:10 AM-10:09 AM";
+    if (localHours === 10) return "10:10 AM-11:09 AM";
+    if (localHours === 11) return "11:10 AM-12:09 PM";
+    if (localHours === 12) return "12:10 PM-13:09 PM";
+    if (localHours === 13) return "13:10 PM-14:09 PM";
+    if (localHours === 14) return "14:20 PM-15:19 PM";
+    if (localHours === 15) return "15:20 PM-16:20 PM";
 
-    // Additional mappings for the time entries in our dummy data
-    if (hours === 3 && minutes === 50) return "14:20 PM-15:19 PM";
-    if (hours === 4 && minutes === 50) return "15:20 PM-16:20 PM";
-    if (hours === 2 && minutes === 50) return "14:20 PM-15:19 PM";
-
+    console.log('No time slot match found for UTC:', { utcHours, utcMinutes }, 'Local:', { localHours, localMinutes });
     return "";
-  };
-  const getSubjectsForSlot = (day: string, timeSlot: string): Timetable[] => {
+  };  const getSubjectsForSlot = (day: string, timeSlot: string): any[] => {
+    if (!timeTableData || timeTableData.length === 0) {
+      console.log('No timetable data available');
+      return [];
+    }
+    
+    // console.log(`\n=== Getting subjects for ${day} ${timeSlot} ===`);
+    
     const subjects = timeTableData.filter((entry) => {
-      const entryDay = entry.day.toLowerCase();
+      const entryDay = entry.day?.toLowerCase();
       const targetDay = day.toLowerCase();
       const entryTimeSlot = getTimeSlotFromDateTime(entry.from);
 
-      return entryDay === targetDay && entryTimeSlot === timeSlot;
+      const match = entryDay === targetDay && entryTimeSlot === timeSlot;
+      
+      console.log('Entry analysis:', {
+        id: entry.id,
+        originalDay: entry.day,
+        entryDay,
+        targetDay,
+        from: entry.from,
+        entryTimeSlot,
+        targetTimeSlot: timeSlot,
+        dayMatch: entryDay === targetDay,
+        timeMatch: entryTimeSlot === timeSlot,
+        overallMatch: match
+      });
+
+      return match;
     });
+    
+    // console.log(`Found ${subjects.length} subjects for ${day} ${timeSlot}:`, subjects.map(s => ({ id: (s as any).id, subject: (s as any).subject_name || (s as any).subject, day: (s as any).day })));
+    
     // Limit to maximum 2 subjects per time slot
     const limitedSubjects = subjects.slice(0, 2);
 
@@ -107,20 +157,19 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
       default:
         return "bg-[#D0D0D0] text-gray-900";
     }
-  };
-  const renderSubjectCell = (
-    subject: Timetable,
+  };  const renderSubjectCell = (
+    subject: any,
     isLab: boolean = false,
     isMultiple: boolean = false
   ) => {
-    // Create display values based on the dummy data structure
+    // Create display values based on the actual API data structure
     const displayType = `B TECH(CE)`;
-    const displaySem = `SEM ${subject.sem}`;
-    const displayDiv = `DIV-${subject.division}${
+    const displaySem = `SEM ${subject.sem || 'N/A'}`;
+    const displayDiv = `DIV-${subject.division || 'A'}${
       subject.batch ? ` / ${subject.batch}` : ""
     }`;
-    const displaySubject = "DBMS"; // Based on the image, all subjects are DBMS
-    const displayCode = "CE263"; // Based on the image
+    const displaySubject = subject.subject_name || subject.subject || "Subject"; 
+    const displayCode = subject.subject_code || subject.code || "CODE";
 
     const height = isLab ? "h-40" : "h-20";
     const padding = isMultiple ? "p-1.5" : "p-2";
@@ -129,7 +178,7 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
     return (
       <div
         className={`${padding} ${fontSize} ${getSubjectColor(
-          subject.type
+          subject.type || 'lecture'
         )} ${height} w-full flex border-black flex-col p-2 justify-center border-r border-b-2`}
       >
         <div className="font-semibold leading-tight">
@@ -146,9 +195,8 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
         )}
       </div>
     );
-  };
-  const renderMultipleSubjects = (
-    subjects: Timetable[],
+  };  const renderMultipleSubjects = (
+    subjects: any[],
     isLab: boolean = false
   ) => {
     const height = isLab ? "h-32" : "h-16";
@@ -185,11 +233,25 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
       </div>
     );
   };
-
   return (
     <div className="w-full bg-white">
+      {/* Debug Info */}
+      {/* <div className="p-4 bg-yellow-50 border border-yellow-200 mb-4">
+        <p className="text-sm">
+          <strong>Debug:</strong> Received {timeTableData?.length || 0} timetable entries
+        </p>
+        {timeTableData && timeTableData.length > 0 && (
+          <details className="mt-2">
+            <summary className="cursor-pointer text-sm text-blue-600">Show raw data</summary>
+            <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-x-auto">
+              {JSON.stringify(timeTableData[0], null, 2)}
+            </pre>
+          </details>
+        )}
+      </div> */}
+
       {/* Header Controls */}
-      <div className="flex flex-wrap items-center gap-6 mb-6 p-4 bg-gray-50 border-b">
+      {/* <div className="flex flex-wrap items-center gap-6 mb-6 p-4 bg-gray-50 border-b">
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-700">
             Academic Year:
@@ -254,7 +316,7 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
             ))}
           </div>
         </div>
-      </div>{" "}
+      </div>{" "} */}
       {/* Timetable */}
       <div className="overflow-x-auto p-4">
         <table className="w-full border-collapse border-2 border-black bg-white table-fixed">

@@ -10,6 +10,7 @@ import {
   Target,
   Upload,
   FileLock2,
+  UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -39,6 +40,8 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
       .map((n) => n[0])
       .join("");
   };
+  console.log('userData', userData);
+  
 
   // Check if user has a profile photo
   const hasProfilePhoto =
@@ -190,6 +193,25 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
                     }`}
                   />
                   {!isCollapsed && <span>Lesson Planning (LP)</span>}
+                </Link>
+              )}
+              {currentRole?.role_name === "Faculty" && (
+                <Link
+                  href="/attendance-selection"
+                  className={`group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 ${
+                    pathname.startsWith("/attendance-selection") || pathname.startsWith("/timetable") || pathname.startsWith("/attendance-module") || pathname.startsWith("/attendance-monitor")
+                      ? "text-[#1A5CA1] bg-blue-50"
+                      : "text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50"
+                  }`}
+                >
+                  <UserCheck
+                    className={`h-5 w-5 mr-3 ${
+                      pathname.startsWith("/attendance-selection") || pathname.startsWith("/timetable") || pathname.startsWith("/attendance-module") || pathname.startsWith("/attendance-monitor")
+                        ? "text-[#1A5CA1]"
+                        : "text-gray-500 group-hover:text-[#1A5CA1]"
+                    }`}
+                  />
+                  {!isCollapsed && <span>Attendance Module</span>}
                 </Link>
               )}
             </div>
