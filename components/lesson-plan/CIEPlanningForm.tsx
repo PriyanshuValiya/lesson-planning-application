@@ -2851,19 +2851,21 @@
 
 
 
-//@ts-nocheck
 
-// "use client"
+
+
+//@ts-nocheck
+"use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Trash2, AlertTriangle, Info } from "lucide-react"
+import { Plus, Trash2, AlertTriangle, Info, Users } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -2879,6 +2881,7 @@ import {
 } from "@/components/ui/dialog"
 import { saveFormDraft, loadFormDraft, deleteFormDraft } from "@/app/dashboard/actions/saveFormDraft"
 import { parseDDMMYYYYToDate, getDaysDifference, isDateWithinDays, formatDateToDDMMYYYY } from "@/utils/dateUtils"
+import { useDashboardContext } from "@/context/DashboardContext"
 
 interface PSOPEOItem {
   id: string
@@ -2889,7 +2892,6 @@ interface PSOPEOItem {
 interface CIEPlanningFormProps {
   lessonPlan: any
   setLessonPlan: React.Dispatch<React.SetStateAction<any>>
-  userData: any
 }
 
 // FIXED: Date utility functions specifically for this component
@@ -2980,7 +2982,27 @@ const skillMappingOptions = [
   "Other",
 ]
 
-export default function CIEPlanningForm({ lessonPlan, setLessonPlan, userData }: CIEPlanningFormProps) {
+// Default PSO/PEO options if none are found
+const defaultPsoOptions = [
+  { id: "pso-1", label: "PSO1", description: "Program Specific Outcome 1" },
+  { id: "pso-2", label: "PEO2", description: "Program Specific Outcome 2" },
+  { id: "pso-3", label: "PSO3", description: "Program Specific Outcome 3" },
+  { id: "pso-4", label: "PSO4", description: "Program Specific Outcome 4" },
+  { id: "pso-5", label: "PSO5", description: "Program Specific Outcome 5" },
+]
+
+const defaultPeoOptions = [
+  { id: "peo-1", label: "PEO1", description: "Program Educational Objective 1" },
+  { id: "peo-2", label: "PEO2", description: "Program Educational Objective 2" },
+  { id: "peo-3", label: "PEO3", description: "Program Educational Objective 3" },
+  { id: "peo-4", label: "PEO4", description: "Program Educational Objective 4" },
+  { id: "peo-5", label: "PEO5", description: "Program Educational Objective 5" },
+]
+
+export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanningFormProps) {
+  // FIXED: Get userData from context instead of props
+  const { userData } = useDashboardContext()
+
   const [activeCIE, setActiveCIE] = useState(0)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [validationWarnings, setValidationWarnings] = useState<string[]>([])
@@ -2998,6 +3020,14 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan, userData }:
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [isLoadingDraft, setIsLoadingDraft] = useState(false)
+
+  // Faculty Sharing States - ADDED
+  const [facultySharingData, setFacultySharingData] = useState<any>(null)
+  const [loadingFacultySharing, setLoadingFacultySharing] = useState(false)
+  const [facultySharingError, setFacultySharingError] = useState<string | null>(null)
+
+  // FIXED: Add proper loading state
+  const [draftLoaded, setDraftLoaded] = useState(false)
 
   // FIXED: Field-specific error states
   const [typeError, setTypeError] = useState("")
@@ -3021,6 +3051,92 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan, userData }:
     isWithin10Days: boolean
   } | null>(null)
 
+  // Helper function to safely get faculty name - ADDED
+  const getFacultyName = (faculty: any): string => {
+    if (typeof faculty === "string") return faculty
+    if (faculty?.name) return String(faculty.name)
+    if (faculty?.first_name || faculty?.last_name) {
+      return `${faculty.first_name || ""} ${faculty.last_name || ""}`.trim()
+    }
+    return "Unknown Faculty"
+  }
+
+  // Helper function to get faculty initials for badges
+  const getFacultyInitials = (faculty: any): string => {
+    const name = getFacultyName(faculty)
+    return name
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase()
+      .substring(0, 3)
+  }
+
+  // Helper function to get CIE type tag
+  const getCIETypeTag = (type: string): string => {
+    switch (type) {
+      case "Course Prerequisites CIE":
+        return "Course"
+      case "Lecture CIE":
+        return "Lecture"
+      case "Mid-term/Internal Exam":
+        return "Mid-term/Internal"
+      case "Practical CIE":
+        return "Practical"
+      case "Internal Practical":
+        return "Internal"
+      default:
+        return "CIE"
+    }
+  }
+
+  // Faculty Sharing API Call - ADDED
+  const checkFacultySharing = useCallback(async () => {
+    if (!lessonPlan?.subject?.id) return
+
+    setLoadingFacultySharing(true)
+    setFacultySharingError(null)
+
+    try {
+      console.log("🔍 CIE: Checking faculty sharing for subject:", lessonPlan.subject.id)
+
+      const response = await fetch(`/api/faculty-sharing?subjectId=${lessonPlan.subject.id}`)
+      const result = await response.json()
+
+      console.log("📡 CIE: Faculty sharing API response:", result)
+
+      if (result.success) {
+        // Clean faculty data to ensure all names are strings
+        const cleanedResult = {
+          ...result,
+          primaryFaculty: result.primaryFaculty ? getFacultyName(result.primaryFaculty) : null,
+          allFaculty: (result.allFaculty || []).map((faculty: any) => ({
+            ...faculty,
+            name: getFacultyName(faculty),
+          })),
+        }
+
+        setFacultySharingData(cleanedResult)
+        console.log("✅ CIE: Faculty sharing data loaded:", cleanedResult)
+      } else {
+        setFacultySharingError(result.error || "Failed to load faculty sharing data")
+        console.error("❌ CIE: Faculty sharing error:", result.error)
+      }
+    } catch (error) {
+      console.error("💥 CIE: Faculty sharing API error:", error)
+      setFacultySharingError("Failed to check faculty sharing")
+    } finally {
+      setLoadingFacultySharing(false)
+    }
+  }, [lessonPlan?.subject?.id])
+
+  // Load faculty sharing data when subject changes - ADDED
+  useEffect(() => {
+    if (lessonPlan?.subject?.id) {
+      checkFacultySharing()
+    }
+  }, [lessonPlan?.subject?.id, checkFacultySharing])
+
   // Initialize CIEs if empty
   useEffect(() => {
     if (!lessonPlan.cies || lessonPlan.cies.length === 0) {
@@ -3039,6 +3155,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan, userData }:
         pso_mapping: [],
         peo_mapping: [],
         skill_mapping: [{ skill: "", details: "" }],
+        assigned_faculty_id: userData?.id || null, // ADDED: Assign current user by default
       }
 
       setLessonPlan((prev: any) => ({
@@ -3046,29 +3163,26 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan, userData }:
         cies: [initialCIE],
       }))
     }
-  }, [lessonPlan?.cies, setLessonPlan])
+  }, [lessonPlan?.cies, setLessonPlan, userData?.id])
 
+  //for page refresh
+  // Add this useEffect hook in both GeneralDetailsForm and CIEPlanningForm components
+  useEffect(() => {
+    // Check if the user is a faculty member
+    if (userData?.role === "faculty") {
+      // Using sessionStorage to ensure refresh happens only once per session
+      const hasRefreshed = sessionStorage.getItem("hasRefreshedCIEPlanning")
+      if (!hasRefreshed) {
+        // Set the flag before refreshing to prevent infinite refresh loop
+        sessionStorage.setItem("hasRefreshedCIEPlanning", "true")
 
-//for page refresh 
-// Add this useEffect hook in both GeneralDetailsForm and CIEPlanningForm components
-useEffect(() => {
-  // Check if the user is a faculty member
-  if (userData?.role === "faculty") {
-    // Using sessionStorage to ensure refresh happens only once per session
-    const hasRefreshed = sessionStorage.getItem("hasRefreshedCIEPlanning")
-    if (!hasRefreshed) {
-      // Set the flag before refreshing to prevent infinite refresh loop
-      sessionStorage.setItem("hasRefreshedCIEPlanning", "true")    
-      
-      // Use setTimeout to ensure the component is fully mounted before refreshing
-      setTimeout(() => {
-        window.location.reload()
-      }, 500)
+        // Use setTimeout to ensure the component is fully mounted before refreshing
+        setTimeout(() => {
+          window.location.reload()
+        }, 500)
+      }
     }
-  }
-}, [userData?.role]) // Only re-run if the user role changes
-
-
+  }, [userData?.role]) // Only re-run if the user role changes
 
   // FIXED: Debug effect to get term dates directly from subjects table
   useEffect(() => {
@@ -3139,7 +3253,7 @@ useEffect(() => {
     updateDebugInfo()
   }, [lessonPlan, activeCIE])
 
-  // Replace the existing useEffect for loading drafts with this improved version
+  // FIXED: Improved auto-load draft with better logic
   useEffect(() => {
     const loadDraft = async () => {
       // Get available IDs
@@ -3151,13 +3265,30 @@ useEffect(() => {
         subjectId,
         hasUserData: !!userData,
         hasFacultyId: !!lessonPlan?.faculty?.id,
+        draftLoaded,
       })
 
       // Check if we have the required data
-      if (!facultyId || !subjectId) {
-        console.log("🔍 CIE AUTO-LOAD: Missing required data, skipping auto-load")
+      if (!facultyId || !subjectId || draftLoaded) {
+        console.log("🔍 CIE AUTO-LOAD: Missing required data or already loaded, skipping auto-load")
+        setIsLoadingDraft(false)
         return
       }
+
+      // Check if we already have meaningful data
+      const currentCIEs = lessonPlan?.cies || []
+      const hasExistingData =
+        currentCIEs.length > 0 &&
+        currentCIEs.some((cie: any) => cie.type && cie.type !== "" && cie.date && cie.date !== "")
+
+      if (hasExistingData) {
+        console.log("🔍 CIE AUTO-LOAD: Already has data, skipping")
+        setIsLoadingDraft(false)
+        setDraftLoaded(true)
+        return
+      }
+
+      setIsLoadingDraft(true)
 
       try {
         console.log("🔍 CIE AUTO-LOAD: Loading draft for:", facultyId, subjectId)
@@ -3189,6 +3320,7 @@ useEffect(() => {
                 Array.isArray(cie.skill_mapping) && cie.skill_mapping.length > 0
                   ? cie.skill_mapping
                   : [{ skill: "", details: "" }],
+              assigned_faculty_id: cie.assigned_faculty_id || userData?.id || null, // ADDED: Load saved assignment or default to current user
             }))
 
             console.log("🔍 CIE AUTO-LOAD: Setting CIEs to lesson plan:", validCIEs)
@@ -3199,8 +3331,9 @@ useEffect(() => {
               cie_remarks: data.remarks || "",
             }))
 
-            setLastSaved(data.timestamp ? new Date(data.timestamp) : new Date())
+            setLastSaved(data.savedAt ? new Date(data.savedAt) : new Date())
             toast.success(`Draft loaded successfully with ${validCIEs.length} CIE(s)`)
+            setDraftLoaded(true)
           } else {
             console.log("🔍 CIE AUTO-LOAD: No valid CIE data found in draft")
           }
@@ -3209,167 +3342,84 @@ useEffect(() => {
         }
       } catch (error) {
         console.error("🔍 CIE AUTO-LOAD: Error loading draft:", error)
+      } finally {
+        setIsLoadingDraft(false)
       }
     }
 
     // Load draft when component mounts and we have the required data
-    // Also check if current CIEs are empty/default
-    const currentCIEs = lessonPlan?.cies || []
-    const shouldLoadDraft =
-      currentCIEs.length === 0 ||
-      (currentCIEs.length === 1 &&
-        (!currentCIEs[0].type || currentCIEs[0].type === "") &&
-        (!currentCIEs[0].date || currentCIEs[0].date === ""))
-
-    if (shouldLoadDraft && (userData?.id || lessonPlan?.faculty?.id) && lessonPlan?.subject?.id) {
+    if ((userData?.id || lessonPlan?.faculty?.id) && lessonPlan?.subject?.id && !draftLoaded) {
       loadDraft()
     }
-  }, [lessonPlan?.subject?.id, lessonPlan?.faculty?.id, userData])
+  }, [lessonPlan?.subject?.id, lessonPlan?.faculty?.id, userData, draftLoaded, lessonPlan?.cies])
 
-  // // Load PSO/PEO data
-  // useEffect(() => {
-  //   const loadPsoPeoData = async () => {
-  //     if (lessonPlan.subject?.id) {
-  //       setLoadingPsoPeo(true)
-  //       try {
-  //         const { data: subjectData, error: subjectError } = await supabase
-  //           .from("subjects")
-  //           .select("pso, peo, department_id")
-  //           .eq("id", lessonPlan.subject.id)
-  //           .single()
+  // Updated PSO/PEO loading logic to fetch from department_pso_peo table
+  useEffect(() => {
+    const loadPsoPeoData = async () => {
+      if (!lessonPlan.subject?.id) return
 
-  //         if (subjectError) {
-  //           console.error("Error fetching subject PSO/PEO data:", subjectError)
-  //           return
-  //         }
+      setLoadingPsoPeo(true)
 
-  //         let psoData: PSOPEOItem[] = []
-  //         let peoData: PSOPEOItem[] = []
+      try {
+        // Step 1: Get the department_id from the subject
+        const { data: subjectData, error: subjectError } = await supabase
+          .from("subjects")
+          .select("department_id")
+          .eq("id", lessonPlan.subject.id)
+          .single()
 
-  //         if (subjectData?.pso?.items && subjectData.pso.items.length > 0) {
-  //           psoData = subjectData.pso.items
-  //         }
-  //         if (subjectData?.peo?.items && subjectData.peo.items.length > 0) {
-  //           peoData = subjectData.peo.items
-  //         }
-
-  //         if (psoData.length === 0 || peoData.length === 0) {
-  //           const { data: departmentSubjects, error: deptError } = await supabase
-  //             .from("subjects")
-  //             .select("pso, peo")
-  //             .eq("department_id", subjectData.department_id)
-  //             .not("pso", "is", null)
-  //             .not("peo", "is", null)
-  //             .limit(1)
-
-  //           if (!deptError && departmentSubjects && departmentSubjects.length > 0) {
-  //             const deptSubject = departmentSubjects[0]
-  //             if (psoData.length === 0 && deptSubject.pso?.items) {
-  //               psoData = deptSubject.pso.items
-  //             }
-  //             if (peoData.length === 0 && deptSubject.peo?.items) {
-  //               peoData = deptSubject.peo.items
-  //             }
-  //           }
-  //         }
-
-  //         setDepartmentPsoPeo({
-  //           pso_data: psoData,
-  //           peo_data: peoData,
-  //         })
-  //       } catch (error) {
-  //         console.error("Error loading PSO/PEO data:", error)
-  //         setDepartmentPsoPeo({
-  //           pso_data: [],
-  //           peo_data: [],
-  //         })
-  //       } finally {
-  //         setLoadingPsoPeo(false)
-  //       }
-  //     }
-  //   }
-
-  //   loadPsoPeoData()
-  // }, [lessonPlan.subject?.id])
-
-// Updated PSO/PEO loading logic to fetch from department_pso_peo table
-useEffect(() => {
-  const loadPsoPeoData = async () => {
-    if (!lessonPlan.subject?.id) return
-
-    setLoadingPsoPeo(true)
-
-    try {
-      // Step 1: Get the department_id from the subject
-      const { data: subjectData, error: subjectError } = await supabase
-        .from("subjects")
-        .select("department_id")
-        .eq("id", lessonPlan.subject.id)
-        .single()
-
-      if (subjectError || !subjectData?.department_id) {
-        throw new Error("Failed to fetch subject's department.")
-      }
-
-      const departmentId = subjectData.department_id
-
-      // Step 2: Fetch PSO/PEO data from department_pso_peo table
-      const { data: deptPsoPeo, error: deptError } = await supabase
-        .from("department_pso_peo")
-        .select("pso_data, peo_data")
-        .eq("department_id", departmentId)
-        .single()
-
-      let psoData: PSOPEOItem[] = []
-      let peoData: PSOPEOItem[] = []
-
-      if (!deptError && deptPsoPeo) {
-        if (Array.isArray(deptPsoPeo.pso_data)) {
-          psoData = deptPsoPeo.pso_data
+        if (subjectError || !subjectData?.department_id) {
+          throw new Error("Failed to fetch subject's department.")
         }
 
-        if (Array.isArray(deptPsoPeo.peo_data)) {
-          peoData = deptPsoPeo.peo_data
+        const departmentId = subjectData.department_id
+
+        // Step 2: Fetch PSO/PEO data from department_pso_peo table
+        const { data: deptPsoPeo, error: deptError } = await supabase
+          .from("department_pso_peo")
+          .select("pso_data, peo_data")
+          .eq("department_id", departmentId)
+          .single()
+
+        let psoData: PSOPEOItem[] = defaultPsoOptions
+        let peoData: PSOPEOItem[] = defaultPeoOptions
+
+        if (!deptError && deptPsoPeo) {
+          if (Array.isArray(deptPsoPeo.pso_data)) {
+            psoData = deptPsoPeo.pso_data
+          }
+
+          if (Array.isArray(deptPsoPeo.peo_data)) {
+            peoData = deptPsoPeo.peo_data
+          }
+        } else {
+          console.warn("Falling back to default PSO/PEO due to missing department data or error.")
         }
-      } else {
-        console.warn("Falling back to empty PSO/PEO due to missing department data or error.")
+
+        // Step 3: Set data to state
+        setDepartmentPsoPeo({
+          pso_data: psoData,
+          peo_data: peoData,
+        })
+
+        console.log("Loaded PSO/PEO from department_pso_peo:", {
+          pso_count: psoData.length,
+          peo_count: peoData.length,
+        })
+      } catch (error) {
+        console.error("Error loading PSO/PEO:", error)
+
+        setDepartmentPsoPeo({
+          pso_data: defaultPsoOptions,
+          peo_data: defaultPeoOptions,
+        })
+      } finally {
+        setLoadingPsoPeo(false)
       }
-
-      // Step 3: Set data to state
-      setDepartmentPsoPeo({
-        pso_data: psoData,
-        peo_data: peoData,
-      })
-
-      console.log("Loaded PSO/PEO from department_pso_peo:", {
-        pso_count: psoData.length,
-        peo_count: peoData.length,
-      })
-    } catch (error) {
-      console.error("Error loading PSO/PEO:", error)
-
-      setDepartmentPsoPeo({
-        pso_data: [],
-        peo_data: [],
-      })
-    } finally {
-      setLoadingPsoPeo(false)
     }
-  }
 
-  loadPsoPeoData()
-}, [lessonPlan.subject?.id])
-
-
-
-
-
-
-
-
-
-
-
+    loadPsoPeoData()
+  }, [lessonPlan.subject?.id])
 
   const handleCIEChange = (index: number, field: string, value: any) => {
     const updatedCIEs = [...(lessonPlan.cies || [])]
@@ -3621,7 +3671,7 @@ useEffect(() => {
 
     // Validate Mid-term duration
     if (cie.type === "Mid-term/Internal Exam" && cie.duration < 60) {
-      errors.push(`CIE ${index + 1}: Warning - Mid-term exam duration should be minimum 60 minutes`)
+      errors.push(`CIE ${index + 1}: Warning - Mid-term exam duration should be more than 60 minutes`)
     }
 
     // VALIDATION 5: Validate Open Book Assessment
@@ -3850,11 +3900,6 @@ useEffect(() => {
       errors.push("'Understand' bloom's taxonomy can be used maximum twice across all CIEs")
     }
 
-   
-
-
-
-
     // VALIDATION 6: FIXED - Total duration validation (ONLY FOR THEORY AND THEORY_PRACTICAL SUBJECTS)
     // Skip this validation entirely for practical-only subjects
     const isPracticalOnly = lessonPlan?.subject?.is_practical === true && lessonPlan?.subject?.is_theory === false
@@ -4000,6 +4045,7 @@ useEffect(() => {
       pso_mapping: [],
       peo_mapping: [],
       skill_mapping: [{ skill: "", details: "" }],
+      assigned_faculty_id: userData?.id || null, // ADDED: Assign current user by default
     }
 
     setLessonPlan((prev: any) => ({
@@ -4097,11 +4143,13 @@ useEffect(() => {
         pso_mapping: cie.pso_mapping || [],
         peo_mapping: cie.peo_mapping || [],
         skill_mapping: cie.skill_mapping || [{ skill: "", details: "" }],
+        assigned_faculty_id: cie.assigned_faculty_id || userData?.id || null, // ADDED: Include faculty assignment
       }))
 
       const formData = {
         cies: validCIEs,
         remarks: lessonPlan.cie_remarks || "",
+        savedAt: new Date().toISOString(), // Add timestamp
       }
 
       console.log("Saving CIE draft data:", formData) // Debug log
@@ -4257,6 +4305,11 @@ useEffect(() => {
       allErrors.push(`CIE ${activeCIE + 1}: All skill mappings must have both skill and details`)
     }
 
+    // ADDED: Validate faculty assignment if subject is shared
+    if (facultySharingData?.isSharing && !currentCIE.assigned_faculty_id) {
+      allErrors.push(`CIE ${activeCIE + 1}: Please assign this CIE to a faculty member`)
+    }
+
     // Add comprehensive validation errors from the backend validation
     const { errors: backendErrors, warnings } = validateAllCIEs()
     allErrors.push(...backendErrors)
@@ -4320,6 +4373,16 @@ useEffect(() => {
 
     // Continue with save logic...
     try {
+      // ADDED: Validate that all CIEs are assigned if sharing is enabled
+      if (facultySharingData?.isSharing) {
+        const unassignedCIEs = (lessonPlan.cies || []).filter((cie: any) => !cie.assigned_faculty_id)
+        if (unassignedCIEs.length > 0) {
+          toast.error("Please assign all CIE assessments to a faculty member.")
+          setSaving(false)
+          return
+        }
+      }
+
       console.log("🔍 FRONTEND: About to call saveCIEPlanningForm with data:", {
         faculty_id: lessonPlan.faculty?.id || userData?.id || "",
         subject_id: lessonPlan.subject?.id || "",
@@ -4381,6 +4444,17 @@ useEffect(() => {
   const currentCIEs = lessonPlan.cies || []
   const currentCIE = currentCIEs[activeCIE]
 
+  // FIXED: Add loading check for userData
+  if (!userData) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <p className="text-lg">Loading user data...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!currentCIE) {
     return <div>Loading...</div>
   }
@@ -4391,51 +4465,13 @@ useEffect(() => {
 
   return (
     <div className="p-6">
-      {/* FIXED: Debug Information Display - now shows correct dates from subjects table
-      {debugInfo && (
-        <div className="mb-6 border border-blue-200 bg-blue-50 rounded-lg p-4">
-          <div className="flex items-start">
-            <Info className="h-4 w-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
-            <div className="text-blue-800">
-              <h4 className="font-semibold mb-2">🔍 Date Debug Information (From Subjects Table)</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <strong>Raw Term Start Date:</strong> {debugInfo.termStartDate}
-                </div>
-                <div>
-                  <strong>Raw Term End Date:</strong> {debugInfo.termEndDate}
-                </div>
-                <div>
-                  <strong>Raw CIE Date:</strong> {debugInfo.currentCIEDate}
-                </div>
-                <div>
-                  <strong>Parsed Term Start:</strong> {debugInfo.termStartParsed}
-                </div>
-                <div>
-                  <strong>Parsed CIE Date:</strong> {debugInfo.currentCIEParsed}
-                </div>
-                <div>
-                  <strong>Days Difference:</strong> {debugInfo.daysDifference}
-                </div>
-                <div>
-                  <strong>Within 10 Days:</strong>{" "}
-                  <span className={debugInfo.isWithin10Days ? "text-green-600" : "text-red-600"}>
-                    {debugInfo.isWithin10Days ? "✅ YES" : "❌ NO"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )} */}
-
       {/* Loading indicator */}
-      {isLoadingDraft && (
+      {/* {isLoadingDraft && (
         <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded-md flex items-center justify-center">
           <div className="animate-spin mr-2 h-4 w-4 border-2 border-blue-700 border-t-transparent rounded-full"></div>
           <span>Loading saved draft...</span>
         </div>
-      )}
+      )} */}
 
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
@@ -4469,6 +4505,49 @@ useEffect(() => {
         </div>
       )}
 
+      {/* EXACT UNIT PLANNING LAYOUT - Shared Subject Banner */}
+      {facultySharingData?.isSharing && (
+        <div className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-blue-200 rounded-lg p-3 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-100 p-2 rounded-full">
+                <Users className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="font-bold text-blue-800">Shared Subject Detected</h4>
+                <p className="text-sm text-blue-600">
+                  This subject is shared among multiple faculty members. Please assign each CIE assessment to the
+                  appropriate faculty.
+                </p>
+              </div>
+            </div>
+            <Badge variant="default" className="bg-blue-600 text-white px-3 py-1">
+              {facultySharingData.allFaculty?.length || 0} Faculty Sharing
+            </Badge>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-4">
+            <div className="bg-white rounded p-3 border border-blue-200">
+              <span className="text-sm font-medium text-gray-700">Primary Faculty:</span>
+              <p className="font-semibold text-blue-800">
+                {String(facultySharingData.primaryFaculty || "Not assigned")}
+              </p>
+            </div>
+            <div className="bg-white rounded p-3 border border-blue-200">
+              <span className="text-sm font-medium text-gray-700">Secondary Faculty:</span>
+              <p className="font-semibold text-blue-800">
+                {facultySharingData.allFaculty && facultySharingData.allFaculty.length > 1
+                  ? facultySharingData.allFaculty
+                      .filter((f: any) => getFacultyName(f) !== facultySharingData.primaryFaculty)
+                      .map((f: any) => getFacultyName(f))
+                      .join(", ")
+                  : "Not assigned"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Semester 1 Prerequisites CIE Info Banner */}
       {lessonPlan.subject?.semester === 1 && (
         <div className="mb-6 border border-blue-200 bg-blue-50 rounded-lg p-4">
@@ -4485,31 +4564,56 @@ useEffect(() => {
         </div>
       )}
 
-      {/* CIE Navigation */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex space-x-2 flex-wrap">
+      {/* CIE Navigation with Type Labels INSIDE Buttons */}
+      <div className="flex items-center justify-between mb-6 overflow-x-auto pb-2">
+        <div className="flex space-x-2">
           {currentCIEs.map((cie: any, index: number) => (
             <Button
               key={cie.id}
+              type="button"
               variant={activeCIE === index ? "default" : "outline"}
-              className={activeCIE === index ? "bg-[#1A5CA1] hover:bg-[#154A80]" : ""}
+              className={`${
+                activeCIE === index ? "bg-[#1A5CA1] hover:bg-[#154A80]" : ""
+              } relative whitespace-nowrap flex items-center gap-2 px-4 py-2 h-auto`}
               onClick={() => setActiveCIE(index)}
+              title={
+                facultySharingData?.isSharing && cie.assigned_faculty_id
+                  ? `Assigned to: ${getFacultyName(
+                      facultySharingData.allFaculty?.find((f: any) => f.id === cie.assigned_faculty_id),
+                    )}`
+                  : undefined
+              }
             >
-              CIE {index + 1}
+              <span className="font-medium">CIE {index + 1}</span>
               {cie.type && (
-                <Badge variant="secondary" className="ml-2 text-xs">
-                  {cie.type.split(" ")[0]}
+                <Badge
+                  variant="secondary"
+                  className={`text-xs px-2 py-1 ${
+                    activeCIE === index
+                      ? "bg-white text-[#1A5CA1] border-white"
+                      : "bg-gray-100 text-gray-700 border-gray-200"
+                  }`}
+                >
+                  {getCIETypeTag(cie.type)}
+                </Badge>
+              )}
+              {facultySharingData?.isSharing && cie.assigned_faculty_id && (
+                <Badge variant="outline" className="text-xs bg-white ml-1">
+                  {getFacultyInitials(
+                    facultySharingData.allFaculty?.find((f: any) => f.id === cie.assigned_faculty_id),
+                  )}
                 </Badge>
               )}
             </Button>
           ))}
-          <Button variant="outline" onClick={addCIE}>
+          <Button type="button" variant="outline" onClick={addCIE} className="whitespace-nowrap">
             <Plus className="h-4 w-4 mr-1" />
             Add CIE
           </Button>
         </div>
         {currentCIEs.length > 1 && (
           <Button
+            type="button"
             variant="ghost"
             className="text-red-500 hover:text-red-700 hover:bg-red-50"
             onClick={() => removeCIE(activeCIE)}
@@ -4520,10 +4624,62 @@ useEffect(() => {
         )}
       </div>
 
+      {/* EXACT UNIT PLANNING LAYOUT - Faculty Assignment Summary */}
+      {facultySharingData?.isSharing && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+          <h4 className="font-semibold text-green-800 mb-2 flex items-center text-sm">
+            <Users className="h-4 w-4 mr-2" />
+            Faculty Assignment Summary
+          </h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+            {currentCIEs.map((cie: any, index: number) => {
+              const assignedFacultyId = cie.assigned_faculty_id
+              const facultyName = assignedFacultyId
+                ? getFacultyName(facultySharingData.allFaculty?.find((f: any) => f.id === assignedFacultyId))
+                : "Unassigned"
+              return (
+                <div key={cie.id} className="flex items-center justify-between bg-white rounded p-1.5 border text-sm">
+                  <span className="font-medium">CIE {index + 1}</span>
+                  <Badge variant={assignedFacultyId ? "default" : "secondary"} className="text-xs">
+                    {facultyName}
+                  </Badge>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-semibold">CIE {activeCIE + 1}</h3>
         </div>
+
+        {/* EXACT UNIT PLANNING LAYOUT - Faculty Assignment */}
+        {facultySharingData?.isSharing && (
+          <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+            <Users className="h-5 w-5 text-blue-600" />
+            <span className="text-sm font-semibold text-blue-800">Faculty Assignment:</span>
+            <Select
+              value={currentCIE.assigned_faculty_id || ""}
+              onValueChange={(value) => handleCIEChange(activeCIE, "assigned_faculty_id", value)}
+            >
+              <SelectTrigger className="w-[200px] bg-white border-blue-300">
+                <SelectValue placeholder="Select Faculty" />
+              </SelectTrigger>
+              <SelectContent>
+                {facultySharingData.allFaculty?.map((faculty: any) => (
+                  <SelectItem key={faculty.id} value={faculty.id}>
+                    {getFacultyName(faculty)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Badge variant="outline" className="bg-green-100 text-green-800">
+              Shared Subject
+            </Badge>
+          </div>
+        )}
 
         {/* Type of Evaluation */}
         <div className="grid grid-cols-2 gap-6">
