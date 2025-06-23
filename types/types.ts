@@ -222,16 +222,17 @@ interface Student_data {
 }
 
 interface Timetable {
-  date: string;
-  type: string;
-  subject: string;
-  faculty: string;
-  department: string;
-  to: string;
-  from: string;
-  division: string;
-  batch: string;
-  sem: number;
+  id?: string;
+  day: string | null;
+  type: string | null;
+  subject: string | null; // UUID referencing subjects(id)
+  faculty: string | null; // UUID referencing users(id)
+  department: string | null; // UUID referencing departments(id)
+  to: string | null; // Time with time zone format (e.g., "14:30:00+00")
+  from: string | null; // Time with time zone format (e.g., "13:00:00+00")
+  division: string | null;
+  batch: string | null;
+  sem: number | null;
 }
 
 interface Attendance {

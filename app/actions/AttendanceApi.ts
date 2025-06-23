@@ -3,27 +3,52 @@ import { Attendance } from '@/types/types';
 
 // Create attendance
 export async function insertAttendance(
-  attendance: Omit<Attendance, 'id'> & {
+  attendance: Attendance & {
     Date: string;
-    student_id: string;
-    faculty_id?: string;
   }
 ) {
   const supabase = await createClient();
+
+  // Validate required fields
+  if (!attendance.student_id) {
+    throw new Error('Student ID is required');
+  }
+
+  if (!attendance.lecture) {
+    throw new Error('Lecture ID is required');
+  }
+
+  // Clean and prepare the record
   const record = {
-    ...attendance,
+    lecture: attendance.lecture, // UUID of timetable entry
+    student_id: attendance.student_id, // UUID of student
+    is_present: attendance.is_present || false,
     Date: attendance.Date,
-    student_id: attendance.student_id,
-    ...(attendance.faculty_id && attendance.faculty_id.trim() !== ''
+    // Only include faculty_id if it's a valid UUID (not 'unknown')
+    ...(attendance.faculty_id &&
+    attendance.faculty_id.trim() !== '' &&
+    attendance.faculty_id !== 'unknown'
       ? { faculty_id: attendance.faculty_id }
       : {}),
   };
+
+  console.log('Inserting attendance record:', record);
+
   const { data, error } = await supabase
     .from('attendance')
     .insert([record])
     .select();
-  if (error) throw error;
-  return data;
+
+  if (error) {
+    console.error('Supabase error:', error);
+    throw new Error(`Database error: ${error.message}`);
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error('No data returned from database');
+  }
+
+  return data[0];
 }
 
 // Update attendance by id

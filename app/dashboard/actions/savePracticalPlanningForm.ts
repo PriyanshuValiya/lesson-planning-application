@@ -2,20 +2,53 @@
 
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
-import type { PracticalPlanningFormValues } from "@/utils/schema"
 
 interface SavePracticalPlanningParams {
   faculty_id: string
   subject_id: string
-  formData: PracticalPlanningFormValues
+  practicals: any[]
+  remarks?: string
 }
 
-export async function savePracticalPlanningForm({ faculty_id, subject_id, formData }: SavePracticalPlanningParams) {
+export async function savePracticalPlanningForm({
+  faculty_id,
+  subject_id,
+  practicals,
+  remarks,
+}: SavePracticalPlanningParams) {
   try {
     const supabase = await createClient()
 
+    // console.log("Practical", practicals)
+
+    // Get subject data to check if it's practical-only
+    const { data: subjectData, error: subjectError } = await supabase
+      .from("subjects")
+      .select("is_theory, is_practical")
+      .eq("id", subject_id)
+      .single()
+
+    if (subjectError) {
+      return {
+        success: false,
+        error: `Failed to fetch subject data: ${subjectError.message}`,
+      }
+    }
+
+    // Check if subject is practical-only
+    const isPracticalOnly = subjectData?.is_practical === true && subjectData?.is_theory === false
+
+    // FIXED: Fetch actual faculty name instead of hardcoding "Current Faculty"
+    const { data: facultyData, error: facultyError } = await supabase
+      .from("users")
+      .select("name")
+      .eq("id", faculty_id)
+      .single()
+
+    const actualFacultyName = facultyData?.name || "Current Faculty"  
+
     // Validate the form data
-    const validationResult = validatePracticalPlanning(formData)
+    const validationResult = validatePracticalPlanning({ practicals, remarks }, isPracticalOnly)
     if (!validationResult.isValid) {
       return {
         success: false,
@@ -44,13 +77,13 @@ export async function savePracticalPlanningForm({ faculty_id, subject_id, formDa
       subject_id,
       form: {
         ...existingForm?.form,
-        practicals: formData.practicals.map((practical) => ({
+        practicals: practicals.map((practical) => ({
           ...practical,
-          // Make sure faculty assignment data is included
+          // FIXED: Use actual faculty name instead of hardcoded value
           assigned_faculty_id: practical.assigned_faculty_id || faculty_id,
-          faculty_name: practical.faculty_name || "Current Faculty",
+          faculty_name: practical.faculty_name || actualFacultyName,
         })),
-        practical_remarks: formData.remarks,
+        practical_remarks: remarks,
         practical_planning_completed: true,
         last_updated: new Date().toISOString(),
       },
@@ -73,6 +106,14 @@ export async function savePracticalPlanningForm({ faculty_id, subject_id, formDa
       }
     }
 
+    if (existingForm) {
+      const { error: updateStatusError } = await supabase
+        .from("forms")
+        .update({ complete_practical: true })
+        .eq("id", existingForm.id)
+        .single()
+    }
+
     revalidatePath("/dashboard/lesson-plans")
     return {
       success: true,
@@ -87,7 +128,7 @@ export async function savePracticalPlanningForm({ faculty_id, subject_id, formDa
   }
 }
 
-function validatePracticalPlanning(formData: PracticalPlanningFormValues) {
+function validatePracticalPlanning(formData: { practicals: any[]; remarks?: string }, isPracticalOnly = false) {
   const errors: string[] = []
 
   // Check if at least one practical exists
@@ -104,7 +145,8 @@ function validatePracticalPlanning(formData: PracticalPlanningFormValues) {
       errors.push(`Practical ${practicalNum}: Practical aim is required.`)
     }
 
-    if (!practical.associated_units || practical.associated_units.length === 0) {
+    // FIXED: Only validate associated units for non-practical-only subjects
+    if (!isPracticalOnly && (!practical.associated_units || practical.associated_units.length === 0)) {
       errors.push(`Practical ${practicalNum}: At least one associated unit must be selected.`)
     }
 

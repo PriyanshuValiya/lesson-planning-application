@@ -202,11 +202,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { type RoleDataItem } from "@/context/DashboardContext";
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/utils/supabase/client";
 
 export default function FacultyDashboard() {
   const { userData, roleData, currentRole, setCurrentRole } =
     useDashboardContext();
+  const [department, setDepartment] = useState<string | null>(null);
 
   const uniqueRoles = useMemo(() => {
     const unique = new Map<string, RoleDataItem>();
@@ -224,6 +226,27 @@ export default function FacultyDashboard() {
       setCurrentRole(selectedRole);
     }
   };
+
+  useEffect(() => {
+    const getDepartment = async () => {
+      const { data: depart, error: deprtError } = await supabase
+        .from("users")
+        .select("departments(*)")
+        .eq("id", userData.id)
+        .single();
+
+      if (deprtError) {
+        console.error("Error fetching department:", deprtError);
+      } else {
+        //@ts-expect-error
+        setDepartment(depart.departments?.name || null);
+      }
+    };
+
+    if (userData.id) {
+      getDepartment();
+    }
+  }, []);
 
   return (
     <div className="min-h-screen pt-3 px-5">
@@ -257,7 +280,7 @@ export default function FacultyDashboard() {
           Welcome {userData.name}
         </h2>
         <p className="text-xl text-gray-700 mb-1">
-          Subject Teacher, {currentRole?.departments?.name || "Department"}
+          Subject Teacher, {department || ""}
         </p>
         <p className="text-xl text-gray-900 font-semibold uppercase tracking-wide">
           {currentRole?.departments?.institutes?.name || "Institute"}

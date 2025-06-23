@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 // General Details Form Schema
 export const generalDetailsSchema = z.object({
@@ -43,7 +43,7 @@ export const unitPlanningSchema = z.object({
         self_study_topics: z.string().optional(),
         self_study_materials: z.string().optional(),
         unit_materials: z.string().min(1, "Unit materials are required"),
-        teaching_pedagogy: z.array(z.string()).min(2, "At least two teaching pedagogies must be selected"),
+        teaching_pedagogy: z.array(z.string()).min(1, "At least one teaching pedagogies must be selected"),
         other_pedagogy: z.string().optional(),
         co_mapping: z.array(z.string()).min(1, "At least one CO must be mapped"),
         skill_mapping: z.array(z.string()).min(1, "At least one skill must be mapped"),
@@ -243,8 +243,29 @@ export const saveAdditionalInfoSchema = z.object({
   formData: additionalInfoSchema,
 })
 
-// Teaching Pedagogy Options
-export const teachingPedagogyOptions = [
+// Update the teachingPedagogyOptions array:
+export const teachingPedagogyOptions = {
+  traditional: ["Chalk and Talk", "ICT based learning"],
+  alternative: [
+    "Active Learning",
+    "Blended Learning",
+    "Concept/Mind Mapping",
+    "Demonstration/Simulation-Based Learning",
+    "Experiential Learning",
+    "Flipped Classroom",
+    "Collaborative Learning",
+    "Peer Learning",
+    "Problem-Based Learning",
+    "Project-Based Learning",
+    "Reflective Learning",
+    "Role Play",
+    "Storytelling/Narrative Pedagogy",
+  ],
+  other: ["Other"],
+}
+
+// Keep the flat array for backward compatibility
+export const teachingPedagogyOptionsFlat = [
   "Chalk and Talk",
   "ICT based learning",
   "Active Learning",
