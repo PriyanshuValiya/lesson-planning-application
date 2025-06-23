@@ -43,5 +43,5 @@ yarn-error.log*
 next-env.d.ts
 
 # Ignore test API routes
-/app/api/
+# /app/api/
 .env

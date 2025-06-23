@@ -1,3 +1,4 @@
+
 //@ts-nocheck
 
 "use client"
@@ -411,6 +412,19 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
 
     loadFacultySharing()
   }, [lessonPlan?.subject?.id, setValue])
+
+  // Debug information - remove this after fixing
+  useEffect(() => {
+    console.log("=== UNIT PLANNING DEBUG ===")
+    console.log("Subject ID:", lessonPlan?.subject?.id)
+    console.log("Subject Name:", lessonPlan?.subject?.name)
+    console.log("Subject Type:", lessonPlan?.subject?.type)
+    console.log("Is Sharing:", isSharing)
+    console.log("All Faculty:", allFaculty)
+    console.log("Primary Faculty:", primaryFaculty)
+    console.log("Secondary Faculty:", secondaryFaculty)
+    console.log("=== END DEBUG ===")
+  }, [lessonPlan?.subject, isSharing, allFaculty, primaryFaculty, secondaryFaculty])
 
   // Enhanced add unit function
   const addUnit = useCallback(() => {
@@ -974,68 +988,82 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold">Unit Planning Details</h3>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="text-blue-600"
-            onClick={() => setShowInstructions(true)}
-          >
-            <InfoIcon className="h-4 w-4 mr-1" />
-            View Guidelines
-          </Button>
-        </div>
+  <div className="flex items-center gap-2">
+    <h3 className="text-lg font-semibold">Unit Planning Details</h3>
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className="text-blue-600"
+      onClick={() => setShowInstructions(true)}
+    >
+      <InfoIcon className="h-4 w-4 mr-1" />
+      View Guidelines
+    </Button>
+  </div>
 
-        <div className="flex items-center gap-4">
-          {isSharing && (
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-green-600" />
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                Sharing Enabled
-              </Badge>
-              <div className="text-sm text-gray-600">
-                {allFaculty.length} Faculty: {allFaculty.map((f) => f.name).join(", ")}
-              </div>
-            </div>
-          )}
+  <div className="flex items-center gap-4">
+    {isSharing && (
+      <div className="flex items-center gap-2">
+        <Users className="h-4 w-4 text-green-600" />
+        <Badge variant="secondary" className="bg-green-100 text-green-800">
+          Sharing Enabled
+        </Badge>
+        <div className="text-sm text-gray-600">
+          {allFaculty.length} Faculty: {allFaculty.map((f) => f.name).join(", ")}
         </div>
       </div>
+    )}
+  </div>
+</div>
 
-      {/* Faculty Sharing Status */}
-      {isSharing && (
-        <div className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-blue-200 rounded-lg p-3 mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-100 p-2 rounded-full">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <h4 className="font-bold text-blue-800">Shared Subject Detected</h4>
-                <p className="text-sm text-blue-600">
-                  This subject is shared among multiple faculty members. Please assign each unit to the appropriate
-                  faculty.
-                </p>
-              </div>
-            </div>
-            <Badge variant="default" className="bg-blue-600 text-white px-3 py-1">
-              {allFaculty.length} Faculty Sharing
-            </Badge>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-4">
-            <div className="bg-white rounded p-3 border border-blue-200">
-              <span className="text-sm font-medium text-gray-700">Primary Faculty:</span>
-              <p className="font-semibold text-blue-800">{primaryFaculty?.name || "Not assigned"}</p>
-            </div>
-            <div className="bg-white rounded p-3 border border-blue-200">
-              <span className="text-sm font-medium text-gray-700">Secondary Faculty:</span>
-              <p className="font-semibold text-blue-800">{secondaryFaculty?.[0]?.name || "Not assigned"}</p>
-            </div>
-          </div>
+{/* Faculty Sharing Status */}
+{isSharing && (
+  <div className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-blue-200 rounded-lg p-3 mb-4">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="bg-blue-100 p-2 rounded-full">
+          <Users className="h-6 w-6 text-blue-600" />
         </div>
-      )}
+        <div>
+          <h4 className="font-bold text-blue-800">Shared Subject Detected</h4>
+          <p className="text-sm text-blue-600">
+            This subject is shared among multiple faculty members. Please assign each unit to the appropriate
+            faculty.
+          </p>
+        </div>
+      </div>
+      <Badge variant="default" className="bg-blue-600 text-white px-3 py-1">
+        {allFaculty.length} Faculty Sharing
+      </Badge>
+    </div>
+
+    <div className="mt-3 grid grid-cols-2 gap-4">
+      <div className="bg-white rounded p-3 border border-blue-200">
+        <span className="text-sm font-medium text-gray-700">Primary Faculty:</span>
+        <p className="font-semibold text-blue-800">
+          {(() => {
+            // Current user should be primary faculty
+            const currentUser = allFaculty.find(f => f.id === userData?.id);
+            return currentUser?.name || primaryFaculty?.name || "Not assigned";
+          })()}
+        </p>
+      </div>
+      <div className="bg-white rounded p-3 border border-blue-200">
+        <span className="text-sm font-medium text-gray-700">Secondary Faculty:</span>
+        <p className="font-semibold text-blue-800">
+          {(() => {
+            // Show other faculty members (not the current user)
+            const otherFaculty = allFaculty.filter(f => f.id !== userData?.id);
+            return otherFaculty.length > 0 
+              ? otherFaculty.map(f => f.name).join(", ")
+              : "Not assigned";
+          })()}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Unit Tabs */}
       <div className="flex items-center justify-between mb-6 overflow-x-auto pb-2">
@@ -1285,7 +1313,9 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
                   }}
                   placeholder="Enter unit materials with specific references"
                   rows={3}
-                  className={hasValidationError(`units.${activeUnit}.unit_materials`) ? "border-red-500 border-2 mt-2" : "mt-2"}
+                  className={
+                    hasValidationError(`units.${activeUnit}.unit_materials`) ? "border-red-500 border-2 mt-2" : "mt-2"
+                  }
                 />
                 {(errors.units?.[activeUnit]?.unit_materials ||
                   hasValidationError(`units.${activeUnit}.unit_materials`)) && (
