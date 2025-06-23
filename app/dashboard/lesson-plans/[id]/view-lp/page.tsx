@@ -1,5 +1,6 @@
+
 //@ts-nocheck
-                                                                                                                                                                                
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -86,6 +87,12 @@ function ViewLessonPlanPage() {
 
     sections.push({ number: sectionNumber++, name: "CIE DETAILS", type: "cie" })
     sections.push({ number: sectionNumber++, name: "ADDITIONAL DETAILS", type: "additional" })
+
+    // Add shared faculty section only if it's a shared subject
+    if (lessonPlan.is_sharing && lessonPlan.sharing_faculty && lessonPlan.sharing_faculty.length > 0) {
+      sections.push({ number: sectionNumber++, name: "SHARED FACULTY DETAILS", type: "shared_faculty" })
+    }
+
     sections.push({ number: sectionNumber++, name: "COMPLETION STATUS", type: "completion" })
 
     return sections
@@ -162,7 +169,7 @@ function ViewLessonPlanPage() {
                     Term Duration:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {lessonPlan.subject.metadata.term_start_date} to {lessonPlan.subject.metadata.term_end_date}
+                    {lessonPlan.subject.metadata.term_start_date} - {lessonPlan.subject.metadata.term_end_date}
                   </td>
                 </tr>
                 <tr>
@@ -203,7 +210,7 @@ function ViewLessonPlanPage() {
                     {lessonPlan.lecture_hours}
                   </td>
                   <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
-                    Lab Hour/week
+                    Lab Hours/week:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                     {lessonPlan.lab_hours}
@@ -254,7 +261,37 @@ function ViewLessonPlanPage() {
                             <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">Unit Name:</td>
                             <td className="border border-black p-2 w-[30%]">{unit.unit_name}</td>
                             <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">Faculty Name:</td>
-                            <td className="border border-black p-2 w-[30%]">{lessonPlan.faculty.name}</td>
+                            <td className="border border-black p-2 w-[30%]">
+                              {(() => {
+                                // For shared subjects, show the assigned faculty name
+                                if (lessonPlan.is_sharing && unit.assigned_faculty_id) {
+                                  // First check if faculty_name is stored in the unit
+                                  if (unit.faculty_name) {
+                                    return unit.faculty_name
+                                  }
+
+                                  // If not, find the faculty from sharing_faculty array
+                                  const assignedFaculty = lessonPlan.sharing_faculty?.find(
+                                    (faculty) => faculty.id === unit.assigned_faculty_id,
+                                  )
+
+                                  if (assignedFaculty) {
+                                    return assignedFaculty.name
+                                  }
+
+                                  // Check if it's the primary faculty
+                                  if (unit.assigned_faculty_id === lessonPlan.faculty.id) {
+                                    return lessonPlan.faculty.name
+                                  }
+
+                                  // Fallback to primary faculty if assignment not found
+                                  return lessonPlan.faculty.name
+                                }
+
+                                // For non-shared subjects, always show primary faculty
+                                return lessonPlan.faculty.name
+                              })()}
+                            </td>
                           </tr>
                           <tr>
                             <td className="border border-black p-2 font-bold bg-gray-50">Start Date:</td>
@@ -357,6 +394,7 @@ function ViewLessonPlanPage() {
                                 <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">Lab Hours:</td>
                                 <td className="border border-black p-2 w-[30%]">{practical.lab_hours}</td>
                               </tr>
+                              
                               <tr>
                                 <td className="border border-black p-2 font-bold bg-gray-50">Probable Week:</td>
                                 <td className="border border-black p-2">{practical.probable_week}</td>
@@ -491,6 +529,7 @@ function ViewLessonPlanPage() {
               )
             }
 
+            
             if (section.type === "cie") {
               return (
                 <div key="cie" className="mb-6 cie-section">
@@ -758,6 +797,39 @@ function ViewLessonPlanPage() {
                       </table>
                     </div>
                   )}
+                </div>
+              )
+            }
+
+            if (section.type === "shared_faculty") {
+              return (
+                <div key="shared_faculty" className="mb-6">
+                  <h2 className="text-lg font-bold mb-2">
+                    {section.number}. {section.name}
+                  </h2>
+                  <div className="mb-6">
+                    <table className="w-full border-collapse">
+                      <tbody>
+                        
+                        <tr>
+                          <td
+                            className="border border-black p-3 font-bold  align-top"
+                            style={{ width: "250px", minWidth: "250px" }}
+                          >
+                            Shared Faculty Members:
+                          </td>
+                          <td className="border border-black p-3 align-top">
+                            {lessonPlan.sharing_faculty.map((faculty, index) => (
+                              <div key={index} className="mb-1">
+                                {index + 1}. {faculty.name} ({faculty.email})
+                              </div>
+                            ))}
+                          </td>
+                        </tr>
+                       
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )
             }

@@ -1,69 +1,109 @@
-"use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
-import { fetchLessonPlanById } from "@/app/dashboard/actions/fetchLessonPlanById";
-import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+
+
+
+
+
+
+
+
+
+//jills
+
+
+"use client"
+
+import { useState, useEffect, useRef } from "react"
+import { useParams } from "next/navigation"
+import { fetchLessonPlanById } from "@/app/dashboard/actions/fetchLessonPlanById"
+import { Button } from "@/components/ui/button"
+import { Printer } from "lucide-react"
 
 export default function PrintLessonPlanPage() {
-  const params = useParams();
-  const [isLoading, setIsLoading] = useState(true);
-  const [lessonPlan, setLessonPlan] = useState<any>(null);
-  const hasPrinted = useRef(false);
+  const params = useParams()
+  const [isLoading, setIsLoading] = useState(true)
+  const [lessonPlan, setLessonPlan] = useState<any>(null)
+  const hasPrinted = useRef(false)
 
   useEffect(() => {
     const loadLessonPlan = async () => {
       try {
-        setIsLoading(true);
-        const result = await fetchLessonPlanById(params.id as string);
+        setIsLoading(true)
+        const result = await fetchLessonPlanById(params.id as string)
 
         if (result.success) {
-          setLessonPlan(result.data);
+          setLessonPlan(result.data)
         } else {
-          console.error(result.error || "Failed to load lesson plan");
+          console.error(result.error || "Failed to load lesson plan")
         }
       } catch (error) {
-        console.error("Error loading lesson plan:", error);
+        console.error("Error loading lesson plan:", error)
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
     if (params.id) {
-      loadLessonPlan();
+      loadLessonPlan()
     }
-  }, [params.id]);
+  }, [params.id])
 
   useEffect(() => {
     if (lessonPlan && !isLoading && !hasPrinted.current) {
       setTimeout(() => {
-        window.print();
-        hasPrinted.current = true;
-      }, 200);
+        window.print()
+        hasPrinted.current = true
+      }, 200)
     }
-  }, [lessonPlan, isLoading]);
+  }, [lessonPlan, isLoading])
 
   const handlePrint = () => {
-    window.print();
-  };
+    window.print()
+  }
 
   // Helper function to format date in DDMMYYYY format
   const formatDate = (dateString: string) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
+    if (!dateString) return "N/A"
+    const date = new Date(dateString)
+    const day = String(date.getDate()).padStart(2, "0")
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const year = date.getFullYear()
+    return `${day}/${month}/${year}`
+  }
+
+  // Helper function to get the faculty name for a unit (handles shared subjects)
+  const getUnitFacultyName = (unit: any) => {
+    // For shared subjects, show the assigned faculty name
+    if (lessonPlan.is_sharing && unit.assigned_faculty_id) {
+      // First check if faculty_name is stored in the unit
+      if (unit.faculty_name) {
+        return unit.faculty_name
+      }
+
+      // If not, find the faculty from sharing_faculty array
+      const assignedFaculty = lessonPlan.sharing_faculty?.find(
+        (faculty: any) => faculty.id === unit.assigned_faculty_id,
+      )
+
+      if (assignedFaculty) {
+        return assignedFaculty.name
+      }
+
+      // Check if it's the primary faculty
+      if (unit.assigned_faculty_id === lessonPlan.faculty.id) {
+        return lessonPlan.faculty.name
+      }
+
+      // Fallback to primary faculty if assignment not found
+      return lessonPlan.faculty.name
+    }
+
+    // For non-shared subjects, always show primary faculty
+    return lessonPlan.faculty.name
+  }
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        Loading lesson plan for printing...
-      </div>
-    );
+    return <div className="flex justify-center items-center h-64">Loading lesson plan for printing...</div>
   }
 
   if (!lessonPlan) {
@@ -71,7 +111,7 @@ export default function PrintLessonPlanPage() {
       <div className="text-center text-red-500">
         Lesson plan not found or you don&apos;t have permission to view it.
       </div>
-    );
+    )
   }
 
   return (
@@ -84,10 +124,7 @@ export default function PrintLessonPlanPage() {
         </Button>
       </div>
 
-      <div
-        className="w-full p-8 bg-white text-black font-sans"
-        style={{ fontFamily: "Arial, sans-serif" }}
-      >
+      <div className="w-full p-8 bg-white text-black font-sans" style={{ fontFamily: "Arial, sans-serif" }}>
         <style jsx global>{`
           @page {
             size: A4 landscape;
@@ -241,15 +278,9 @@ export default function PrintLessonPlanPage() {
 
         {/* Header Section */}
         <div className="text-center mb-8 space-y-1">
-          <h1 className="text-xl font-bold">
-            Charotar University of Science and Technology (CHARUSAT)
-          </h1>
-          <h2 className="text-xl font-bold">
-            Devang Patel Institute of Advance Technology and Research (DEPSTAR)
-          </h2>
-          <h3 className="text-xl font-bold">
-            Department of {lessonPlan.subject.department.name}
-          </h3>
+          <h1 className="text-xl font-bold">Charotar University of Science and Technology (CHARUSAT)</h1>
+          <h2 className="text-xl font-bold">Devang Patel Institute of Advance Technology and Research (DEPSTAR)</h2>
+          <h3 className="text-xl font-bold">Department of {lessonPlan.subject.department.name}</h3>
           <h4 className="text-xl font-bold">Lesson Planning Document (LPD)</h4>
         </div>
 
@@ -275,8 +306,7 @@ export default function PrintLessonPlanPage() {
                   Department:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 w-[25%]">
-                  {lessonPlan.subject.department.name} (
-                  {lessonPlan.subject.department.abbreviation_depart})
+                  {lessonPlan.subject.department.name} ({lessonPlan.subject.department.abbreviation_depart})
                 </td>
               </tr>
               <tr>
@@ -296,8 +326,7 @@ export default function PrintLessonPlanPage() {
                   Term Duration:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                  {lessonPlan.subject.metadata.term_start_date} to{" "}
-                  {lessonPlan.subject.metadata.term_end_date}
+                  {formatDate(lessonPlan.term_start_date)} to {formatDate(lessonPlan.term_end_date)}
                 </td>
               </tr>
               <tr>
@@ -310,10 +339,10 @@ export default function PrintLessonPlanPage() {
                     {lessonPlan.subject.semester === 1
                       ? "st"
                       : lessonPlan.subject.semester === 2
-                      ? "nd"
-                      : lessonPlan.subject.semester === 3
-                      ? "rd"
-                      : "th"}
+                        ? "nd"
+                        : lessonPlan.subject.semester === 3
+                          ? "rd"
+                          : "th"}
                   </sup>{" "}
                   semester
                 </td>
@@ -327,8 +356,7 @@ export default function PrintLessonPlanPage() {
                   Academic Year:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                  {lessonPlan.academic_year} -{" "}
-                  {(lessonPlan.academic_year % 100) + 1}
+                  {lessonPlan.academic_year} - {(lessonPlan.academic_year % 100) + 1}
                 </td>
               </tr>
               <tr>
@@ -355,10 +383,7 @@ export default function PrintLessonPlanPage() {
                 <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                   Course Prerequisites:
                 </td>
-                <td
-                  className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0"
-                  colSpan={5}
-                >
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0" colSpan={5}>
                   {lessonPlan.course_prerequisites || "N/A"}
                 </td>
               </tr>
@@ -366,10 +391,7 @@ export default function PrintLessonPlanPage() {
                 <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                   Course Prerequisites Materials:
                 </td>
-                <td
-                  className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0"
-                  colSpan={5}
-                >
+                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0" colSpan={5}>
                   {lessonPlan.course_prerequisites_materials || "N/A"}
                 </td>
               </tr>
@@ -383,157 +405,86 @@ export default function PrintLessonPlanPage() {
 
           {lessonPlan.units.map((unit: any, index: number) => (
             <div key={unit.id} className={index > 0 ? "section-break" : ""}>
-              <h3 className="text-lg font-semibold mb-2 mt-5">
-                Unit {index + 1}
-              </h3>
+              <h3 className="text-lg font-semibold mb-2 mt-5">Unit {index + 1}</h3>
 
               <table className="w-full border-collapse table-fixed mb-4">
                 <tbody>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
-                      Unit Name:
-                    </td>
-                    <td className="border border-black p-2 w-[30%]">
-                      {unit.unit_name}
-                    </td>
-                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
-                      Faculty Name:
-                    </td>
-                    <td className="border border-black p-2 w-[30%]">
-                      {lessonPlan.faculty.name}
-                    </td>
+                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">Unit Name:</td>
+                    <td className="border border-black p-2 w-[30%]">{unit.unit_name}</td>
+                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">Faculty Name:</td>
+                    <td className="border border-black p-2 w-[30%]">{getUnitFacultyName(unit)}</td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
-                      Start Date:
-                    </td>
-                    <td className="border border-black p-2">
-                      {formatDate(unit.probable_start_date)}
-                    </td>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
-                      End Date:
-                    </td>
-                    <td className="border border-black p-2">
-                      {formatDate(unit.probable_end_date)}
-                    </td>
+                    <td className="border border-black p-2 font-bold bg-gray-50">Start Date:</td>
+                    <td className="border border-black p-2">{formatDate(unit.probable_start_date)}</td>
+                    <td className="border border-black p-2 font-bold bg-gray-50">End Date:</td>
+                    <td className="border border-black p-2">{formatDate(unit.probable_end_date)}</td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
-                      No. of Lectures:
-                    </td>
-                    <td className="border border-black p-2 w-[30%]">
-                      {unit.no_of_lectures}
-                    </td>
-                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
-                      CO Mapping:
-                    </td>
+                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">No. of Lectures:</td>
+                    <td className="border border-black p-2 w-[30%]">{unit.no_of_lectures}</td>
+                    <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">CO Mapping:</td>
                     <td className="border border-black p-2" colSpan={3}>
                       {unit.co_mapping
                         .map((coId: any) => {
-                          const outcome = lessonPlan.courseOutcomes.find(
-                            (co: any) => co.id === coId
-                          );
-                          return outcome ? outcome.text : coId;
+                          const outcome = lessonPlan.courseOutcomes.find((co: any) => co.id === coId)
+                          return outcome ? outcome.text : coId
                         })
                         .join(", ")}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
-                      Unit Topics:
-                    </td>
-                    <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
-                      colSpan={3}
-                    >
+                    <td className="border border-black p-2 font-bold bg-gray-50">Unit Topics:</td>
+                    <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                       {unit.unit_topics}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
-                      Self Study Topics:
-                    </td>
-                    <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
-                      colSpan={3}
-                    >
+                    <td className="border border-black p-2 font-bold bg-gray-50">Self Study Topics:</td>
+                    <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                       {unit.self_study_topics || "N/A"}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
-                      Self Study Materials:
-                    </td>
-                    <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
-                      colSpan={3}
-                    >
+                    <td className="border border-black p-2 font-bold bg-gray-50">Self Study Materials:</td>
+                    <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                       {unit.self_study_materials || "N/A"}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
-                      Teaching Pedagogy:
-                    </td>
-                    <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
-                      colSpan={3}
-                    >
+                    <td className="border border-black p-2 font-bold bg-gray-50">Teaching Pedagogy:</td>
+                    <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                       {unit.teaching_pedagogy.join(", ")}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
-                      Skill Mapping:
-                    </td>
-                    <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
-                      colSpan={3}
-                    >
+                    <td className="border border-black p-2 font-bold bg-gray-50">Skill Mapping:</td>
+                    <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                       {unit.skill_mapping.join(", ")}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
-                      Unit Materials:
-                    </td>
-                    <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
-                      colSpan={3}
-                    >
+                    <td className="border border-black p-2 font-bold bg-gray-50">Unit Materials:</td>
+                    <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                       {unit.unit_materials || "N/A"}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
-                      Skill Objectives:
-                    </td>
-                    <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
-                      colSpan={3}
-                    >
+                    <td className="border border-black p-2 font-bold bg-gray-50">Skill Objectives:</td>
+                    <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                       {unit.skill_objectives || "N/A"}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
-                      Topics Beyond Unit:
-                    </td>
-                    <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
-                      colSpan={3}
-                    >
+                    <td className="border border-black p-2 font-bold bg-gray-50">Topics Beyond Unit:</td>
+                    <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                       {unit.topics_beyond_unit || "N/A"}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50">
-                      Interlink Topics:
-                    </td>
-                    <td
-                      className="border border-black p-2 text-sm break-words whitespace-normal"
-                      colSpan={3}
-                    >
+                    <td className="border border-black p-2 font-bold bg-gray-50">Interlink Topics:</td>
+                    <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                       {unit.interlink_topics || "N/A"}
                     </td>
                   </tr>
@@ -550,52 +501,32 @@ export default function PrintLessonPlanPage() {
             <div className="mb-6">
               {lessonPlan.practicals.map((practical: any, index: number) => (
                 <div key={index} className={index > 0 ? "section-break" : ""}>
-                  <h3 className="text-lg font-semibold mb-2">
-                    Practical {index + 1}
-                  </h3>
+                  <h3 className="text-lg font-semibold mb-2">Practical {index + 1}</h3>
 
                   <table className="w-full border-collapse table-fixed mb-4">
                     <tbody>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
-                          Faculty Name:
-                        </td>
-                        <td className="border border-black p-2 w-[30%]">
-                          {lessonPlan.faculty.name}
-                        </td>
-                        <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
-                          Lab Hours:
-                        </td>
-                        <td className="border border-black p-2 w-[30%]">
-                          {practical.lab_hours}
-                        </td>
+                        <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">Faculty Name:</td>
+                        <td className="border border-black p-2 w-[30%]">{lessonPlan.faculty.name}</td>
+                        <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">Lab Hours:</td>
+                        <td className="border border-black p-2 w-[30%]">{practical.lab_hours}</td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
-                          Probable Week:
-                        </td>
-                        <td className="border border-black p-2">
-                          {practical.probable_week}
-                        </td>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
-                          CO Mapping:
-                        </td>
+                        <td className="border border-black p-2 font-bold bg-gray-50">Probable Week:</td>
+                        <td className="border border-black p-2">{practical.probable_week}</td>
+                        <td className="border border-black p-2 font-bold bg-gray-50">CO Mapping:</td>
                         <td className="border border-black p-2">
                           {practical.co_mapping
                             .map((coId: any) => {
-                              const outcome = lessonPlan.courseOutcomes.find(
-                                (co: any) => co.id === coId
-                              );
-                              return outcome ? outcome.text : coId;
+                              const outcome = lessonPlan.courseOutcomes.find((co: any) => co.id === coId)
+                              return outcome ? outcome.text : coId
                             })
                             .join(", ")}
                         </td>
                       </tr>
                       {practical.pso_mapping.length > 0 && (
                         <tr>
-                          <td className="border border-black p-2 font-bold bg-gray-50">
-                            PSO Mapping:
-                          </td>
+                          <td className="border border-black p-2 font-bold bg-gray-50">PSO Mapping:</td>
                           <td className="border border-black p-2" colSpan={3}>
                             {Array.isArray(practical.pso_mapping)
                               ? practical.pso_mapping.join(", ")
@@ -605,109 +536,64 @@ export default function PrintLessonPlanPage() {
                       )}
 
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
-                          Practical Aim:
-                        </td>
-                        <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
-                          colSpan={3}
-                        >
+                        <td className="border border-black p-2 font-bold bg-gray-50">Practical Aim:</td>
+                        <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                           {practical.practical_aim}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
-                          Practical Tasks:
-                        </td>
-                        <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
-                          colSpan={3}
-                        >
+                        <td className="border border-black p-2 font-bold bg-gray-50">Practical Tasks:</td>
+                        <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                           {practical.practical_tasks}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
-                          Practical Pedagogy:
-                        </td>
-                        <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
-                          colSpan={3}
-                        >
+                        <td className="border border-black p-2 font-bold bg-gray-50">Practical Pedagogy:</td>
+                        <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                           {practical.practical_pedagogy}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
-                          Evaluation Methods:
-                        </td>
-                        <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
-                          colSpan={3}
-                        >
+                        <td className="border border-black p-2 font-bold bg-gray-50">Evaluation Methods:</td>
+                        <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                           {Array.isArray(practical.evaluation_methods)
                             ? practical.evaluation_methods.join(", ")
                             : practical.evaluation_methods}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
-                          Associated Units:
-                        </td>
-                        <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
-                          colSpan={3}
-                        >
+                        <td className="border border-black p-2 font-bold bg-gray-50">Associated Units:</td>
+                        <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                           {Array.isArray(practical.associated_units)
                             ? practical.associated_units.join(", ")
                             : practical.associated_units}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
-                          Blooms Taxonomy:
-                        </td>
-                        <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
-                          colSpan={3}
-                        >
+                        <td className="border border-black p-2 font-bold bg-gray-50">Blooms Taxonomy:</td>
+                        <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                           {Array.isArray(practical.blooms_taxonomy)
                             ? practical.blooms_taxonomy.join(", ")
                             : practical.blooms_taxonomy}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
-                          Skill Mapping:
-                        </td>
-                        <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
-                          colSpan={3}
-                        >
+                        <td className="border border-black p-2 font-bold bg-gray-50">Skill Mapping:</td>
+                        <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                           {Array.isArray(practical.skill_mapping)
                             ? practical.skill_mapping.join(", ")
                             : practical.skill_mapping}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
-                          Skill Objectives:
-                        </td>
-                        <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
-                          colSpan={3}
-                        >
+                        <td className="border border-black p-2 font-bold bg-gray-50">Skill Objectives:</td>
+                        <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                           {practical.skill_objectives}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">
-                          Reference Material:
-                        </td>
-                        <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
-                          colSpan={3}
-                        >
+                        <td className="border border-black p-2 font-bold bg-gray-50">Reference Material:</td>
+                        <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                           {practical.reference_material}
                         </td>
                       </tr>
@@ -715,10 +601,7 @@ export default function PrintLessonPlanPage() {
                         <td className="border border-black p-2 font-bold bg-gray-50">
                           Software/Hardware Requirements:
                         </td>
-                        <td
-                          className="border border-black p-2 text-sm break-words whitespace-normal"
-                          colSpan={3}
-                        >
+                        <td className="border border-black p-2 text-sm break-words whitespace-normal" colSpan={3}>
                           {practical.software_hardware_requirements}
                         </td>
                       </tr>
@@ -730,8 +613,8 @@ export default function PrintLessonPlanPage() {
           )}
         </div>
 
-        {/* 4. CIE DETAILS */}
-        <div className="mb-6 cie-section">
+{/* 4. CIE DETAILS */}
+<div className="mb-6 cie-section">
           <h2 className="text-lg font-bold mb-2">4. CIE DETAILS</h2>
           {lessonPlan.cies && lessonPlan.cies.length > 0 && (
             <div className="mb-6">
@@ -767,67 +650,57 @@ export default function PrintLessonPlanPage() {
                       <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
                         {index + 1}
                       </td>
-                      {/* <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                        {cie.units_covered}
-                      </td> */}
 
                       <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                         {(() => {
                           // Handle units_covered mapping
                           if (typeof cie.units_covered === "string") {
+                            // Check if it's empty or just whitespace
+                            if (!cie.units_covered || cie.units_covered.trim() === "") {
+                              return "Units not included"
+                            }
+
                             // Check if it's a comma-separated list of unit IDs
-                            const unitIds = cie.units_covered
-                              .split(",")
-                              .map((id: any) => id.trim());
+                            const unitIds = cie.units_covered.split(",").map((id: any) => id.trim())
 
                             // If it looks like UUIDs, try to map them to unit names
-                            if (
-                              unitIds.some(
-                                (id: any) => id.length > 20 && id.includes("-")
-                              )
-                            ) {
+                            if (unitIds.some((id: any) => id.length > 20 && id.includes("-"))) {
                               const mappedUnits = unitIds.map((unitId: any) => {
-                                const unit = lessonPlan.units?.find(
-                                  (u: any) => u.id === unitId
-                                );
+                                const unit = lessonPlan.units?.find((u: any) => u.id === unitId)
                                 if (unit) {
-                                  const unitIndex = lessonPlan.units.findIndex(
-                                    (u: any) => u.id === unitId
-                                  );
-                                  return `Unit ${unitIndex + 1}: ${
-                                    unit.unit_name
-                                  }`;
+                                  const unitIndex = lessonPlan.units.findIndex((u: any) => u.id === unitId)
+                                  return `Unit ${unitIndex + 1}: ${unit.unit_name}`
                                 }
-                                return unitId; // Fallback to original ID if not found
-                              });
-                              return mappedUnits.join(", ");
+                                return unitId // Fallback to original ID if not found
+                              })
+                              return mappedUnits.join(", ")
                             }
 
                             // If it's already readable text, return as is
-                            return cie.units_covered;
+                            return cie.units_covered
                           }
 
                           // Handle array format
                           if (Array.isArray(cie.units_covered)) {
+                            // Check if array is empty
+                            if (cie.units_covered.length === 0) {
+                              return "Units not included"
+                            }
+
                             return cie.units_covered
                               .map((unitId: any) => {
-                                const unit = lessonPlan.units?.find(
-                                  (u: any) => u.id === unitId
-                                );
+                                const unit = lessonPlan.units?.find((u: any) => u.id === unitId)
                                 if (unit) {
-                                  const unitIndex = lessonPlan.units.findIndex(
-                                    (u: any) => u.id === unitId
-                                  );
-                                  return `Unit ${unitIndex + 1}: ${
-                                    unit.unit_name
-                                  }`;
+                                  const unitIndex = lessonPlan.units.findIndex((u: any) => u.id === unitId)
+                                  return `Unit ${unitIndex + 1}: ${unit.unit_name}`
                                 }
-                                return unitId;
+                                return unitId
                               })
-                              .join(", ");
+                              .join(", ")
                           }
 
-                          return cie.units_covered || "N/A";
+                          // If units_covered is null, undefined, or empty
+                          return "Units not included"
                         })()}
                       </td>
                       <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
@@ -836,9 +709,7 @@ export default function PrintLessonPlanPage() {
                       <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
                         {cie.duration >= 60
                           ? `${
-                              cie.duration % 60 === 0
-                                ? (cie.duration / 60).toFixed(0)
-                                : (cie.duration / 60).toFixed(2)
+                              cie.duration % 60 === 0 ? (cie.duration / 60).toFixed(0) : (cie.duration / 60).toFixed(2)
                             } hours`
                           : `${cie.duration} mins`}
                       </td>
@@ -851,10 +722,8 @@ export default function PrintLessonPlanPage() {
                       <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                         {cie.co_mapping
                           .map((coId: any) => {
-                            const outcome = lessonPlan.courseOutcomes.find(
-                              (co: any) => co.id === coId
-                            );
-                            return outcome ? outcome.text : coId;
+                            const outcome = lessonPlan.courseOutcomes.find((co: any) => co.id === coId)
+                            return outcome ? outcome.text : coId
                           })
                           .join(", ")}
                       </td>
@@ -869,24 +738,18 @@ export default function PrintLessonPlanPage() {
                     <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
                     <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
                       {(() => {
-                        const totalDuration = lessonPlan.cies.reduce(
-                          (sum: number, cie: any) => sum + cie.duration,
-                          0
-                        );
+                        const totalDuration = lessonPlan.cies.reduce((sum: number, cie: any) => sum + cie.duration, 0)
                         return totalDuration >= 60
                           ? `${
                               totalDuration % 60 === 0
                                 ? (totalDuration / 60).toFixed(0)
                                 : (totalDuration / 60).toFixed(2)
                             } hours`
-                          : `${totalDuration} mins`;
+                          : `${totalDuration} mins`
                       })()}
                     </td>
                     <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                      {lessonPlan.cies.reduce(
-                        (sum: number, cie: any) => sum + cie.marks,
-                        0
-                      )}
+                      {lessonPlan.cies.reduce((sum: number, cie: any) => sum + cie.marks, 0)}
                     </td>
                     <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
                     <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
@@ -900,120 +763,154 @@ export default function PrintLessonPlanPage() {
         {/* 5. ADDITIONAL DETAILS */}
         <div className="mb-6 additional-section">
           <h2 className="text-lg font-bold mb-2">5. ADDITIONAL DETAILS</h2>
-          {lessonPlan.additional_info &&
-            Object.keys(lessonPlan.additional_info).length > 0 && (
-              <div className="mb-6">
-                <table className="w-full border-collapse">
-                  <tbody>
-                    {lessonPlan.additional_info.academic_integrity && (
-                      <tr>
-                        <td
-                          className="border border-black p-3 font-bold bg-gray-50 align-top"
-                          style={{ width: "250px", minWidth: "250px" }}
-                        >
-                          Academic Integrity:
-                        </td>
-                        <td
-                          className="border border-black p-3 align-top"
-                          style={{
-                            wordBreak: "break-word",
-                            whiteSpace: "pre-wrap",
-                          }}
-                        >
-                          {lessonPlan.additional_info.academic_integrity}
-                        </td>
-                      </tr>
-                    )}
-                    {lessonPlan.additional_info.attendance_policy && (
-                      <tr>
-                        <td
-                          className="border border-black p-3 font-bold bg-gray-50 align-top"
-                          style={{ width: "250px", minWidth: "250px" }}
-                        >
-                          Attendance Policy:
-                        </td>
-                        <td
-                          className="border border-black p-3 align-top"
-                          style={{
-                            wordBreak: "break-word",
-                            whiteSpace: "pre-wrap",
-                          }}
-                        >
-                          {lessonPlan.additional_info.attendance_policy}
-                        </td>
-                      </tr>
-                    )}
-                    {lessonPlan.additional_info.cie_guidelines && (
-                      <tr>
-                        <td
-                          className="border border-black p-3 font-bold bg-gray-50 align-top"
-                          style={{ width: "250px", minWidth: "250px" }}
-                        >
-                          CIE Guidelines:
-                        </td>
-                        <td
-                          className="border border-black p-3 align-top"
-                          style={{
-                            wordBreak: "break-word",
-                            whiteSpace: "pre-wrap",
-                          }}
-                        >
-                          {lessonPlan.additional_info.cie_guidelines}
-                        </td>
-                      </tr>
-                    )}
-                    {lessonPlan.additional_info.classroom_conduct && (
-                      <tr>
-                        <td
-                          className="border border-black p-3 font-bold bg-gray-50 align-top"
-                          style={{ width: "250px", minWidth: "250px" }}
-                        >
-                          Classroom Conduct:
-                        </td>
-                        <td
-                          className="border border-black p-3 align-top"
-                          style={{
-                            wordBreak: "break-word",
-                            whiteSpace: "pre-wrap",
-                          }}
-                        >
-                          {lessonPlan.additional_info.classroom_conduct}
-                        </td>
-                      </tr>
-                    )}
-                    {lessonPlan.additional_info.communication_channels && (
-                      <tr>
-                        <td
-                          className="border border-black p-3 font-bold bg-gray-50 align-top"
-                          style={{ width: "250px", minWidth: "250px" }}
-                        >
-                          Communication Channels:
-                        </td>
-                        <td
-                          className="border border-black p-3 align-top"
-                          style={{
-                            wordBreak: "break-word",
-                            whiteSpace: "pre-wrap",
-                          }}
-                        >
-                          {lessonPlan.additional_info.communication_channels}
-                        </td>
-                      </tr>
-                    )}
-                    {/* Add any other additional info fields here */}
-                  </tbody>
-                </table>
-              </div>
-            )}
+          {lessonPlan.additional_info && Object.keys(lessonPlan.additional_info).length > 0 && (
+            <div className="mb-6">
+              <table className="w-full border-collapse">
+                <tbody>
+                  {lessonPlan.additional_info.academic_integrity && (
+                    <tr>
+                      <td
+                        className="border border-black p-3 font-bold bg-gray-50 align-top"
+                        style={{ width: "250px", minWidth: "250px" }}
+                      >
+                        Academic Integrity:
+                      </td>
+                      <td
+                        className="border border-black p-3 align-top"
+                        style={{
+                          wordBreak: "break-word",
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        {lessonPlan.additional_info.academic_integrity}
+                      </td>
+                    </tr>
+                  )}
+                  {lessonPlan.additional_info.attendance_policy && (
+                    <tr>
+                      <td
+                        className="border border-black p-3 font-bold bg-gray-50 align-top"
+                        style={{ width: "250px", minWidth: "250px" }}
+                      >
+                        Attendance Policy:
+                      </td>
+                      <td
+                        className="border border-black p-3 align-top"
+                        style={{
+                          wordBreak: "break-word",
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        {lessonPlan.additional_info.attendance_policy}
+                      </td>
+                    </tr>
+                  )}
+                  {lessonPlan.additional_info.cie_guidelines && (
+                    <tr>
+                      <td
+                        className="border border-black p-3 font-bold bg-gray-50 align-top"
+                        style={{ width: "250px", minWidth: "250px" }}
+                      >
+                        CIE Guidelines:
+                      </td>
+                      <td
+                        className="border border-black p-3 align-top"
+                        style={{
+                          wordBreak: "break-word",
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        {lessonPlan.additional_info.cie_guidelines}
+                      </td>
+                    </tr>
+                  )}
+                  {lessonPlan.additional_info.classroom_conduct && (
+                    <tr>
+                      <td
+                        className="border border-black p-3 font-bold bg-gray-50 align-top"
+                        style={{ width: "250px", minWidth: "250px" }}
+                      >
+                        Classroom Conduct:
+                      </td>
+                      <td
+                        className="border border-black p-3 align-top"
+                        style={{
+                          wordBreak: "break-word",
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        {lessonPlan.additional_info.classroom_conduct}
+                      </td>
+                    </tr>
+                  )}
+                  {lessonPlan.additional_info.communication_channels && (
+                    <tr>
+                      <td
+                        className="border border-black p-3 font-bold bg-gray-50 align-top"
+                        style={{ width: "250px", minWidth: "250px" }}
+                      >
+                        Communication Channels:
+                      </td>
+                      <td
+                        className="border border-black p-3 align-top"
+                        style={{
+                          wordBreak: "break-word",
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        {lessonPlan.additional_info.communication_channels}
+                      </td>
+                    </tr>
+                  )}
+                  {/* Add any other additional info fields here */}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
+
+        {/* 6. SHARED FACULTY DETAILS - Only show for shared subjects */}
+        {lessonPlan.is_sharing && lessonPlan.sharing_faculty && lessonPlan.sharing_faculty.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-lg font-bold mb-2">6. SHARED FACULTY DETAILS</h2>
+            <div className="mb-6">
+              <table className="w-full border-collapse">
+                <tbody>
+                  
+                  <tr>
+                    <td
+                      className="border border-black p-3 font-bold bg-gray-50 align-top"
+                      style={{ width: "250px", minWidth: "250px" }}
+                    >
+                      Shared Faculty Members:
+                    </td>
+                    <td
+                      className="border border-black p-3 align-top"
+                      style={{
+                        wordBreak: "break-word",
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {lessonPlan.sharing_faculty.map((faculty: any, index: number) => (
+                        <div key={faculty.id}>
+                          {index + 1}. {faculty.name} ({faculty.email})
+                        </div>
+                      ))}
+                    </td>
+                  </tr>
+                  
+                  
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* DIGITAL SIGNATURE */}
         <p className="text-right text-sm mt-10">
-          {/* {lessonPlan.faculty.name} | {formatDate(new Date().toISOString())} */}
-          This LPD was downloaded on {formatDate(new Date().toISOString())} by {" "}
-          {lessonPlan.faculty.name}
+          This LPD was downloaded on {formatDate(new Date().toISOString())} by {lessonPlan.faculty.name}
         </p>
       </div>
     </>
-  );
+  )
 }
