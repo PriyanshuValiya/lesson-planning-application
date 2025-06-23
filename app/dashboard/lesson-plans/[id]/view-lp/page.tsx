@@ -301,7 +301,7 @@ function ViewLessonPlanPage() {
                     {section.number}. {section.name}
                   </h2>
 
-                  {lessonPlan.form.unitPlanning.units.map(
+                  {(lessonPlan.form.unitPlanning?.units || []).map(
                     (unit: any, index: number) => (
                       <div
                         key={unit.id}
