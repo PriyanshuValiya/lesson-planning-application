@@ -20,10 +20,9 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
   const [selectedAcademicYear, setSelectedAcademicYear] = useState("2025-2026");
   const [selectedTerm, setSelectedTerm] = useState("Odd");
   const [selectedLoadDetail, setSelectedLoadDetail] = useState("Time Table");
-
   // Debug: Log the received data
-  // console.log('ViewTimeTable received data:', timeTableData);
-  // console.log('Data length:', timeTableData?.length || 0);
+  console.log('ViewTimeTable received data:', timeTableData);
+  console.log('Data length:', timeTableData?.length || 0);
 
   const days = [
     "Monday",
@@ -49,88 +48,74 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
     { id: "6", time: "14:10 PM-14:19 PM", isBreak: true, breakType: "Break" },
     { id: "7", time: "14:20 PM-15:19 PM", isBreak: false },
     { id: "8", time: "15:20 PM-16:20 PM", isBreak: false },
-  ];  const getTimeSlotFromDateTime = (dateTimeString: string): string => {
-    if (!dateTimeString) return "";
+  ];  const getTimeSlotFromDateTime = (timeString: string): string => {
+    if (!timeString) return "";
     
-    // console.log('Processing datetime:', dateTimeString);
+    console.log('Processing time:', timeString);
     
-    const date = new Date(dateTimeString);
-    const utcHours = date.getUTCHours();
-    const utcMinutes = date.getUTCMinutes();
-    const localHours = date.getHours();
-    const localMinutes = date.getMinutes();
+    // Handle the new format: "03:40:00+00" (time only with timezone)
+    // Parse the time string to get hours and minutes
+    const timeMatch = timeString.match(/(\d{2}):(\d{2}):(\d{2})/);
+    if (!timeMatch) {
+      console.log('Invalid time format:', timeString);
+      return "";
+    }
     
-    // console.log('Time analysis:', { 
-    //   dateTimeString,
-    //   utcHours, 
-    //   utcMinutes, 
-    //   localHours, 
-    //   localMinutes,
-    //   timeString: `${localHours}:${localMinutes.toString().padStart(2, '0')}`
-    // });
+    const hours = parseInt(timeMatch[1]);
+    const minutes = parseInt(timeMatch[2]);
+    
+    console.log('Parsed time:', { hours, minutes, originalTime: timeString });
 
-    // Create a more flexible mapping based on your actual data
-    // Let's map based on the UTC times from your data and see which time slots they should go to
+    // Map the actual times from your data to time slots
+    // Based on your data:
+    // 03:40:00+00 -> 09:10 AM-10:09 AM
+    // 04:30:00+00 -> 09:10 AM-10:09 AM  
+    // 05:40:00+00 -> 11:10 AM-12:09 PM
+    // 06:30:00+00 -> 12:10 PM-13:09 PM
+    // 07:40:00+00 -> 13:10 PM-14:09 PM
     
-    // Monday data: 04:30 UTC and 06:30 UTC  
-    // Tuesday data: 03:40 UTC and 07:40 UTC
+    // Create mappings based on the actual time data
+    if (hours === 3 && minutes === 40) return "09:10 AM-10:09 AM"; // Tuesday Lab
+    if (hours === 4 && minutes === 30) return "09:10 AM-10:09 AM"; // Monday Lecture
+    if (hours === 5 && minutes === 40) return "11:10 AM-12:09 PM"; // Tuesday Lab end -> maps to after lunch
+    if (hours === 6 && minutes === 30) return "12:10 PM-13:09 PM"; // Monday Lab
+    if (hours === 7 && minutes === 40) return "13:10 PM-14:09 PM"; // Tuesday Lecture
+    if (hours === 8 && minutes === 30) return "14:20 PM-15:19 PM"; // Monday Lab end
     
-    // Map UTC times to time slots
-    if (utcHours === 4 && utcMinutes === 30) return "09:10 AM-10:09 AM"; // Monday entry 1
-    if (utcHours === 6 && utcMinutes === 30) return "12:10 PM-13:09 PM"; // Monday entry 2
-    if (utcHours === 3 && utcMinutes === 40) return "09:10 AM-10:09 AM"; // Tuesday entry 1
-    if (utcHours === 7 && utcMinutes === 40) return "13:10 PM-14:09 PM"; // Tuesday entry 2
-    
-    // Fallback to local time matching
-    if (localHours === 9) return "09:10 AM-10:09 AM";
-    if (localHours === 10) return "10:10 AM-11:09 AM";
-    if (localHours === 11) return "11:10 AM-12:09 PM";
-    if (localHours === 12) return "12:10 PM-13:09 PM";
-    if (localHours === 13) return "13:10 PM-14:09 PM";
-    if (localHours === 14) return "14:20 PM-15:19 PM";
-    if (localHours === 15) return "15:20 PM-16:20 PM";
+    // Add some flexibility for similar times
+    if (hours >= 3 && hours <= 4) return "09:10 AM-10:09 AM";
+    if (hours === 5) return "11:10 AM-12:09 PM";
+    if (hours === 6) return "12:10 PM-13:09 PM";
+    if (hours === 7) return "13:10 PM-14:09 PM";
+    if (hours >= 8 && hours <= 9) return "14:20 PM-15:19 PM";
+    if (hours >= 10) return "15:20 PM-16:20 PM";
 
-    console.log('No time slot match found for UTC:', { utcHours, utcMinutes }, 'Local:', { localHours, localMinutes });
+    console.log('No time slot match found for:', { hours, minutes, timeString });
     return "";
-  };  const getSubjectsForSlot = (day: string, timeSlot: string): any[] => {
+  };const getSubjectsForSlot = (day: string, timeSlot: string): any[] => {
     if (!timeTableData || timeTableData.length === 0) {
       console.log('No timetable data available');
       return [];
     }
     
-    // console.log(`\n=== Getting subjects for ${day} ${timeSlot} ===`);
-    
-    const subjects = timeTableData.filter((entry) => {
+    console.log(`\n=== Getting subjects for ${day} ${timeSlot} ===`);
+      const subjects = timeTableData.filter((entry) => {
       const entryDay = entry.day?.toLowerCase();
       const targetDay = day.toLowerCase();
-      const entryTimeSlot = getTimeSlotFromDateTime(entry.from);
+      const entryTimeSlot = getTimeSlotFromDateTime(entry.from || "");
 
       const match = entryDay === targetDay && entryTimeSlot === timeSlot;
-      
-      console.log('Entry analysis:', {
-        id: entry.id,
-        originalDay: entry.day,
-        entryDay,
-        targetDay,
-        from: entry.from,
-        entryTimeSlot,
-        targetTimeSlot: timeSlot,
-        dayMatch: entryDay === targetDay,
-        timeMatch: entryTimeSlot === timeSlot,
-        overallMatch: match
-      });
 
       return match;
     });
     
-    // console.log(`Found ${subjects.length} subjects for ${day} ${timeSlot}:`, subjects.map(s => ({ id: (s as any).id, subject: (s as any).subject_name || (s as any).subject, day: (s as any).day })));
+    console.log(`Found ${subjects.length} subjects for ${day} ${timeSlot}:`, subjects.map(s => ({ id: (s as any).id, subject: (s as any).subject_name || (s as any).subject, day: (s as any).day })));
     
     // Limit to maximum 2 subjects per time slot
     const limitedSubjects = subjects.slice(0, 2);
 
     return limitedSubjects;
   };
-
   const isSlotOccupiedByPreviousLab = (
     day: string,
     timeSlot: string
@@ -144,9 +129,18 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
     if (previousSlot.isBreak) return false;
 
     const previousSubjects = getSubjectsForSlot(day, previousSlot.time);
-    return previousSubjects.some(
-      (subject) => subject.type.toLowerCase() === "lab"
-    );
+    
+    // Check if any previous lab extends into this time slot
+    return previousSubjects.some((subject) => {
+      if (subject.type?.toLowerCase() !== "lab") return false;
+      
+      // Get the lab's end time and see if it extends into the current slot
+      const labEndTime = subject.to;
+      if (!labEndTime) return false;
+      
+      const labEndSlot = getTimeSlotFromDateTime(labEndTime);
+      return labEndSlot === timeSlot;
+    });
   };
   const getSubjectColor = (type: string) => {
     switch (type.toLowerCase()) {
@@ -234,89 +228,9 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
     );
   };
   return (
-    <div className="w-full bg-white">
-      {/* Debug Info */}
-      {/* <div className="p-4 bg-yellow-50 border border-yellow-200 mb-4">
-        <p className="text-sm">
-          <strong>Debug:</strong> Received {timeTableData?.length || 0} timetable entries
-        </p>
-        {timeTableData && timeTableData.length > 0 && (
-          <details className="mt-2">
-            <summary className="cursor-pointer text-sm text-blue-600">Show raw data</summary>
-            <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-x-auto">
-              {JSON.stringify(timeTableData[0], null, 2)}
-            </pre>
-          </details>
-        )}
-      </div> */}
+    <div className="w-full bg-white">      {/* Debug Info */}
+      
 
-      {/* Header Controls */}
-      {/* <div className="flex flex-wrap items-center gap-6 mb-6 p-4 bg-gray-50 border-b">
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">
-            Academic Year:
-          </label>
-          <Select
-            value={selectedAcademicYear}
-            onValueChange={setSelectedAcademicYear}
-          >
-            <SelectTrigger className="w-32 h-8 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {academicYears.map((year) => (
-                <SelectItem key={year} value={year}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">Term:</label>
-          <div className="flex gap-1">
-            {terms.map((term) => (
-              <Button
-                key={term}
-                variant={selectedTerm === term ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedTerm(term)}
-                className={`px-4 py-1 text-xs h-8 rounded-full ${
-                  selectedTerm === term
-                    ? "bg-blue-600 text-white hover:bg-blue-700"
-                    : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {term}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">
-            Load Details:
-          </label>
-          <div className="flex gap-1">
-            {loadDetails.map((detail) => (
-              <Button
-                key={detail}
-                variant={selectedLoadDetail === detail ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedLoadDetail(detail)}
-                className={`px-4 py-1 text-xs h-8 rounded-full ${
-                  selectedLoadDetail === detail
-                    ? "bg-blue-600 text-white hover:bg-blue-700"
-                    : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {detail}
-              </Button>
-            ))}
-          </div>
-        </div>
-      </div>{" "} */}
       {/* Timetable */}
       <div className="overflow-x-auto p-4">
         <table className="w-full border-collapse border-2 border-black bg-white table-fixed">
@@ -348,8 +262,7 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
                   <td colSpan={6} className="border-2 border-black p-0">
                     {renderBreakCell(slot.breakType || "Break")}
                   </td>
-                ) : (
-                  days.map((day) => {
+                ) : (                  days.map((day) => {
                     const subjects = getSubjectsForSlot(day, slot.time);
                     const isOccupiedByPreviousLab = isSlotOccupiedByPreviousLab(
                       day,
@@ -362,7 +275,7 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
                     }
 
                     const hasLab = subjects.some(
-                      (subject) => subject.type.toLowerCase() === "lab"
+                      (subject) => subject.type?.toLowerCase() === "lab"
                     );
                     const rowSpan = hasLab ? 2 : 1;
 
@@ -375,7 +288,7 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
                         {renderMultipleSubjects(subjects, hasLab)}
                       </td>
                     );
-                  })
+                  }).filter(Boolean)
                 )}
               </tr>
             ))}
