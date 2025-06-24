@@ -1,19 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import {
-  academicYears,
-  terms,
-  loadDetails,
-} from "@/services/timeTableDummy";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Timetable } from "@/types/types";
 
 const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
@@ -64,7 +51,7 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
     const hours = parseInt(timeMatch[1]);
     const minutes = parseInt(timeMatch[2]);
     
-    console.log('Parsed time:', { hours, minutes, originalTime: timeString });
+    // console.log('Parsed time:', { hours, minutes, originalTime: timeString });
 
     // Map the actual times from your data to time slots
     // Based on your data:
@@ -90,7 +77,7 @@ const ViewTimeTable = ({timeTableData}: {timeTableData: Timetable[]}) => {
     if (hours >= 8 && hours <= 9) return "14:20 PM-15:19 PM";
     if (hours >= 10) return "15:20 PM-16:20 PM";
 
-    console.log('No time slot match found for:', { hours, minutes, timeString });
+    // console.log('No time slot match found for:', { hours, minutes, timeString });
     return "";
   };const getSubjectsForSlot = (day: string, timeSlot: string): any[] => {
     if (!timeTableData || timeTableData.length === 0) {
