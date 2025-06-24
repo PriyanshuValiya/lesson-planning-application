@@ -12,7 +12,7 @@ import { fetchViewLP } from "@/app/dashboard/actions/fetchViewLP";
 
 const getAcademicYear = (dateString: string) => {
   if (!dateString) return "N/A";
-  const parts = dateString.split("-"); // Assuming DD-MM-YYYY
+  const parts = dateString.split("-");
   if (parts.length === 3) {
     const year = Number.parseInt(parts[2], 10);
     return `${year}-${(year % 100) + 1}`;
@@ -689,26 +689,35 @@ function ViewLessonPlanPage() {
                       <table className="w-full border-collapse table-fixed">
                         <thead>
                           <tr>
-                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[5%]">
+                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[6%]">
                               No.
                             </th>
-                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[38%]">
-                              Units Covered
+                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[12%]">
+                              Unit Covered
                             </th>
-                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[11%]">
+                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[10%]">
                               Date
-                            </th>
-                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[11%]">
-                              Duration
                             </th>
                             <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[6%]">
                               Marks
                             </th>
-                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[34%]">
-                              Evaluation Method
+                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[8%]">
+                              Duration (mins)
                             </th>
-                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[10%]">
-                              COs
+                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[12%]">
+                              Evaluation Type
+                            </th>
+                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[12%]">
+                              Bloom's Taxonomy
+                            </th>
+                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[14%]">
+                              Evaluation Pedagogy
+                            </th>
+                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[12%]">
+                              CO/PSO/PEO
+                            </th>
+                            <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[8%]">
+                              Skills
                             </th>
                           </tr>
                         </thead>
@@ -720,16 +729,16 @@ function ViewLessonPlanPage() {
                                   {index + 1}
                                 </td>
 
-                                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
+                                <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
                                   {(() => {
-                                    // Handle units_covered mapping
+                                    // Handle units_covered mapping - show only unit numbers
                                     if (typeof cie.units_covered === "string") {
                                       // Check if it's empty or just whitespace
                                       if (
                                         !cie.units_covered ||
                                         cie.units_covered.trim() === ""
                                       ) {
-                                        return "Units not included";
+                                        return "-";
                                       }
 
                                       // Check if it's a comma-separated list of unit IDs
@@ -737,32 +746,28 @@ function ViewLessonPlanPage() {
                                         .split(",")
                                         .map((id) => id.trim());
 
-                                      // If it looks like UUIDs, try to map them to unit names
+                                      // If it looks like UUIDs, try to map them to unit numbers
                                       if (
                                         unitIds.some(
                                           (id) =>
                                             id.length > 20 && id.includes("-")
                                         )
                                       ) {
-                                        const mappedUnits = unitIds.map(
-                                          (unitId) => {
-                                            const unit =
-                                              lessonPlan.form.units?.find(
+                                        const mappedUnits = unitIds
+                                          .map((unitId) => {
+                                            const unitIndex =
+                                              lessonPlan.form.units?.findIndex(
                                                 (u: any) => u.id === unitId
                                               );
-                                            if (unit) {
-                                              const unitIndex =
-                                                lessonPlan.form.units.findIndex(
-                                                  (u: any) => u.id === unitId
-                                                );
-                                              return `Unit ${unitIndex + 1}: ${
-                                                unit.unit_name
-                                              }`;
-                                            }
-                                            return unitId; // Fallback to original ID if not found
-                                          }
-                                        );
-                                        return mappedUnits.join(", ");
+                                            return unitIndex !== -1
+                                              ? unitIndex + 1
+                                              : null;
+                                          })
+                                          .filter((num) => num !== null);
+
+                                        return mappedUnits.length > 0
+                                          ? mappedUnits.join(", ")
+                                          : "-";
                                       }
 
                                       // If it's already readable text, return as is
@@ -773,65 +778,124 @@ function ViewLessonPlanPage() {
                                     if (Array.isArray(cie.units_covered)) {
                                       // Check if array is empty
                                       if (cie.units_covered.length === 0) {
-                                        return "Units not included";
+                                        return "-";
                                       }
 
-                                      return cie.units_covered
+                                      const unitNumbers = cie.units_covered
                                         .map((unitId) => {
-                                          const unit =
-                                            lessonPlan.form.units?.find(
+                                          const unitIndex =
+                                            lessonPlan.form.units?.findIndex(
                                               (u: any) => u.id === unitId
                                             );
-                                          if (unit) {
-                                            const unitIndex =
-                                              lessonPlan.form.units.findIndex(
-                                                (u: any) => u.id === unitId
-                                              );
-                                            return `Unit ${unitIndex + 1}: ${
-                                              unit.unit_name
-                                            }`;
-                                          }
-                                          return unitId;
+                                          return unitIndex !== -1
+                                            ? unitIndex + 1
+                                            : null;
                                         })
-                                        .join(", ");
+                                        .filter((num) => num !== null);
+
+                                      return unitNumbers.length > 0
+                                        ? unitNumbers.join(", ")
+                                        : "-";
                                     }
 
                                     // If units_covered is null, undefined, or empty
-                                    return "Units not included";
+                                    return "-";
                                   })()}
                                 </td>
+
                                 <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                                  {cie.date}
+                                  {(() => {
+                                    // Convert date from DD-MM-YYYY to DD/MM/YYYY format
+                                    if (cie.date) {
+                                      return cie.date.replace(/-/g, "/");
+                                    }
+                                    return "-";
+                                  })()}
                                 </td>
+
                                 <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                                  {cie.duration >= 60
-                                    ? `${
-                                        cie.duration % 60 === 0
-                                          ? (cie.duration / 60).toFixed(0)
-                                          : (cie.duration / 60).toFixed(2)
-                                      } hours`
-                                    : `${cie.duration} mins`}
+                                  {cie.marks || "-"}
                                 </td>
+
                                 <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                                  {cie.marks}
+                                  {cie.duration || "-"}
                                 </td>
-                                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                                  {cie.evaluation_pedagogy}
+
+                                <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
+                                  {cie.type || "-"}
                                 </td>
-                                <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                                  {cie.co_mapping
-                                    .map((coId: any) => {
-                                      const outcome =
-                                        lessonPlan.form.generalDetails.courseOutcomes.find(
-                                          (co: any) => co.id === coId
-                                        );
-                                      return outcome ? outcome.text : coId;
-                                    })
-                                    .join(", ")}
+
+                                <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
+                                  {cie.blooms_taxonomy &&
+                                  cie.blooms_taxonomy.length > 0
+                                    ? cie.blooms_taxonomy.join(", ")
+                                    : "-"}
+                                </td>
+
+                                <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
+                                  {cie.evaluation_pedagogy || "-"}
+                                </td>
+
+                                <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
+                                  {(() => {
+                                    let mappings = [];
+
+                                    // Add CO mappings
+                                    if (
+                                      cie.co_mapping &&
+                                      cie.co_mapping.length > 0
+                                    ) {
+                                      const coNumbers = cie.co_mapping.map(
+                                        (coId: any, idx: number) =>
+                                          `CO${idx + 1}`
+                                      );
+                                      mappings.push(...coNumbers);
+                                    }
+
+                                    // Add PSO mappings
+                                    if (
+                                      cie.pso_mapping &&
+                                      cie.pso_mapping.length > 0
+                                    ) {
+                                      const psoNumbers = cie.pso_mapping.map(
+                                        (pso: any) => pso.toUpperCase()
+                                      );
+                                      mappings.push(...psoNumbers);
+                                    }
+
+                                    // Add PEO mappings
+                                    if (
+                                      cie.peo_mapping &&
+                                      cie.peo_mapping.length > 0
+                                    ) {
+                                      const peoNumbers = cie.peo_mapping.map(
+                                        (peo: any) => peo.toUpperCase()
+                                      );
+                                      mappings.push(...peoNumbers);
+                                    }
+
+                                    return mappings.length > 0
+                                      ? mappings.join(", ")
+                                      : "-";
+                                  })()}
+                                </td>
+
+                                <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
+                                  {cie.skill_mapping &&
+                                  cie.skill_mapping.length > 0
+                                    ? cie.skill_mapping
+                                        .map((skill: any) =>
+                                          typeof skill === "object"
+                                            ? skill.skill
+                                            : skill
+                                        )
+                                        .join(", ")
+                                    : "-"}
                                 </td>
                               </tr>
                             )
                           )}
+
                           {/* Total Row */}
                           <tr className="font-bold">
                             <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
@@ -840,28 +904,33 @@ function ViewLessonPlanPage() {
                             </td>
                             <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
                             <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
+                              {lessonPlan.form.cies.reduce(
+                                (sum: number, cie: any) =>
+                                  sum + (cie.marks || 0),
+                                0
+                              )}
+                            </td>
+                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
                               {(() => {
                                 const totalDuration =
                                   lessonPlan.form.cies.reduce(
                                     (sum: number, cie: any) =>
-                                      sum + cie.duration,
+                                      sum + (cie.duration || 0),
                                     0
                                   );
-                                return totalDuration >= 60
-                                  ? `${
-                                      totalDuration % 60 === 0
-                                        ? (totalDuration / 60).toFixed(0)
-                                        : (totalDuration / 60).toFixed(2)
-                                    } hours`
-                                  : `${totalDuration} mins`;
+                                if (totalDuration >= 60) {
+                                  const hours = Math.floor(totalDuration / 60);
+                                  const minutes = totalDuration % 60;
+                                  return minutes > 0
+                                    ? `${hours}. ${minutes} hour`
+                                    : `${hours} hours`;
+                                }
+                                return `${totalDuration} minutes`;
                               })()}
                             </td>
-                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                              {lessonPlan.form.cies.reduce(
-                                (sum: number, cie: any) => sum + cie.marks,
-                                0
-                              )}
-                            </td>
+                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
+                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
+                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
                             <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
                             <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
                           </tr>
