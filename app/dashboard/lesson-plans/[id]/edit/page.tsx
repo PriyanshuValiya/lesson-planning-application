@@ -536,9 +536,9 @@ export default function EditLessonPlanPage() {
           course_outcomes: formData.generalDetails?.courseOutcomes || prevLessonPlan.course_outcomes,
           remarks: formData.generalDetails?.remarks || prevLessonPlan.remarks,
 
-                // Copy Unit Planning
-                unitPlanning: formData.unitPlanning || prevLessonPlan.unitPlanning,
-                units: formData.unitPlanning?.units || prevLessonPlan.units,
+          // Copy Unit Planning
+          unitPlanning: formData.unitPlanning || prevLessonPlan.unitPlanning,
+          units: formData.unitPlanning?.units || prevLessonPlan.units,
 
           // Copy Practical Planning
           practicalPlanning: formData.practicalPlanning || prevLessonPlan.practicalPlanning,

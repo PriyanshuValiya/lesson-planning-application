@@ -312,23 +312,23 @@ export default function PrintLessonPlanPage() {
 
         {/* 1. GENERAL DETAILS */}
         <div className="mb-6">
-          <h2 className="text-xl font-bold mb-2">1. GENERAL DETAILS</h2>
+          <h2 className="text-lg font-bold mb-2">1. GENERAL DETAILS</h2>
           <table className="w-full border-collapse table-fixed">
             <tbody>
               <tr>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                   Faculty Name:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                   {lessonPlan.users.name}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[10%] text-xl">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[10%]">
                   Faculty Email:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 w-[25%]">
                   {lessonPlan.users.email}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[11%] text-xl">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[11%]">
                   Department:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 w-[25%]">
@@ -337,19 +337,19 @@ export default function PrintLessonPlanPage() {
                 </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                   Subject Code:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                   {lessonPlan.subjects.code}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[10%] text-xl">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[10%]">
                   Subject Name:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                   {lessonPlan.subjects.name}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                   Term Duration:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
@@ -358,7 +358,7 @@ export default function PrintLessonPlanPage() {
                 </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                   Semester:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
@@ -374,13 +374,13 @@ export default function PrintLessonPlanPage() {
                   </sup>{" "}
                   semester
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                   Division:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                   {lessonPlan.form.generalDetails.division}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                   Academic Year:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
@@ -390,19 +390,19 @@ export default function PrintLessonPlanPage() {
                 </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
-                  Lecture Hours:
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
+                  Lecture Hours/week:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                   {lessonPlan.form.generalDetails.lecture_hours}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
-                  Lab Hours:
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
+                  Lab Hours/week:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                   {lessonPlan.form.generalDetails.lab_hours}
                 </td>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                   Credits:
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
@@ -410,7 +410,7 @@ export default function PrintLessonPlanPage() {
                 </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                   Course Prerequisites:
                 </td>
                 <td
@@ -421,7 +421,7 @@ export default function PrintLessonPlanPage() {
                 </td>
               </tr>
               <tr>
-                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 text-xl">
+                <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                   Course Prerequisites Materials:
                 </td>
                 <td

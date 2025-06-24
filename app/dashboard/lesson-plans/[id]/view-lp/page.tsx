@@ -246,13 +246,13 @@ function ViewLessonPlanPage() {
                 </tr>
                 <tr>
                   <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
-                    Lecture Hours:
+                    Lecture Hours/week:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                     {lessonPlan.form.generalDetails.lecture_hours}
                   </td>
                   <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
-                    Lab Hours:
+                    Lab Hour/week
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                     {lessonPlan.form.generalDetails.lab_hours}
@@ -292,9 +292,14 @@ function ViewLessonPlanPage() {
             </table>
           </div>
 
-          {/* 2. UNIT DETAILS */}
-          <div className="mb-6 units-section">
-            <h2 className="text-lg font-bold mb-2">2. UNIT DETAILS</h2>
+          {/* Render sections dynamically */}
+          {sections.map((section) => {
+            if (section.type === "units") {
+              return (
+                <div key="units" className="mb-6 units-section">
+                  <h2 className="text-lg font-bold mb-2">
+                    {section.number}. {section.name}
+                  </h2>
 
                   {(lessonPlan.form.unitPlanning?.units || []).map(
                     (unit: any, index: number) => (
