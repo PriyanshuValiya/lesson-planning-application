@@ -1,3 +1,5 @@
+
+
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
 
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
     console.log("=== API DEBUG ===")
     console.log("Checking faculty sharing for subject ID:", subjectId)
 
-    // Get all faculty assigned to this subject from user_role table
+    // Get all faculty assigned to this subject from user_role table (with division)
     const { data: userRoles, error: userRoleError } = await supabase
       .from("user_role")
       .select(`
@@ -66,9 +68,54 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Check if multiple faculty are assigned
-    const isSharing = userRoles.length > 1
-    console.log("Is sharing:", isSharing, "Faculty count:", userRoles.length)
+    // 🔧 NEW: Check division sharing logic
+    console.log("=== DIVISION ANALYSIS ===")
+    userRoles.forEach((ur: any, index: number) => {
+      console.log(`Faculty ${index + 1}: ${ur.users?.name} - Division: "${ur.division}"`)
+    })
+
+    // Group faculty by division
+    const facultyByDivision = new Map()
+    userRoles.forEach((ur: any) => {
+      if (ur.division) {
+        const division = ur.division
+        if (!facultyByDivision.has(division)) {
+          facultyByDivision.set(division, [])
+        }
+        facultyByDivision.get(division).push(ur)
+      }
+    })
+
+    console.log("Faculty grouped by division:", Object.fromEntries(facultyByDivision))
+
+    // Check for TRUE sharing (multiple faculty for SAME division)
+    let isSharing = false
+    let sharingDivision = null
+    let sharingFaculty = []
+
+    for (const [division, facultyList] of facultyByDivision) {
+      console.log(`Division "${division}": ${facultyList.length} faculty`)
+
+      if (facultyList.length > 1) {
+        console.log(`✅ SHARING FOUND in division: ${division}`)
+        console.log(`Faculty: ${facultyList.map((f: any) => f.users?.name).join(", ")}`)
+
+        isSharing = true
+        sharingDivision = division
+        sharingFaculty = facultyList
+        break // Found sharing
+      }
+    }
+
+    // If no division-based sharing, fall back to simple count check
+    if (!isSharing && userRoles.length > 1) {
+      console.log("⚠️ Multiple faculty but different divisions - checking if we should still consider as sharing")
+      // You can decide: should different divisions count as sharing?
+      // For now, let's say NO - only same division = sharing
+    }
+
+    console.log("Final Is sharing:", isSharing)
+    console.log("=== END DIVISION ANALYSIS ===")
 
     // Extract faculty information
     const allFaculty = userRoles.map((ur: any) => ({
@@ -76,11 +123,25 @@ export async function GET(request: NextRequest) {
       name: ur.users?.name,
       email: ur.users?.email,
       role: ur.role_name || "faculty",
+      division: ur.division, // 🔧 NEW: Include division info
     }))
 
-    // Find primary and secondary faculty (assuming first one is primary if no specific role)
-    const primaryFaculty = userRoles.find((ur: any) => ur.role_name === "primary")?.users || allFaculty[0]
-    const secondaryFaculty = userRoles.filter((ur: any) => ur.role_name !== "primary").map((ur: any) => ur.users)
+    // Find primary and secondary faculty
+    let primaryFaculty = null
+    let secondaryFaculty = []
+
+    if (isSharing && sharingFaculty.length > 0) {
+      // From sharing faculty only
+      const primaryRole = sharingFaculty.find((sf: any) => sf.role_name === "primary")
+      primaryFaculty = primaryRole?.users || sharingFaculty[0]?.users
+      secondaryFaculty = sharingFaculty
+        .filter((sf: any) => sf.users?.id !== primaryFaculty?.id)
+        .map((sf: any) => sf.users)
+    } else {
+      // No sharing - first faculty as primary
+      primaryFaculty = userRoles.find((ur: any) => ur.role_name === "primary")?.users || allFaculty[0]
+      secondaryFaculty = userRoles.filter((ur: any) => ur.role_name !== "primary").map((ur: any) => ur.users)
+    }
 
     console.log("All Faculty:", allFaculty)
     console.log("Primary Faculty:", primaryFaculty)
@@ -95,6 +156,9 @@ export async function GET(request: NextRequest) {
       primaryFaculty,
       secondaryFaculty,
       subjectInfo: userRoles[0]?.subjects,
+      sharingDivision, // 🔧 NEW: Which division is shared
+      totalFacultyCount: userRoles.length,
+      sharingFacultyCount: sharingFaculty.length,
     })
   } catch (error) {
     console.error("Unexpected error in faculty-sharing API:", error)
