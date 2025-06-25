@@ -823,6 +823,7 @@
 
 
 
+
 //@ts-nocheck
 //@ts-ignore
 "use client"
@@ -858,6 +859,7 @@ export default function EditLessonPlanPage() {
   const [pdfFile, setPdfFile] = useState<string | null>(null)
   const [isCopying, setIsCopying] = useState(false)
 
+  // Enhanced state management for same subject code logic
   const [commonSubject, setCommonSubject] = useState<any>([])
   const [isLoadingCommonSubjects, setIsLoadingCommonSubjects] = useState(false)
   const [commonSubjectsError, setCommonSubjectsError] = useState<string | null>(null)
@@ -918,7 +920,7 @@ export default function EditLessonPlanPage() {
     return unitId
   }
 
-  // Function to merge lesson plan with draft data
+  // Function to merge lesson plan with draft data (CIE + Practical)
   const mergeLessonPlanWithDrafts = async (baseLessonPlan: any) => {
     if (!baseLessonPlan || !userData?.id) return baseLessonPlan
 
@@ -930,6 +932,7 @@ export default function EditLessonPlanPage() {
     try {
       let draftLoadedCount = 0
 
+      // Check for CIE planning draft
       const cieDraftResult = await loadFormDraft(facultyId, subjectId, "cie_planning")
       if (cieDraftResult.success && cieDraftResult.data?.cies) {
         baseLessonPlan.cies = cieDraftResult.data.cies
@@ -937,6 +940,7 @@ export default function EditLessonPlanPage() {
         draftLoadedCount++
       }
 
+      // Check for Practical planning draft
       const practicalDraftResult = await loadFormDraft(facultyId, subjectId, "practical_planning")
       if (practicalDraftResult.success && practicalDraftResult.data?.practicals) {
         const draftPracticals = practicalDraftResult.data.practicals
@@ -985,7 +989,7 @@ export default function EditLessonPlanPage() {
     return baseLessonPlan
   }
 
-  // Load copy functionality
+  // 🔧 ENHANCED: Load copy functionality with BOTH same faculty AND other faculty
   const loadCopyLP = async (forceRetry = false) => {
     if (!lessonPlan?.subject?.code || !userData?.id) return
     if (isLoadingCommonSubjects && !forceRetry) return
@@ -994,6 +998,7 @@ export default function EditLessonPlanPage() {
       setIsLoadingCommonSubjects(true)
       setCommonSubjectsError(null)
 
+      // Step 1: Find all subjects with the same code across ALL departments
       const { data: allSubjectsWithCode, error: subjectsError } = await supabase
         .from("subjects")
         .select("id, code, name, department_id, departments(name)")
@@ -1009,18 +1014,14 @@ export default function EditLessonPlanPage() {
         return
       }
 
-      const otherSubjects = allSubjectsWithCode.filter((subject) => subject.id !== lessonPlan.subject.id)
-      const subjectIds = otherSubjects.map((subject) => subject.id)
+      // Step 2: Get ALL subject IDs (including current subject for same faculty check)
+      const allSubjectIds = allSubjectsWithCode.map((subject) => subject.id)
 
-      if (subjectIds.length === 0) {
-        setCommonSubject([])
-        return
-      }
-
+      // Step 3: Find ALL faculty assigned to any of these subjects
       const { data: facultyWithSubjects, error: facultyError } = await supabase
         .from("user_role")
         .select("*, users(*), subjects(*), departments(*)")
-        .in("subject_id", subjectIds)
+        .in("subject_id", allSubjectIds)
         .eq("role_name", "Faculty")
 
       if (facultyError) {
@@ -1029,17 +1030,41 @@ export default function EditLessonPlanPage() {
       }
 
       if (facultyWithSubjects && facultyWithSubjects.length > 0) {
-        const validFaculty = facultyWithSubjects.filter(
-          (faculty) => faculty.users && faculty.subjects && faculty.departments && faculty.users.id !== userData.id,
-        )
+        // 🔧 ENHANCED: Include BOTH same faculty (other departments) AND other faculty
+        const validFaculty = facultyWithSubjects.filter((faculty) => {
+          // Must have valid data
+          if (!faculty.users || !faculty.subjects || !faculty.departments) return false
+
+          // Exclude current lesson plan (same faculty + same subject)
+          if (faculty.users.id === userData.id && faculty.subjects.id === lessonPlan.subject.id) return false
+
+          // Include everything else (same faculty different subject, different faculty)
+          return true
+        })
 
         if (validFaculty.length > 0) {
           setCommonSubject(validFaculty)
+
           if (!forceRetry && retryCount === 0) {
+            // Count same faculty vs other faculty
+            const sameFacultyCount = validFaculty.filter((f) => f.users.id === userData.id).length
+            const otherFacultyCount = validFaculty.filter((f) => f.users.id !== userData.id).length
             const departments = [...new Set(validFaculty.map((f) => f.departments.name))]
-            toast.success(
-              `Found ${validFaculty.length} faculty with same subject code across ${departments.length} department(s): ${departments.join(", ")}`,
-            )
+
+            let message = `Found ${validFaculty.length} form(s) with same subject code`
+            if (sameFacultyCount > 0) {
+              message += ` (${sameFacultyCount} your own across departments`
+              if (otherFacultyCount > 0) {
+                message += `, ${otherFacultyCount} from other faculty)`
+              } else {
+                message += `)`
+              }
+            } else {
+              message += ` from ${otherFacultyCount} other faculty`
+            }
+            message += ` across ${departments.length} department(s): ${departments.join(", ")}`
+
+            toast.success(message)
           }
         } else {
           setCommonSubject([])
@@ -1057,7 +1082,7 @@ export default function EditLessonPlanPage() {
     }
   }
 
-  // Fetch lesson plan data
+  // Fetch actual lesson plan data
   useEffect(() => {
     const loadLessonPlan = async () => {
       try {
@@ -1083,6 +1108,7 @@ export default function EditLessonPlanPage() {
     }
   }, [params.id, userData?.id])
 
+  // Enhanced useEffect with better dependency management
   useEffect(() => {
     const timer = setTimeout(() => {
       if (lessonPlan?.subject?.code && userData?.id && !isLoading) {
@@ -1106,7 +1132,7 @@ export default function EditLessonPlanPage() {
     }, 1500)
   }
 
-  // Main copy functionality
+  // 🔧 ENHANCED: Combined copy functionality with maximum completion logic
   const handleCopy = async () => {
     try {
       setIsCopying(true)
@@ -1117,7 +1143,7 @@ export default function EditLessonPlanPage() {
 
       const allForms = []
 
-      // Check shared faculty first
+      // 1. Check shared faculty first (if it's a shared subject)
       if (isSharedSubject) {
         const currentSubjectId = lessonPlan.subject.id
         const currentFacultyId = lessonPlan.faculty.id
@@ -1162,7 +1188,7 @@ export default function EditLessonPlanPage() {
         }
       }
 
-      // Check same subject code faculty
+      // 2. 🔧 ENHANCED: Check ALL faculty with same subject code (same + other faculty)
       if (hasSameSubjectCode) {
         for (const subject of commonSubject) {
           const { data: formData, error: formError } = await supabase
@@ -1190,6 +1216,8 @@ export default function EditLessonPlanPage() {
             if (flags.additional) trueCount++
 
             if (form.form && trueCount > 0) {
+              const isSameFaculty = subject.users.id === userData.id
+
               allForms.push({
                 faculty: subject.users,
                 department: subject.departments,
@@ -1197,7 +1225,7 @@ export default function EditLessonPlanPage() {
                 formData: form.form,
                 trueCount: trueCount,
                 completionFlags: flags,
-                source: "same_subject_code",
+                source: isSameFaculty ? "same_faculty_cross_dept" : "other_faculty_same_code",
               })
             }
           }
@@ -1215,7 +1243,7 @@ export default function EditLessonPlanPage() {
         return
       }
 
-      // Sort by completion count (highest first)
+      // 🔧 SIMPLE SORTING: Only by completion count (highest first)
       allForms.sort((a, b) => b.trueCount - a.trueCount)
 
       // Select the form with maximum completion
@@ -1302,8 +1330,21 @@ export default function EditLessonPlanPage() {
         return updatedPlan
       })
 
-      // Show success message with section details
-      const sourceText = bestForm.source === "shared_faculty" ? "shared faculty" : "same subject code"
+      // Show enhanced success message with section details
+      let sourceText = ""
+      switch (bestForm.source) {
+        case "shared_faculty":
+          sourceText = "shared faculty"
+          break
+        case "same_faculty_cross_dept":
+          sourceText = "your own (cross-department)"
+          break
+        case "other_faculty_same_code":
+          sourceText = "same subject code"
+          break
+        default:
+          sourceText = "same subject code"
+      }
 
       // Create section abbreviations for completed sections
       const completedSections = []
@@ -1317,7 +1358,7 @@ export default function EditLessonPlanPage() {
 
       toast.success(
         `✅ Copied from ${bestForm.faculty.name} (${bestForm.department.name}) - ` +
-          `${bestForm.trueCount}/5 sections complete${sectionsText} [${sourceText}]!`,
+          `${bestForm.trueCount}/5 sections complete${sectionsText}`,
       )
     } catch (error) {
       toast.error("Failed to copy lesson plan data")
