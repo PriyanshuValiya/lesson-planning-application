@@ -1022,7 +1022,7 @@ function ViewLessonPlanPage() {
                             {showTotal && (
                               <tr className="font-bold">
                                 <td
-                                  className={`border border-black p-2 text-center ${colClasses.unit} w-[347px]`}
+                                  className={`border border-black p-2 text-right ${colClasses.unit} w-[347px]`}
                                   colSpan={3}
                                 >
                                   Total
