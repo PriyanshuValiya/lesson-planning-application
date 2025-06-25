@@ -820,263 +820,405 @@ export default function PrintLessonPlanPage() {
             );
           }
 
-          if (section.type === "cie") {
-            return (
-              <div key="cie" className="mb-6 cie-section">
-                <h2 className="text-lg font-bold mb-2">
-                  {section.number}. {section.name}
-                </h2>
-                {lessonPlan.form.cies && lessonPlan.form.cies.length > 0 && (
-                  <div className="mb-6">
+           if (section.type === "cie") {
+              // Define the order of evaluation types
+              const evaluationTypeOrder = [
+                "Course Prerequisites CIE",
+                "Lecture CIE",
+                "Practical CIE", // This will now include Internal Practical
+                "Mid-term/Internal Exam",
+              ];
+
+              // Group CIE by evaluation type in the specified order
+              const cieGroups: {
+                type: string;
+                cies: any[];
+                showTotal: boolean;
+              }[] = [
+                {
+                  type: "Course Prerequisites CIE",
+                  cies: [],
+                  showTotal: false,
+                },
+                { type: "Lecture CIE", cies: [], showTotal: true },
+                { type: "Practical CIE", cies: [], showTotal: true },
+                { type: "Mid-term/Internal Exam", cies: [], showTotal: false },
+              ];
+
+              // Populate the groups
+              lessonPlan.form.cies?.forEach((cie: any) => {
+                const type = cie.type || "Other";
+
+                // Combine Practical CIE and Internal Practical
+                if (type === "Internal Practical") {
+                  cieGroups[2].cies.push({ ...cie, originalType: type });
+                } else {
+                  const group = cieGroups.find((g) => g.type === type);
+                  if (group) {
+                    group.cies.push(cie);
+                  }
+                }
+              });
+
+              // Calculate overall totals
+              const totalMarks =
+                lessonPlan.form.cies?.reduce(
+                  (sum: number, cie: any) => sum + (cie.marks || 0),
+                  0
+                ) || 0;
+              const totalDuration =
+                lessonPlan.form.cies?.reduce(
+                  (sum: number, cie: any) => sum + (cie.duration || 0),
+                  0
+                ) || 0;
+
+              // Format duration for totals (x hours xx minutes)
+              const formatDurationTotal = (minutes: number) => {
+                if (minutes >= 60) {
+                  const hours = Math.floor(minutes / 60);
+                  const mins = minutes % 60;
+                  return (
+                    <div className="flex flex-col items-center">
+                      <span>
+                        {hours} hour{hours !== 1 ? "s" : ""}
+                      </span>
+                      {mins > 0 && <span>{mins} minutes</span>}
+                    </div>
+                  );
+                }
+                return `${minutes} minutes`;
+              };
+
+              // Format duration for individual rows (just minutes)
+              const formatDurationIndividual = (minutes: number) => {
+                return `${minutes || 0}`;
+              };
+
+              // Track global index for numbering across all tables
+              let globalIndex = 0;
+
+              // Column width classes for consistent sizing
+              const colClasses = {
+                no: "w-[5%] min-w-[30px]",
+                unit: "w-[12%] min-w-[100px]",
+                date: "w-[8%] min-w-[80px]",
+                marks: "w-[6%] min-w-[50px]",
+                duration: "w-[8%] min-w-[70px]",
+                evalType: "w-[12%] min-w-[100px]",
+                blooms: "w-[12%] min-w-[100px]",
+                pedagogy: "w-[14%] min-w-[120px]",
+                copso: "w-[12%] min-w-[100px]",
+                skills: "w-[8%] min-w-[70px]",
+              };
+
+              return (
+                <div key="cie" className="mb-6 cie-section">
+                  <h2 className="text-lg font-bold mb-2">
+                    {section.number}. {section.name}
+                  </h2>
+
+                  {/* Header Table - Only shown once */}
+                  <div className="mb-0">
                     <table className="w-full border-collapse table-fixed">
                       <thead>
                         <tr>
-                          <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[6%]">
+                          <th
+                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.no}`}
+                          >
                             No.
                           </th>
-                          <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[12%]">
+                          <th
+                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.unit}`}
+                          >
                             Unit Covered
                           </th>
-                          <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[10%]">
+                          <th
+                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.date}`}
+                          >
                             Date
                           </th>
-                          <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[6%]">
+                          <th
+                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.marks}`}
+                          >
                             Marks
                           </th>
-                          <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[8%]">
+                          <th
+                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.duration}`}
+                          >
                             Duration (mins)
                           </th>
-                          <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[12%]">
+                          <th
+                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.evalType}`}
+                          >
                             Evaluation Type
                           </th>
-                          <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[12%]">
+                          <th
+                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.blooms}`}
+                          >
                             Bloom's Taxonomy
                           </th>
-                          <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[14%]">
+                          <th
+                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.pedagogy}`}
+                          >
                             Evaluation Pedagogy
                           </th>
-                          <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[12%]">
+                          <th
+                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.copso}`}
+                          >
                             CO/PSO/PEO
                           </th>
-                          <th className="border border-black p-2 font-bold text-center break-words overflow-hidden text-ellipsis max-w-0 w-[8%]">
+                          <th
+                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.skills}`}
+                          >
                             Skills
                           </th>
                         </tr>
                       </thead>
-                      <tbody>
-                        {lessonPlan.form.cies.map((cie: any, index: number) => (
-                          <tr key={index}>
-                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                              {index + 1}
-                            </td>
+                    </table>
+                  </div>
 
-                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                              {(() => {
-                                // Handle units_covered mapping - show only unit numbers
-                                if (typeof cie.units_covered === "string") {
-                                  // Check if it's empty or just whitespace
-                                  if (
-                                    !cie.units_covered ||
-                                    cie.units_covered.trim() === ""
-                                  ) {
-                                    return "-";
-                                  }
+                  {/* Data Tables */}
+                  {cieGroups.map(({ type, cies, showTotal }) => {
+                    if (cies.length === 0) return null;
 
-                                  // Check if it's a comma-separated list of unit IDs
-                                  const unitIds = cie.units_covered
-                                    .split(",")
-                                    .map((id: any) => id.trim());
+                    const groupMarks = cies.reduce(
+                      (sum, cie) => sum + (cie.marks || 0),
+                      0
+                    );
+                    const groupDuration = cies.reduce(
+                      (sum, cie) => sum + (cie.duration || 0),
+                      0
+                    );
 
-                                  // If it looks like UUIDs, try to map them to unit numbers
-                                  if (
-                                    unitIds.some(
-                                      (id: any) =>
-                                        id.length > 20 && id.includes("-")
-                                    )
-                                  ) {
-                                    const mappedUnits = unitIds
-                                      .map((unitId: any) => {
-                                        const unitIndex =
-                                          lessonPlan.form.units?.findIndex(
-                                            (u: any) => u.id === unitId
-                                          );
-                                        return unitIndex !== -1
-                                          ? unitIndex + 1
-                                          : null;
-                                      })
-                                      .filter((num: any) => num !== null);
-
-                                    return mappedUnits.length > 0
-                                      ? mappedUnits.join(", ")
-                                      : "-";
-                                  }
-
-                                  // If it's already readable text, return as is
-                                  return cie.units_covered;
-                                }
-
-                                // Handle array format
-                                if (Array.isArray(cie.units_covered)) {
-                                  // Check if array is empty
-                                  if (cie.units_covered.length === 0) {
-                                    return "-";
-                                  }
-
-                                  const unitNumbers = cie.units_covered
-                                    .map((unitId: any) => {
-                                      const unitIndex =
-                                        lessonPlan.form.units?.findIndex(
-                                          (u: any) => u.id === unitId
+                    return (
+                      <div key={type} className="mb-2">
+                        <table className="w-full border-collapse table-fixed">
+                          <tbody>
+                            {cies.map((cie) => {
+                              globalIndex++;
+                              return (
+                                <tr key={cie.id || globalIndex}>
+                                  <td
+                                    className={`border border-black p-2 text-center break-words ${colClasses.no}`}
+                                  >
+                                    {globalIndex}
+                                  </td>
+                                  <td
+                                    className={`border border-black p-2 text-center break-words ${colClasses.unit}`}
+                                  >
+                                    {(() => {
+                                      if (
+                                        typeof cie.units_covered === "string"
+                                      ) {
+                                        if (
+                                          !cie.units_covered ||
+                                          cie.units_covered.trim() === ""
+                                        )
+                                          return "-";
+                                        const unitIds = cie.units_covered
+                                          .split(",")
+                                          .map((id: any) => id.trim());
+                                        if (
+                                          unitIds.some(
+                                            (id: any) =>
+                                              id.length > 20 && id.includes("-")
+                                          )
+                                        ) {
+                                          const mappedUnits = unitIds
+                                            .map((unitId: any) => {
+                                              const unitIndex =
+                                                lessonPlan.form.units?.findIndex(
+                                                  (u: any) => u.id === unitId
+                                                );
+                                              return unitIndex !== -1
+                                                ? unitIndex + 1
+                                                : null;
+                                            })
+                                            .filter((num: any) => num !== null);
+                                          return mappedUnits.length > 0
+                                            ? mappedUnits.join(", ")
+                                            : "-";
+                                        }
+                                        return cie.units_covered;
+                                      }
+                                      if (Array.isArray(cie.units_covered)) {
+                                        if (cie.units_covered.length === 0)
+                                          return "-";
+                                        const unitNumbers = cie.units_covered
+                                          .map((unitId: any) => {
+                                            const unitIndex =
+                                              lessonPlan.form.units?.findIndex(
+                                                (u: any) => u.id === unitId
+                                              );
+                                            return unitIndex !== -1
+                                              ? unitIndex + 1
+                                              : null;
+                                          })
+                                          .filter((num: any) => num !== null);
+                                        return unitNumbers.length > 0
+                                          ? unitNumbers.join(", ")
+                                          : "-";
+                                      }
+                                      return "-";
+                                    })()}
+                                  </td>
+                                  <td
+                                    className={`border border-black p-2 text-center break-words ${colClasses.date}`}
+                                  >
+                                    {cie.date
+                                      ? cie.date.replace(/-/g, "/")
+                                      : "-"}
+                                  </td>
+                                  <td
+                                    className={`border border-black p-2 text-center break-words ${colClasses.marks}`}
+                                  >
+                                    {cie.marks || "-"}
+                                  </td>
+                                  <td
+                                    className={`border border-black p-2 text-center break-words ${colClasses.duration}`}
+                                  >
+                                    {formatDurationIndividual(
+                                      cie.duration || 0
+                                    )}
+                                  </td>
+                                  <td
+                                    className={`border border-black p-2 text-center break-words ${colClasses.evalType}`}
+                                  >
+                                    {cie.originalType || cie.type || "-"}
+                                  </td>
+                                  <td
+                                    className={`border border-black p-2 text-center break-words ${colClasses.blooms}`}
+                                  >
+                                    {cie.blooms_taxonomy &&
+                                    cie.blooms_taxonomy.length > 0
+                                      ? cie.blooms_taxonomy.join(", ")
+                                      : "-"}
+                                  </td>
+                                  <td
+                                    className={`border border-black p-2 text-center break-words ${colClasses.pedagogy}`}
+                                  >
+                                    {cie.evaluation_pedagogy || "-"}
+                                  </td>
+                                  <td
+                                    className={`border border-black p-2 text-center break-words ${colClasses.copso}`}
+                                  >
+                                    {(() => {
+                                      let mappings = [];
+                                      if (
+                                        cie.co_mapping &&
+                                        cie.co_mapping.length > 0
+                                      ) {
+                                        const coNumbers = cie.co_mapping.map(
+                                          (coId: any, idx: number) =>
+                                            `CO${idx + 1}`
                                         );
-                                      return unitIndex !== -1
-                                        ? unitIndex + 1
-                                        : null;
-                                    })
-                                    .filter((num: any) => num !== null);
-
-                                  return unitNumbers.length > 0
-                                    ? unitNumbers.join(", ")
-                                    : "-";
-                                }
-
-                                // If units_covered is null, undefined, or empty
-                                return "-";
-                              })()}
-                            </td>
-
-                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                              {(() => {
-                                // Convert date from DD-MM-YYYY to DD/MM/YYYY format
-                                if (cie.date) {
-                                  return cie.date.replace(/-/g, "/");
-                                }
-                                return "-";
-                              })()}
-                            </td>
-
-                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                              {cie.marks || "-"}
-                            </td>
-
-                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                              {cie.duration || "-"}
-                            </td>
-
-                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                              {cie.type || "-"}
-                            </td>
-
-                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                              {cie.blooms_taxonomy &&
-                              cie.blooms_taxonomy.length > 0
-                                ? cie.blooms_taxonomy.join(", ")
-                                : "-"}
-                            </td>
-
-                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                              {cie.evaluation_pedagogy || "-"}
-                            </td>
-
-                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                              {(() => {
-                                let mappings = [];
-
-                                // Add CO mappings
-                                if (
-                                  cie.co_mapping &&
-                                  cie.co_mapping.length > 0
-                                ) {
-                                  const coNumbers = cie.co_mapping.map(
-                                    (coId: any, idx: number) => `CO${idx + 1}`
-                                  );
-                                  mappings.push(...coNumbers);
-                                }
-
-                                // Add PSO mappings
-                                if (
-                                  cie.pso_mapping &&
-                                  cie.pso_mapping.length > 0
-                                ) {
-                                  const psoNumbers = cie.pso_mapping.map(
-                                    (pso: any) => pso.toUpperCase()
-                                  );
-                                  mappings.push(...psoNumbers);
-                                }
-
-                                // Add PEO mappings
-                                if (
-                                  cie.peo_mapping &&
-                                  cie.peo_mapping.length > 0
-                                ) {
-                                  const peoNumbers = cie.peo_mapping.map(
-                                    (peo: any) => peo.toUpperCase()
-                                  );
-                                  mappings.push(...peoNumbers);
-                                }
-
-                                return mappings.length > 0
-                                  ? mappings.join(", ")
-                                  : "-";
-                              })()}
-                            </td>
-
-                            <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                              {cie.skill_mapping && cie.skill_mapping.length > 0
-                                ? cie.skill_mapping
-                                    .map((skill: any) =>
-                                      typeof skill === "object"
-                                        ? skill.skill
-                                        : skill
-                                    )
-                                    .join(", ")
-                                : "-"}
-                            </td>
-                          </tr>
-                        ))}
-
-                        {/* Total Row */}
-                        <tr className="font-bold">
-                          <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
-                          <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                            Total
-                          </td>
-                          <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
-                          <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                            {lessonPlan.form.cies.reduce(
-                              (sum: number, cie: any) => sum + (cie.marks || 0),
-                              0
-                            )}
-                          </td>
-                          <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0">
-                            {(() => {
-                              const totalDuration = lessonPlan.form.cies.reduce(
-                                (sum: number, cie: any) =>
-                                  sum + (cie.duration || 0),
-                                0
+                                        mappings.push(...coNumbers);
+                                      }
+                                      if (
+                                        cie.pso_mapping &&
+                                        cie.pso_mapping.length > 0
+                                      ) {
+                                        const psoNumbers = cie.pso_mapping.map(
+                                          (pso: any) => pso.toUpperCase()
+                                        );
+                                        mappings.push(...psoNumbers);
+                                      }
+                                      if (
+                                        cie.peo_mapping &&
+                                        cie.peo_mapping.length > 0
+                                      ) {
+                                        const peoNumbers = cie.peo_mapping.map(
+                                          (peo: any) => peo.toUpperCase()
+                                        );
+                                        mappings.push(...peoNumbers);
+                                      }
+                                      return mappings.length > 0
+                                        ? mappings.join(", ")
+                                        : "-";
+                                    })()}
+                                  </td>
+                                  <td
+                                    className={`border border-black p-2 text-center break-words ${colClasses.skills}`}
+                                  >
+                                    {cie.skill_mapping &&
+                                    cie.skill_mapping.length > 0
+                                      ? cie.skill_mapping
+                                          .map((skill: any) =>
+                                            typeof skill === "object"
+                                              ? skill.skill
+                                              : skill
+                                          )
+                                          .join(", ")
+                                      : "-"}
+                                  </td>
+                                </tr>
                               );
-                              if (totalDuration >= 60) {
-                                const hours = Math.floor(totalDuration / 60);
-                                const minutes = totalDuration % 60;
-                                return minutes > 0
-                                  ? `${hours}. ${minutes} hours`
-                                  : `${hours} hours`;
-                              }
-                              return `${totalDuration} minutes`;
-                            })()}
+                            })}
+
+                            {/* Group Total Row - Only for tables that should show totals */}
+                            {showTotal && (
+                              <tr className="font-bold">
+                                <td
+                                  className={`border border-black p-2 text-center ${colClasses.unit} w-[347px]`}
+                                  colSpan={3}
+                                >
+                                  Total
+                                </td>
+                                <td
+                                  className={`border border-black p-2 text-center ${colClasses.marks} w-[84px]`}
+                                >
+                                  {groupMarks}
+                                </td>
+                                <td
+                                  className={`border border-black p-2 text-center ${colClasses.duration} w-[111px]`}
+                                >
+                                  {formatDurationTotal(groupDuration)}
+                                </td>
+                                <td
+                            className={`border border-black p-2 text-center`}
+                            colSpan={5} // Merges last 5 columns
+                          ></td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })}
+
+                  {/* Overall Total Row */}
+                  <div className="mt-2">
+                    <table className="w-full border-collapse table-fixed">
+                      <tbody>
+                        <tr className="font-bold">
+                          <td
+                            className={`border border-black p-2 text-right w-[374px]`}
+                            colSpan={2} // Merges No., Unit, and Date columns
+                          >
+                            Overall Total
                           </td>
-                          <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
-                          <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
-                          <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
-                          <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
-                          <td className="border border-black p-2 text-center break-words overflow-hidden text-ellipsis max-w-0"></td>
+                          <td
+                            className={`border border-black p-2 text-center ${colClasses.marks} w-[91px]`}
+                          >
+                            {totalMarks}
+                          </td>
+                          <td
+                            className={`border border-black p-2 text-center ${colClasses.duration} w-[120px]`}
+                          >
+                            {formatDurationTotal(totalDuration)}
+                          </td>
+                          <td
+                            className={`border border-black p-2 text-center`}
+                            colSpan={5} // Merges last 5 columns
+                          ></td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
-                )}
-              </div>
-            );
-          }
+                </div>
+              );
+            }
+
           if (section.type === "additional") {
             return (
               <div key="additional" className="mb-6 additional-section">
