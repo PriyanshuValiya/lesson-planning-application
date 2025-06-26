@@ -1064,7 +1064,7 @@ export default function EditLessonPlanPage() {
             }
             message += ` across ${departments.length} department(s): ${departments.join(", ")}`
 
-            toast.success(message)
+            // toast.success(message)
           }
         } else {
           setCommonSubject([])
