@@ -28,7 +28,6 @@ export const addFaculty = async (formData: FormData) => {
       authUserId = existingUser.auth_id
       userData = existingUser
 
-      // Update user name if different
       if (existingUser.name !== name) {
         const { data: updatedUser, error: updateError } = await supabase
           .from("users")
@@ -188,7 +187,6 @@ export const editFaculty = async (formData: FormData) => {
       return { success: false, error: deleteError.message }
     }
 
-    // Create new user_role entries for each selected subject
     const roleEntries = subjectIds.map((subjectId) => ({
       user_id: currentRole.user_id,
       role_name: "Faculty",
@@ -211,43 +209,29 @@ export const editFaculty = async (formData: FormData) => {
   }
 }
 
-export const deleteFaculty = async (userAuthId: string) => {
+export const deleteFaculty = async (userAuthId: string, departmentId: string) => {
   try {
     const supabase = await createClient()
-    const supabaseAdmin = createAdminClient()
 
-    // First, delete all user_role entries for this user
-    const { error: roleDeleteError } = await supabase.from("user_role").delete().eq("user_id", userAuthId)
+    const { error: roleDeleteError } = await supabase
+      .from("user_role")
+      .delete()
+      .eq("user_id", userAuthId)
+      .eq("role_name", "Faculty")
+      .eq("depart_id", departmentId)
 
     if (roleDeleteError) {
       console.error("Error deleting user roles:", roleDeleteError)
       return { success: false, error: roleDeleteError.message }
     }
 
-    // Delete from users table
-    const { error: userDeleteError } = await supabase.from("users").delete().eq("auth_id", userAuthId)
-
-    if (userDeleteError) {
-      console.error("Error deleting from users table:", userDeleteError)
-      return { success: false, error: userDeleteError.message }
-    }
-
-    // Delete from Supabase Auth using admin client
-    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userAuthId)
-
-    if (authDeleteError) {
-      console.error("Error deleting from auth:", authDeleteError)
-      return { success: false, error: authDeleteError.message }
-    }
-
-    return { success: true }
+    return { success: true, deletedUser: false }
   } catch (error) {
     console.error("Unexpected error:", error)
     return { success: false, error: "An unexpected error occurred" }
   }
 }
 
-// Helper function to delete a single faculty role (not the entire user)
 export const deleteFacultyRole = async (roleId: string) => {
   try {
     const supabase = await createClient()
@@ -263,7 +247,6 @@ export const deleteFacultyRole = async (roleId: string) => {
       return { success: false, error: getRoleError.message }
     }
 
-    // Delete the specific role
     const { error: roleDeleteError } = await supabase.from("user_role").delete().eq("id", roleId)
 
     if (roleDeleteError) {
@@ -280,14 +263,12 @@ export const deleteFacultyRole = async (roleId: string) => {
     }
 
     if (otherRoles.length === 0) {
-      // Delete from users table
       const { error: userDeleteError } = await supabase.from("users").delete().eq("auth_id", roleData.user_id)
 
       if (userDeleteError) {
         console.error("Error deleting from users table:", userDeleteError)
       }
 
-      // Delete from auth using admin client
       const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(roleData.user_id)
 
       if (authDeleteError) {

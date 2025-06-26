@@ -1,3 +1,5 @@
+
+
 //@ts-nocheck
 
 "use client"
@@ -428,17 +430,20 @@ export default function HODDashboard() {
   }
 
   const confirmDeleteFaculty = async () => {
-    if (!selectedFaculty?.users?.auth_id) {
-      toast.error("Faculty user ID not found")
+    if (!selectedFaculty?.users?.auth_id || !currentRole?.depart_id) {
+      toast.error("Faculty user ID or department ID not found")
       return
     }
 
     setIsDeletingFaculty(true)
     try {
-      // Use the auth_id from the users table to delete the faculty
-      const result = await deleteFaculty(selectedFaculty.users.auth_id)
+      // Pass department ID to only delete from current department
+      const result = await deleteFaculty(selectedFaculty.users.auth_id, currentRole.depart_id)
       if (result.success) {
-        toast.success("Faculty deleted successfully")
+        const message = result.deletedUser
+          ? "Faculty deleted successfully (user removed from system)"
+          : "Faculty removed from department successfully"
+        toast.success(message)
         setDeleteFacultyDialogOpen(false)
 
         // Refresh faculty data
@@ -655,8 +660,8 @@ export default function HODDashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              <div className="border rounded-lg border-black p-3">
+            <div className="grid grid-cols-2 gap-5 mt-3">
+              <div className="border rounded-lg border-black p-5">
                 <div className="flex items-center justify-between">
                   <h2 className="font-manrope font-semibold text-[18px] leading-[100%] tracking-[0]">
                     Faculty Management
@@ -670,14 +675,14 @@ export default function HODDashboard() {
                         </div>
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px]">
+                    <DialogContent className="sm:max-w-[500px] p-6">
                       <DialogHeader>
-                        <DialogTitle className="text-[#1A5CA1] font-manrope font-bold text-[22px] leading-[25px] mb-3">
+                        <DialogTitle className="text-[#1A5CA1] font-manrope font-bold text-[22px] leading-[25px] mb-4">
                           Add New Faculty
                         </DialogTitle>
                       </DialogHeader>
                       <Form {...facultyForm}>
-                        <form onSubmit={facultyForm.handleSubmit(onAddFacultySubmit)} className="space-y-4">
+                        <form onSubmit={facultyForm.handleSubmit(onAddFacultySubmit)} className="space-y-4 px-1">
                           <FormField
                             control={facultyForm.control}
                             name="email"
@@ -703,15 +708,10 @@ export default function HODDashboard() {
                               control={facultyForm.control}
                               name="name"
                               render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="flex-1">
                                   <FormLabel>Faculty Name</FormLabel>
                                   <FormControl>
-                                    <Input
-                                      {...field}
-                                      placeholder="Enter faculty name"
-                                      className="w-[200px]"
-                                      value={field.value || ""}
-                                    />
+                                    <Input {...field} placeholder="Enter faculty name" value={field.value || ""} />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -722,10 +722,10 @@ export default function HODDashboard() {
                               control={facultyForm.control}
                               name="subjectId"
                               render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="flex-1">
                                   <FormLabel>Subject (Optional)</FormLabel>
                                   <Select onValueChange={field.onChange} value={field.value || ""}>
-                                    <FormControl className="w-[250px]">
+                                    <FormControl>
                                       <SelectTrigger>
                                         <SelectValue placeholder="Select Subject" />
                                       </SelectTrigger>
@@ -787,7 +787,7 @@ export default function HODDashboard() {
                             )}
                           />
 
-                          <DialogFooter>
+                          <DialogFooter className="mt-6">
                             <div className="flex justify-between w-full">
                               <Button type="button" variant="outline" onClick={() => setFacultyDialogOpen(false)}>
                                 Cancel
@@ -850,7 +850,7 @@ export default function HODDashboard() {
                 </div>
               </div>
 
-              <div className="border rounded-lg border-black p-3">
+              <div className="border rounded-lg border-black p-5">
                 <div className="flex items-center justify-between">
                   <h2 className="font-manrope font-semibold text-[18px] leading-[100%] tracking-[0]">
                     Subject Details
@@ -1359,11 +1359,13 @@ export default function HODDashboard() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-red-600 font-manrope font-bold text-[23px] leading-[25px]">
-              Delete Faculty
+              Remove Faculty from Department
             </AlertDialogTitle>
             <AlertDialogDescription className="text-black">
-              Are you sure you want to delete <b>{selectedFaculty?.users?.name}</b>? This action cannot be undone and
-              will remove the user from all systems including authentication.
+              Are you sure you want to remove <b>{selectedFaculty?.users?.name}</b> from the{" "}
+              <b>{currentRole?.departments?.name}</b> department?
+              <br />
+              <br />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1374,7 +1376,7 @@ export default function HODDashboard() {
                 disabled={isDeletingFaculty}
                 className="bg-red-600 hover:bg-red-700"
               >
-                {isDeletingFaculty ? "Deleting..." : "Delete"}
+                {isDeletingFaculty ? "Removing..." : "Remove Faculty"}
               </AlertDialogAction>
             </div>
           </AlertDialogFooter>
@@ -1392,7 +1394,8 @@ export default function HODDashboard() {
               Are you sure you want to delete <b>{selectedSubject?.name}</b>? This action cannot be undone.
               <br />
               <br />
-              <strong>Note:</strong> Any faculty assigned to this subject will have their assignment removed.
+              <strong>Note:</strong> Any faculty assigned to this subject will have their assignment removed, but the
+              faculty members themselves will remain in the system.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1403,7 +1406,7 @@ export default function HODDashboard() {
                 disabled={isDeletingSubject}
                 className="bg-red-600 hover:bg-red-700"
               >
-                {isDeletingSubject ? "Deleting..." : "Delete"}
+                {isDeletingSubject ? "Deleting..." : "Delete Subject"}
               </AlertDialogAction>
             </div>
           </AlertDialogFooter>
