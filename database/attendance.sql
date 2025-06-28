@@ -6,6 +6,7 @@ create table public.attendance (
   id uuid not null default gen_random_uuid (),
   "Date" timestamp with time zone null,
   student_id uuid null,
+  "Remark" text null,
   constraint attendance_pkey primary key (id),
   constraint attendance_faculty_id_fkey foreign KEY (faculty_id) references users (id),
   constraint attendance_lecture_fkey foreign KEY (lecture) references timetable (id),

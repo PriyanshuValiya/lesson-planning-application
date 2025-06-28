@@ -30,6 +30,10 @@ export async function insertAttendance(
     attendance.faculty_id !== 'unknown'
       ? { faculty_id: attendance.faculty_id }
       : {}),
+    // Include Remark if provided
+    ...(attendance.Remark && attendance.Remark.trim() !== ''
+      ? { Remark: attendance.Remark }
+      : {}),
   };
 
   console.log('Inserting attendance record:', record);
@@ -88,7 +92,7 @@ export async function getAllAttendance() {
     );
   if (error) throw error;
   if (!data || data.length === 0) return [];
-  return data.map((item) => {
+  return data.map((item: any) => {
     const { timetable, student, ...rest } = item;
     return {
       ...rest,
@@ -143,7 +147,7 @@ export async function getAttendanceByStudentId(studentId: string) {
     .eq('student_id', studentId);
   if (error) throw error;
   if (!data || data.length === 0) return [];
-  return data.map((item) => {
+  return data.map((item: any) => {
     const { timetable, ...rest } = item;
     return {
       ...rest,
@@ -163,7 +167,8 @@ export async function insertBulkAttendanceByStatus(
   presentIds: string[],
   absentIds: string[],
   Date: string,
-  faculty_id?: string
+  faculty_id?: string,
+  lectureRemark?: string // What topics/content was covered in this lecture
 ) {
   const supabase = await createClient();
 
@@ -181,6 +186,9 @@ export async function insertBulkAttendanceByStatus(
     is_present: true,
     Date,
     ...(faculty_id && faculty_id.trim() !== '' ? { faculty_id } : {}),
+    ...(lectureRemark && lectureRemark.trim() !== ''
+      ? { Remark: lectureRemark }
+      : {}),
   }));
   // Prepare attendance records for absent students
   const absentRecords = absentIds.filter(Boolean).map((student_id) => ({
@@ -189,6 +197,9 @@ export async function insertBulkAttendanceByStatus(
     is_present: false,
     Date,
     ...(faculty_id && faculty_id.trim() !== '' ? { faculty_id } : {}),
+    ...(lectureRemark && lectureRemark.trim() !== ''
+      ? { Remark: lectureRemark }
+      : {}),
   }));
   // Combine all records
   const records = [...presentRecords, ...absentRecords];
@@ -214,8 +225,8 @@ export async function getAttendanceStatusByLecture(lectureId: string) {
   if (!data || data.length === 0) return { presentees: [], absentees: [] };
 
   const presentees = data
-    .filter((item) => item.is_present)
-    .map((item) => ({
+    .filter((item: any) => item.is_present)
+    .map((item: any) => ({
       student_first_name: item.student?.[0]?.first_name,
       student_last_name: item.student?.[0]?.last_name,
       student_email: item.student?.[0]?.email,
@@ -225,8 +236,8 @@ export async function getAttendanceStatusByLecture(lectureId: string) {
     }));
 
   const absentees = data
-    .filter((item) => !item.is_present)
-    .map((item) => ({
+    .filter((item: any) => !item.is_present)
+    .map((item: any) => ({
       student_first_name: item.student?.[0]?.first_name,
       student_last_name: item.student?.[0]?.last_name,
       student_email: item.student?.[0]?.email,

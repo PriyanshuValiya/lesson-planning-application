@@ -1,4 +1,3 @@
-import { DummyLecture } from "@/services/dummyTypes";
 
 const AttendanceDetails = ({ lecture }: { lecture: any }) => {
   // Helper functions to safely get values with fallbacks
