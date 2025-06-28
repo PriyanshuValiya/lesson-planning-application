@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Calendar, Loader2, RefreshCw } from "lucide-react";
+import { Calendar } from "lucide-react";
 
 // Types for real data
 interface StudentData {
@@ -43,7 +43,8 @@ interface ProcessedStudentData {
   totalSessions: number;
 }
 
-export default function ClientAttendanceMonitor() {  const [selectedDate, setSelectedDate] = useState(() => {
+export default function ClientAttendanceMonitor() {
+  const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     return today.toLocaleDateString('en-GB', { 
       day: '2-digit', 
@@ -57,47 +58,171 @@ export default function ClientAttendanceMonitor() {  const [selectedDate, setSel
   const [selectedTeacher, setSelectedTeacher] = useState("Dr.Parth Goel");
   const [selectedCounselor, setSelectedCounselor] = useState("Dr.Parth Goel");
   
-  const [students, setStudents] = useState<StudentData[]>([]);
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-  const [processedData, setProcessedData] = useState<ProcessedStudentData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  // Fetch students and attendance data
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Fetch students
-      const studentsResponse = await fetch('/api/students');
-      const studentsData = await studentsResponse.json();
-      
-      if (!studentsData.success) {
-        throw new Error('Failed to fetch students');
-      }
-      
-      // Fetch attendance records
-      const attendanceResponse = await fetch('/api/attendance/all');
-      const attendanceData = await attendanceResponse.json();
-      
-      if (!attendanceData.success) {
-        throw new Error('Failed to fetch attendance records');
-      }
-      
-      setStudents(studentsData.data || []);
-      setAttendanceRecords(attendanceData.data || []);
-      
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load data');
-    } finally {
-      setLoading(false);
+  // Dummy data for students
+  const dummyStudents: StudentData[] = [
+    {
+      student_id: "24CE001",
+      first_name: "Aarav",
+      last_name: "Patel",
+      email: "aarav.patel@example.com",
+      division: "A",
+      batch: "A1",
+      sem: 5,
+      departments: { name: "Computer Engineering" }
+    },
+    {
+      student_id: "24CE002",
+      first_name: "Priya",
+      last_name: "Shah",
+      email: "priya.shah@example.com",
+      division: "A",
+      batch: "A1",
+      sem: 5,
+      departments: { name: "Computer Engineering" }
+    },
+    {
+      student_id: "24CE003",
+      first_name: "Rohan",
+      last_name: "Mehta",
+      email: "rohan.mehta@example.com",
+      division: "A",
+      batch: "A2",
+      sem: 5,
+      departments: { name: "Computer Engineering" }
+    },
+    {
+      student_id: "24CE004",
+      first_name: "Kavya",
+      last_name: "Desai",
+      email: "kavya.desai@example.com",
+      division: "B",
+      batch: "B1",
+      sem: 5,
+      departments: { name: "Computer Engineering" }
+    },
+    {
+      student_id: "24CE005",
+      first_name: "Arjun",
+      last_name: "Joshi",
+      email: "arjun.joshi@example.com",
+      division: "B",
+      batch: "B1",
+      sem: 5,
+      departments: { name: "Computer Engineering" }
+    },
+    {
+      student_id: "24CE006",
+      first_name: "Ananya",
+      last_name: "Gupta",
+      email: "ananya.gupta@example.com",
+      division: "B",
+      batch: "B2",
+      sem: 5,
+      departments: { name: "Computer Engineering" }
+    },
+    {
+      student_id: "24CE007",
+      first_name: "Karan",
+      last_name: "Singh",
+      email: "karan.singh@example.com",
+      division: "C",
+      batch: "C1",
+      sem: 5,
+      departments: { name: "Computer Engineering" }
+    },
+    {
+      student_id: "24CE008",
+      first_name: "Shruti",
+      last_name: "Agarwal",
+      email: "shruti.agarwal@example.com",
+      division: "C",
+      batch: "C1",
+      sem: 5,
+      departments: { name: "Computer Engineering" }
     }
-  };
+  ];
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Dummy attendance records
+  const dummyAttendanceRecords: AttendanceRecord[] = [
+    // High attendance student (24CE001)
+    ...Array.from({ length: 18 }, (_, i) => ({
+      id: `att-001-${i}`,
+      student_id: "24CE001",
+      is_present: i < 16, // 16/18 = 88.8%
+      Date: `2024-06-${10 + i}`,
+      subject_code: "CE263",
+      subject_name: "DBMS"
+    })),
+    // Good attendance student (24CE002)
+    ...Array.from({ length: 18 }, (_, i) => ({
+      id: `att-002-${i}`,
+      student_id: "24CE002",
+      is_present: i < 14, // 14/18 = 77.7%
+      Date: `2024-06-${10 + i}`,
+      subject_code: "CE263",
+      subject_name: "DBMS"
+    })),
+    // Warning attendance student (24CE003)
+    ...Array.from({ length: 18 }, (_, i) => ({
+      id: `att-003-${i}`,
+      student_id: "24CE003",
+      is_present: i < 12, // 12/18 = 66.6%
+      Date: `2024-06-${10 + i}`,
+      subject_code: "CE263",
+      subject_name: "DBMS"
+    })),
+    // Critical attendance student (24CE004)
+    ...Array.from({ length: 18 }, (_, i) => ({
+      id: `att-004-${i}`,
+      student_id: "24CE004",
+      is_present: i < 10, // 10/18 = 55.5%
+      Date: `2024-06-${10 + i}`,
+      subject_code: "CE263",
+      subject_name: "DBMS"
+    })),
+    // Excellent attendance student (24CE005)
+    ...Array.from({ length: 18 }, (_, i) => ({
+      id: `att-005-${i}`,
+      student_id: "24CE005",
+      is_present: i < 17, // 17/18 = 94.4%
+      Date: `2024-06-${10 + i}`,
+      subject_code: "CE263",
+      subject_name: "DBMS"
+    })),
+    // Good attendance student (24CE006)
+    ...Array.from({ length: 18 }, (_, i) => ({
+      id: `att-006-${i}`,
+      student_id: "24CE006",
+      is_present: i < 15, // 15/18 = 83.3%
+      Date: `2024-06-${10 + i}`,
+      subject_code: "CE263",
+      subject_name: "DBMS"
+    })),
+    // Warning attendance student (24CE007)
+    ...Array.from({ length: 18 }, (_, i) => ({
+      id: `att-007-${i}`,
+      student_id: "24CE007",
+      is_present: i < 13, // 13/18 = 72.2%
+      Date: `2024-06-${10 + i}`,
+      subject_code: "CE263",
+      subject_name: "DBMS"
+    })),
+    // Critical attendance student (24CE008)
+    ...Array.from({ length: 18 }, (_, i) => ({
+      id: `att-008-${i}`,
+      student_id: "24CE008",
+      is_present: i < 9, // 9/18 = 50%
+      Date: `2024-06-${10 + i}`,
+      subject_code: "CE263",
+      subject_name: "DBMS"
+    }))
+  ];
+  const [students] = useState<StudentData[]>(dummyStudents);
+  const [attendanceRecords] = useState<AttendanceRecord[]>(dummyAttendanceRecords);
+  const [processedData, setProcessedData] = useState<ProcessedStudentData[]>([]);
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
+
   // Process data whenever students or attendance records change
   useEffect(() => {
     if (students.length === 0) return;
@@ -142,7 +267,7 @@ export default function ClientAttendanceMonitor() {  const [selectedDate, setSel
     };
 
     processStudentData();
-  }, [students, attendanceRecords]);  // Filter data based on selected filters
+  }, [students, attendanceRecords]);// Filter data based on selected filters
   const filteredData = processedData.filter(student => {
     // Only include students with valid student IDs
     if (!student.studentId || student.studentId.trim() === '') {
@@ -207,40 +332,14 @@ export default function ClientAttendanceMonitor() {  const [selectedDate, setSel
       .filter(Boolean)
   )) as string[];
 
-  if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading attendance data...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          Error: {error}
-        </div>
-      </div>
-    );
-  }  return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+  return (
+    <div className="p-6">      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-blue-800">
           Attendance Monitor
         </h1>
-        <Button
-          onClick={fetchData}
-          disabled={loading}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh Data
-        </Button>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <span>Showing dummy data for demonstration</span>
+        </div>
       </div>
       
       {/* Main Grid Layout */}
@@ -365,11 +464,13 @@ export default function ClientAttendanceMonitor() {  const [selectedDate, setSel
                 {/* Sessions Info */}
                 <div className="space-y-4">                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
                     <span className="text-sm font-medium">Total sessions conducted:</span>
-                    <span className="font-semibold">20</span>
+                    <span className="font-semibold">18</span>
                   </div>
                     <div className="flex items-center justify-between p-3 bg-blue-50 rounded">
-                    <span className="text-sm font-medium">Sessions attended per student:</span>
-                    <span className="font-semibold text-blue-600">April 2055</span>
+                    <span className="text-sm font-medium">Average attendance:</span>
+                    <span className="font-semibold text-blue-600">
+                      {Math.round(filteredData.reduce((sum, student) => sum + student.attendancePercentage, 0) / Math.max(filteredData.length, 1))}%
+                    </span>
                   </div>
                 </div>                {/* Overall Statistics */}
                 <div className="space-y-2">

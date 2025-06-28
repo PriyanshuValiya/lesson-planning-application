@@ -48,7 +48,7 @@ const MarkAttendance = ({ lecture }: { lecture: any }) => {
       // Get IDs of present students
       const presentStudentIds = attendanceData
         .filter(student => student.present)
-        .map(student => student.student_id);
+        .map(student => student.id);
 
       console.log("Present student IDs:", presentStudentIds);// Prepare attendance records for API call
       const currentDate = new Date().toISOString(); // Full ISO string for timestamp

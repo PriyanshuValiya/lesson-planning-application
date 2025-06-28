@@ -160,10 +160,10 @@ interface Subjects {
 }
 
 interface User_Role {
-  user_id(user_id: any): unknown
-  filter(arg0: (f: { users: { email: string } }) => boolean): unknown
-  depart_id: string | undefined
-  id: string
+  user_id(user_id: any): unknown;
+  filter(arg0: (f: { users: { email: string } }) => boolean): unknown;
+  depart_id: string | undefined;
+  id: string;
 
   users: {
     id: string;
@@ -204,21 +204,20 @@ interface Faculty_Subjects {
   subjects: Subjects;
 }
 interface Student_data {
-  student_id_number: string;
-  gender: string;
-  date_of_birth: string;
-  ph_number: string;
-  dept_id: string;
-  sem: number;
-  batch_councellor: string;
-  father_number: string;
-  father_email: string;
-  mother_number: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  division: string;
-  batch: string;
+  student_id: string; // UUID from student_data table
+  Roll_No: string | null;
+  Student_Name: string | null;
+  Gender: string | null;
+  Birth_Date: string | null;
+  Mobile_No: string | null;
+  Guardian_Mobile: string | null;
+  Guardian_Name: string | null;
+  Counsellor: string | null;
+  Guardian_Email: string | null;
+  Division: number | null; // bigint in database
+  Batch: string | null;
+  Sem: number | null; // bigint in database
+  Department: string | null;
 }
 
 interface Timetable {
@@ -233,12 +232,18 @@ interface Timetable {
   division: string | null;
   batch: string | null;
   sem: number | null;
+  location: string | null; // Location/room where the lecture takes place
 }
 
 interface Attendance {
-  lecture: string;
-  student: string;
+  id?: string;
+  lecture: string; // UUID referencing timetable.id
+  student_id: string; // UUID referencing student_data.student_id
   is_present: boolean;
+  Date?: string; // timestamp with time zone
+  faculty_id?: string; // UUID referencing users.id
+  taken_at?: string; // timestamp with time zone, default: now()
+  Remark?: string; // text field for remarks
 }
 
 export type {
