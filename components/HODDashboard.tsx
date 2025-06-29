@@ -664,7 +664,7 @@ export default function HODDashboard() {
                   <h2 className="font-manrope font-semibold text-[18px] leading-[100%] tracking-[0]">
                     Faculty Management
                   </h2>
-                  <Dialog open={facultyDialogOpen} onOpenChange={setFacultyDialogOpen}>
+<Dialog open={facultyDialogOpen} onOpenChange={setFacultyDialogOpen}>
   <DialogTrigger asChild>
     <Button>
       <div className="flex items-center gap-2">
@@ -701,12 +701,12 @@ export default function HODDashboard() {
           )}
         />
 
-        <div className="flex gap-x-4 overflow-hidden">
+        <div className="flex gap-x-4">
           <FormField
             control={facultyForm.control}
             name="name"
             render={({ field }) => (
-              <FormItem className="flex-1 min-w-0">
+              <FormItem className="flex-1">
                 <FormLabel>Faculty Name</FormLabel>
                 <FormControl>
                   <Input
@@ -725,24 +725,25 @@ export default function HODDashboard() {
             control={facultyForm.control}
             name="subjectId"
             render={({ field }) => (
-              <FormItem className="flex-shrink-0">
+              <FormItem className="w-[200px] flex-shrink-0">
                 <FormLabel>Subject (Optional)</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value || ""}>
                   <FormControl>
-                    <SelectTrigger className="w-[250px]">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select Subject" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="w-[250px]">
+                  <SelectContent className="w-[200px]">
                     {subjects.map((subject) => (
                       <SelectItem 
-                        className="cursor-pointer truncate" 
+                        className="cursor-pointer" 
                         key={subject.id} 
                         value={subject.id}
+                        title={`${subject.name} (${subject.abbreviation_name})`}
                       >
-                        <span className="truncate">
+                        <div className="truncate max-w-[180px]">
                           {subject.name} ({subject.abbreviation_name})
-                        </span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
