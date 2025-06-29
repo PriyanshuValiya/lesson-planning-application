@@ -673,7 +673,7 @@ export default function HODDashboard() {
                         </div>
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] px-6 py-6">
+                    <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle className="text-[#1A5CA1] font-manrope font-bold text-[22px] leading-[25px] mb-4">
                           Add New Faculty
