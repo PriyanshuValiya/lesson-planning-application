@@ -791,7 +791,7 @@ export default function HODDashboard() {
         />
       </form>
     </Form>
-    <DialogFooter className="mt-6 px-6">
+    <DialogFooter className="mt-6 px-3">
       <div className="flex justify-between w-full">
         <Button type="button" variant="outline" onClick={() => setFacultyDialogOpen(false)}>
           Cancel
