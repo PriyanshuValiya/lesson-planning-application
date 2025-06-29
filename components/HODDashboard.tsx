@@ -665,140 +665,144 @@ export default function HODDashboard() {
                     Faculty Management
                   </h2>
                   <Dialog open={facultyDialogOpen} onOpenChange={setFacultyDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <div className="flex items-center gap-2">
-                          <Plus />
-                          <p>Add Faculty</p>
-                        </div>
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle className="text-[#1A5CA1] font-manrope font-bold text-[22px] leading-[25px] mb-4">
-                          Add New Faculty
-                        </DialogTitle>
-                      </DialogHeader>
-                      <Form {...facultyForm}>
-                        <form onSubmit={facultyForm.handleSubmit(onAddFacultySubmit)} className="space-y-4 px-6">
-                          <FormField
-                            control={facultyForm.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email Address</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    {...field}
-                                    type="email"
-                                    placeholder="email@charusat.ac.in"
-                                    className="w-full"
-                                    value={field.value || ""}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+  <DialogTrigger asChild>
+    <Button>
+      <div className="flex items-center gap-2">
+        <Plus />
+        <p>Add Faculty</p>
+      </div>
+    </Button>
+  </DialogTrigger>
+  <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+    <DialogHeader className="px-6">
+      <DialogTitle className="text-[#1A5CA1] font-manrope font-bold text-[22px] leading-[25px] mb-4">
+        Add New Faculty
+      </DialogTitle>
+    </DialogHeader>
+    <Form {...facultyForm}>
+      <form onSubmit={facultyForm.handleSubmit(onAddFacultySubmit)} className="space-y-4 px-6">
+        <FormField
+          control={facultyForm.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email Address</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  type="email"
+                  placeholder="email@charusat.ac.in"
+                  className="w-full"
+                  value={field.value || ""}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-                          <div className="flex gap-x-4">
-                            <FormField
-                              control={facultyForm.control}
-                              name="name"
-                              render={({ field }) => (
-                                <FormItem className="flex-1">
-                                  <FormLabel>Faculty Name</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} placeholder="Enter faculty name" value={field.value || ""} className="w-[200px]" />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={facultyForm.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Faculty Name</FormLabel>
+                <FormControl>
+                  <Input 
+                    {...field} 
+                    placeholder="Enter faculty name" 
+                    value={field.value || ""} 
+                    className="w-full" 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-                            <FormField
-                              control={facultyForm.control}
-                              name="subjectId"
-                              render={({ field }) => (
-                                <FormItem className="flex-1">
-                                  <FormLabel>Subject (Optional)</FormLabel>
-                                  <Select onValueChange={field.onChange} value={field.value || ""}>
-                                    <FormControl className="w-[250px]">
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select Subject" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {subjects.map((subject) => (
-                                        <SelectItem className="cursor-pointer" key={subject.id} value={subject.id}>
-                                          {subject.name} ({subject.abbreviation_name})
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
+          <FormField
+            control={facultyForm.control}
+            name="subjectId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Subject (Optional)</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value || ""}>
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Subject" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {subjects.map((subject) => (
+                      <SelectItem className="cursor-pointer" key={subject.id} value={subject.id}>
+                        {subject.name} ({subject.abbreviation_name})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-                          <FormField
-                            control={facultyForm.control}
-                            name="academicYear"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Academic Year</FormLabel>
-                                <FormControl>
-                                  <Input {...field} value={field.value || ""} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+        <FormField
+          control={facultyForm.control}
+          name="academicYear"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Academic Year</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value || ""} className="w-full" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-                          <FormField
-                            control={facultyForm.control}
-                            name="division"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Division</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value || ""}>
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select division" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem className="cursor-pointer" value="Division 1">
-                                      Division 1
-                                    </SelectItem>
-                                    <SelectItem className="cursor-pointer" value="Division 2">
-                                      Division 2
-                                    </SelectItem>
-                                    <SelectItem className="cursor-pointer" value="Division 1 & Division 2">
-                                      Division 1 & Division 2
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <DialogFooter className="mt-6">
-                            <div className="flex justify-between w-full">
-                              <Button type="button" variant="outline" onClick={() => setFacultyDialogOpen(false)}>
-                                Cancel
-                              </Button>
-                              <Button type="submit" disabled={isAddingFaculty}>
-                                {isAddingFaculty ? "Adding..." : "Add Faculty"}
-                              </Button>
-                            </div>
-                          </DialogFooter>
-                        </form>
-                      </Form>
-                    </DialogContent>
-                  </Dialog>
+        <FormField
+          control={facultyForm.control}
+          name="division"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Division</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value || ""}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select division" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem className="cursor-pointer" value="Division 1">
+                    Division 1
+                  </SelectItem>
+                  <SelectItem className="cursor-pointer" value="Division 2">
+                    Division 2
+                  </SelectItem>
+                  <SelectItem className="cursor-pointer" value="Division 1 & Division 2">
+                    Division 1 & Division 2
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </form>
+    </Form>
+    <DialogFooter className="mt-6 px-6">
+      <div className="flex justify-between w-full">
+        <Button type="button" variant="outline" onClick={() => setFacultyDialogOpen(false)}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isAddingFaculty}>
+          {isAddingFaculty ? "Adding..." : "Add Faculty"}
+        </Button>
+      </div>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
                 </div>
                 <hr className="border-1 border-black mt-3" />
                 <div className="mt-3">
