@@ -711,7 +711,7 @@ export default function HODDashboard() {
                                 <FormItem className="flex-1">
                                   <FormLabel>Faculty Name</FormLabel>
                                   <FormControl>
-                                    <Input {...field} placeholder="Enter faculty name" value={field.value || ""} />
+                                    <Input {...field} placeholder="Enter faculty name" value={field.value || ""} className="w-[200px]" />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -725,7 +725,7 @@ export default function HODDashboard() {
                                 <FormItem className="flex-1">
                                   <FormLabel>Subject (Optional)</FormLabel>
                                   <Select onValueChange={field.onChange} value={field.value || ""}>
-                                    <FormControl>
+                                    <FormControl className="w-[250px]">
                                       <SelectTrigger>
                                         <SelectValue placeholder="Select Subject" />
                                       </SelectTrigger>
