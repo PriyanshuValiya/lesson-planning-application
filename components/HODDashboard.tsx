@@ -733,7 +733,7 @@ export default function HODDashboard() {
                                         <SelectValue placeholder="Select Subject" />
                                       </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent>
+                                    <SelectContent className="w-[250px]">
                                       {subjects.map((subject) => (
                                         <SelectItem className="cursor-pointer" key={subject.id} value={subject.id}>
                                           {subject.name} ({subject.abbreviation_name})
