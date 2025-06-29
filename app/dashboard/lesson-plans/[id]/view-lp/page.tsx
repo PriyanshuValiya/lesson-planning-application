@@ -47,10 +47,10 @@ function ViewLessonPlanPage() {
       }
     };
 
-    if (params.id && userData.id) {
+    if (params.id && userData?.id) {
       loadLessonPlan();
     }
-  }, [params.id, userData.id]);
+  }, [params.id, userData?.id]);
 
   if (isLoading) {
     return (
@@ -62,19 +62,17 @@ function ViewLessonPlanPage() {
     );
   }
 
-  if (!lessonPlan) {
+  if (!lessonPlan || !lessonPlan.form || !lessonPlan.subjects) {
     return (
       <div className="container mx-auto py-6">
         <div className="text-center py-12">
           <p className="text-lg text-red-500">
-            Lesson plan not found or you don&apos;t have permission to view it.
+            Lesson plan data is incomplete or corrupted.
           </p>
         </div>
       </div>
     );
   }
-
-  console.log("Lesson Plan Data:", lessonPlan);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "N/A";
@@ -85,12 +83,10 @@ function ViewLessonPlanPage() {
     return `${day}/${month}/${year}`;
   };
 
-  // Helper function to get section numbers dynamically
   const getSectionNumber = () => {
     let sectionNumber = 2;
     const sections = [];
 
-    // Only add Unit Details for non-practical-only subjects
     if (!isSubjectPracticalOnly(lessonPlan.subjects)) {
       sections.push({
         number: sectionNumber++,
@@ -99,7 +95,6 @@ function ViewLessonPlanPage() {
       });
     }
 
-    // Only add Practical Details for non-theory-only subjects
     if (!isSubjectTheoryOnly(lessonPlan.subjects)) {
       sections.push({
         number: sectionNumber++,
@@ -152,11 +147,11 @@ function ViewLessonPlanPage() {
                 Charotar University of Science and Technology (CHARUSAT)
               </h1>
               <h2 className="text-xl font-bold">
-                {userDataPlan?.departments?.institutes?.name}
-                {userDataPlan?.departments?.institutes?.abbreviation_insti}
+                {userDataPlan?.departments?.institutes?.name || "N/A"}
+                {userDataPlan?.departments?.institutes?.abbreviation_insti || ""}
               </h2>
               <h3 className="text-xl font-bold">
-                Department of {userDataPlan?.departments.name}
+                Department of {userDataPlan?.departments?.name || "N/A"}
               </h3>
               <h4 className="text-xl font-bold">
                 Lesson Planning Document (LPD)
@@ -175,20 +170,20 @@ function ViewLessonPlanPage() {
                     Faculty Name:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {lessonPlan.users.name}
+                    {lessonPlan.users?.name || "N/A"}
                   </td>
                   <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[10%]">
                     Faculty Email:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 w-[25%]">
-                    {lessonPlan.users.email}
+                    {lessonPlan.users?.email || "N/A"}
                   </td>
                   <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[11%]">
                     Department:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0 w-[25%]">
-                    {lessonPlan.subjects.departments.name} (
-                    {lessonPlan.subjects.departments.abbreviation_depart})
+                    {lessonPlan.subjects?.departments?.name || "N/A"} (
+                    {lessonPlan.subjects?.departments?.abbreviation_depart || "N/A"})
                   </td>
                 </tr>
                 <tr>
@@ -196,20 +191,20 @@ function ViewLessonPlanPage() {
                     Subject Code:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {lessonPlan.subjects.code}
+                    {lessonPlan.subjects?.code || "N/A"}
                   </td>
                   <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0 w-[10%]">
                     Subject Name:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {lessonPlan.subjects.name}
+                    {lessonPlan.subjects?.name || "N/A"}
                   </td>
                   <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                     Term Duration:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {lessonPlan.subjects.metadata.term_start_date} to{" "}
-                    {lessonPlan.subjects.metadata.term_end_date}
+                    {formatDate(lessonPlan.subjects?.metadata?.term_start_date) || "N/A"} to{" "}
+                    {formatDate(lessonPlan.subjects?.metadata?.term_end_date) || "N/A"}
                   </td>
                 </tr>
                 <tr>
@@ -217,13 +212,13 @@ function ViewLessonPlanPage() {
                     Semester:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {lessonPlan.subjects.semester}
+                    {lessonPlan.subjects?.semester || "N/A"}
                     <sup>
-                      {lessonPlan.subjects.semester === 1
+                      {lessonPlan.subjects?.semester === 1
                         ? "st"
-                        : lessonPlan.subjects.semester === 2
+                        : lessonPlan.subjects?.semester === 2
                         ? "nd"
-                        : lessonPlan.subjects.semester === 3
+                        : lessonPlan.subjects?.semester === 3
                         ? "rd"
                         : "th"}
                     </sup>{" "}
@@ -233,14 +228,14 @@ function ViewLessonPlanPage() {
                     Division:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {lessonPlan.form.generalDetails.division}
+                    {lessonPlan.form?.generalDetails?.division || "N/A"}
                   </td>
                   <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                     Academic Year:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                     {getAcademicYear(
-                      lessonPlan.subjects.metadata.term_start_date
+                      lessonPlan.subjects?.metadata?.term_start_date
                     )}
                   </td>
                 </tr>
@@ -249,19 +244,19 @@ function ViewLessonPlanPage() {
                     Lecture Hours/week:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {lessonPlan.form.generalDetails.lecture_hours}
+                    {lessonPlan.form?.generalDetails?.lecture_hours || "N/A"}
                   </td>
                   <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                     Lab Hour/week
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {lessonPlan.form.generalDetails.lab_hours}
+                    {lessonPlan.form?.generalDetails?.lab_hours || "N/A"}
                   </td>
                   <td className="border border-black p-2 font-bold break-words overflow-hidden text-ellipsis max-w-0">
                     Credits:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {lessonPlan.form.generalDetails.credits}
+                    {lessonPlan.form?.generalDetails?.credits || "N/A"}
                   </td>
                 </tr>
                 <tr>
@@ -272,7 +267,7 @@ function ViewLessonPlanPage() {
                     className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0"
                     colSpan={5}
                   >
-                    {lessonPlan.form.generalDetails.course_prerequisites ||
+                    {lessonPlan.form?.generalDetails?.course_prerequisites ||
                       "N/A"}
                   </td>
                 </tr>
@@ -284,8 +279,8 @@ function ViewLessonPlanPage() {
                     className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0"
                     colSpan={5}
                   >
-                    {lessonPlan.form.generalDetails
-                      .course_prerequisites_materials || "N/A"}
+                    {lessonPlan.form?.generalDetails
+                      ?.course_prerequisites_materials || "N/A"}
                   </td>
                 </tr>
               </tbody>
@@ -301,10 +296,10 @@ function ViewLessonPlanPage() {
                     {section.number}. {section.name}
                   </h2>
 
-                  {(lessonPlan.form.unitPlanning?.units || []).map(
+                  {(lessonPlan.form?.unitPlanning?.units || []).map(
                     (unit: any, index: number) => (
                       <div
-                        key={unit.id}
+                        key={unit?.id || index}
                         className={index > 0 ? "section-break" : ""}
                       >
                         <h3 className="text-lg font-semibold mb-2 mt-5">
@@ -318,13 +313,13 @@ function ViewLessonPlanPage() {
                                 Unit Name:
                               </td>
                               <td className="border border-black p-2 w-[30%]">
-                                {unit.unit_name}
+                                {unit?.unit_name || "N/A"}
                               </td>
                               <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
                                 Faculty Name:
                               </td>
                               <td className="border border-black p-2 w-[30%]">
-                                {unit.faculty_name}
+                                {unit?.faculty_name || "N/A"}
                               </td>
                             </tr>
                             <tr>
@@ -332,13 +327,13 @@ function ViewLessonPlanPage() {
                                 Start Date:
                               </td>
                               <td className="border border-black p-2">
-                                {formatDate(unit.probable_start_date)}
+                                {formatDate(unit?.probable_start_date)}
                               </td>
                               <td className="border border-black p-2 font-bold bg-gray-50">
                                 End Date:
                               </td>
                               <td className="border border-black p-2">
-                                {formatDate(unit.probable_end_date)}
+                                {formatDate(unit?.probable_end_date)}
                               </td>
                             </tr>
                             <tr>
@@ -346,7 +341,7 @@ function ViewLessonPlanPage() {
                                 No. of Lectures:
                               </td>
                               <td className="border border-black p-2 w-[30%]">
-                                {unit.no_of_lectures}
+                                {unit?.no_of_lectures || "N/A"}
                               </td>
                               <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
                                 CO Mapping:
@@ -355,15 +350,15 @@ function ViewLessonPlanPage() {
                                 className="border border-black p-2"
                                 colSpan={3}
                               >
-                                {unit.co_mapping
-                                  .map((coId) => {
+                                {unit?.co_mapping
+                                  ?.map((coId) => {
                                     const outcome =
-                                      lessonPlan.form.generalDetails.courseOutcomes.find(
+                                      lessonPlan.form?.generalDetails?.courseOutcomes?.find(
                                         (co) => co.id === coId
                                       );
                                     return outcome ? outcome.text : coId;
                                   })
-                                  .join(", ")}
+                                  .join(", ") || "N/A"}
                               </td>
                             </tr>
                             <tr>
@@ -374,7 +369,7 @@ function ViewLessonPlanPage() {
                                 className="border border-black p-2 text-sm break-words whitespace-normal"
                                 colSpan={3}
                               >
-                                {unit.unit_topics}
+                                {unit?.unit_topics || "N/A"}
                               </td>
                             </tr>
                             <tr>
@@ -385,7 +380,7 @@ function ViewLessonPlanPage() {
                                 className="border border-black p-2 text-sm break-words whitespace-normal"
                                 colSpan={3}
                               >
-                                {unit.self_study_topics || "N/A"}
+                                {unit?.self_study_topics || "N/A"}
                               </td>
                             </tr>
                             <tr>
@@ -396,7 +391,7 @@ function ViewLessonPlanPage() {
                                 className="border border-black p-2 text-sm break-words whitespace-normal"
                                 colSpan={3}
                               >
-                                {unit.self_study_materials || "N/A"}
+                                {unit?.self_study_materials || "N/A"}
                               </td>
                             </tr>
                             <tr>
@@ -407,7 +402,7 @@ function ViewLessonPlanPage() {
                                 className="border border-black p-2 text-sm break-words whitespace-normal"
                                 colSpan={3}
                               >
-                                {unit.teaching_pedagogy.join(", ")}
+                                {unit?.teaching_pedagogy?.join(", ") || "N/A"}
                               </td>
                             </tr>
                             <tr>
@@ -418,7 +413,7 @@ function ViewLessonPlanPage() {
                                 className="border border-black p-2 text-sm break-words whitespace-normal"
                                 colSpan={3}
                               >
-                                {unit.skill_mapping.join(", ")}
+                                {unit?.skill_mapping?.join(", ") || "N/A"}
                               </td>
                             </tr>
                             <tr>
@@ -429,7 +424,7 @@ function ViewLessonPlanPage() {
                                 className="border border-black p-2 text-sm break-words whitespace-normal"
                                 colSpan={3}
                               >
-                                {unit.unit_materials || "N/A"}
+                                {unit?.unit_materials || "N/A"}
                               </td>
                             </tr>
                             <tr>
@@ -440,7 +435,7 @@ function ViewLessonPlanPage() {
                                 className="border border-black p-2 text-sm break-words whitespace-normal"
                                 colSpan={3}
                               >
-                                {unit.skill_objectives || "N/A"}
+                                {unit?.skill_objectives || "N/A"}
                               </td>
                             </tr>
                             <tr>
@@ -451,7 +446,7 @@ function ViewLessonPlanPage() {
                                 className="border border-black p-2 text-sm break-words whitespace-normal"
                                 colSpan={3}
                               >
-                                {unit.topics_beyond_unit || "N/A"}
+                                {unit?.topics_beyond_unit || "N/A"}
                               </td>
                             </tr>
                             <tr>
@@ -462,7 +457,7 @@ function ViewLessonPlanPage() {
                                 className="border border-black p-2 text-sm break-words whitespace-normal"
                                 colSpan={3}
                               >
-                                {unit.interlink_topics || "N/A"}
+                                {unit?.interlink_topics || "N/A"}
                               </td>
                             </tr>
                           </tbody>
@@ -483,7 +478,7 @@ function ViewLessonPlanPage() {
                   <h2 className="text-lg font-bold mb-2">
                     {section.number}. {section.name}
                   </h2>
-                  {lessonPlan.form.practicals &&
+                  {lessonPlan.form?.practicals &&
                     lessonPlan.form.practicals.length > 0 && (
                       <div className="mb-6">
                         {lessonPlan.form.practicals.map(
@@ -503,13 +498,13 @@ function ViewLessonPlanPage() {
                                       Faculty Name:
                                     </td>
                                     <td className="border border-black p-2 w-[30%]">
-                                      {lessonPlan.users.name}
+                                      {lessonPlan.users?.name || "N/A"}
                                     </td>
                                     <td className="border border-black p-2 font-bold bg-gray-50 w-[20%]">
                                       Lab Hours:
                                     </td>
                                     <td className="border border-black p-2 w-[30%]">
-                                      {practical.lab_hours}
+                                      {practical?.lab_hours || "N/A"}
                                     </td>
                                   </tr>
                                   <tr>
@@ -517,24 +512,24 @@ function ViewLessonPlanPage() {
                                       Probable Week:
                                     </td>
                                     <td className="border border-black p-2">
-                                      {practical.probable_week}
+                                      {practical?.probable_week || "N/A"}
                                     </td>
                                     <td className="border border-black p-2 font-bold bg-gray-50">
                                       CO Mapping:
                                     </td>
                                     <td className="border border-black p-2">
-                                      {practical.co_mapping
-                                        .map((coId) => {
+                                      {practical?.co_mapping
+                                        ?.map((coId) => {
                                           const outcome =
-                                            lessonPlan.form.generalDetails.courseOutcomes.find(
+                                            lessonPlan.form?.generalDetails?.courseOutcomes?.find(
                                               (co) => co.id === coId
                                             );
                                           return outcome ? outcome.text : coId;
                                         })
-                                        .join(", ")}
+                                        .join(", ") || "N/A"}
                                     </td>
                                   </tr>
-                                  {practical.pso_mapping.length > 0 && (
+                                  {practical?.pso_mapping?.length > 0 && (
                                     <tr>
                                       <td className="border border-black p-2 font-bold bg-gray-50">
                                         PSO Mapping:
@@ -558,7 +553,7 @@ function ViewLessonPlanPage() {
                                       className="border border-black p-2 text-sm break-words whitespace-normal"
                                       colSpan={5}
                                     >
-                                      {practical.practical_aim}
+                                      {practical?.practical_aim || "N/A"}
                                     </td>
                                   </tr>
                                   <tr>
@@ -569,7 +564,7 @@ function ViewLessonPlanPage() {
                                       className="border border-black p-2 text-sm break-words whitespace-normal"
                                       colSpan={5}
                                     >
-                                      {practical.practical_tasks}
+                                      {practical?.practical_tasks || "N/A"}
                                     </td>
                                   </tr>
                                   <tr>
@@ -580,7 +575,7 @@ function ViewLessonPlanPage() {
                                       className="border border-black p-2 text-sm break-words whitespace-normal"
                                       colSpan={5}
                                     >
-                                      {practical.practical_pedagogy}
+                                      {practical?.practical_pedagogy || "N/A"}
                                     </td>
                                   </tr>
                                   <tr>
@@ -592,12 +587,12 @@ function ViewLessonPlanPage() {
                                       colSpan={5}
                                     >
                                       {Array.isArray(
-                                        practical.evaluation_methods
+                                        practical?.evaluation_methods
                                       )
                                         ? practical.evaluation_methods.join(
                                             ", "
                                           )
-                                        : practical.evaluation_methods}
+                                        : practical?.evaluation_methods || "N/A"}
                                     </td>
                                   </tr>
                                   <tr>
@@ -608,9 +603,9 @@ function ViewLessonPlanPage() {
                                       className="border border-black p-2 text-sm break-words whitespace-normal"
                                       colSpan={5}
                                     >
-                                      {Array.isArray(practical.associated_units)
+                                      {Array.isArray(practical?.associated_units)
                                         ? practical.associated_units.join(", ")
-                                        : practical.associated_units}
+                                        : practical?.associated_units || "N/A"}
                                     </td>
                                   </tr>
                                   <tr>
@@ -621,9 +616,9 @@ function ViewLessonPlanPage() {
                                       className="border border-black p-2 text-sm break-words whitespace-normal"
                                       colSpan={5}
                                     >
-                                      {Array.isArray(practical.blooms_taxonomy)
+                                      {Array.isArray(practical?.blooms_taxonomy)
                                         ? practical.blooms_taxonomy.join(", ")
-                                        : practical.blooms_taxonomy}
+                                        : practical?.blooms_taxonomy || "N/A"}
                                     </td>
                                   </tr>
                                   <tr>
@@ -634,9 +629,9 @@ function ViewLessonPlanPage() {
                                       className="border border-black p-2 text-sm break-words whitespace-normal"
                                       colSpan={5}
                                     >
-                                      {Array.isArray(practical.skill_mapping)
+                                      {Array.isArray(practical?.skill_mapping)
                                         ? practical.skill_mapping.join(", ")
-                                        : practical.skill_mapping}
+                                        : practical?.skill_mapping || "N/A"}
                                     </td>
                                   </tr>
                                   <tr>
@@ -647,7 +642,7 @@ function ViewLessonPlanPage() {
                                       className="border border-black p-2 text-sm break-words whitespace-normal"
                                       colSpan={5}
                                     >
-                                      {practical.skill_objectives}
+                                      {practical?.skill_objectives || "N/A"}
                                     </td>
                                   </tr>
                                   <tr>
@@ -658,7 +653,7 @@ function ViewLessonPlanPage() {
                                       className="border border-black p-2 text-sm break-words whitespace-normal"
                                       colSpan={5}
                                     >
-                                      {practical.reference_material}
+                                      {practical?.reference_material || "N/A"}
                                     </td>
                                   </tr>
                                   <tr>
@@ -669,7 +664,7 @@ function ViewLessonPlanPage() {
                                       className="border border-black p-2 text-sm break-words whitespace-normal"
                                       colSpan={5}
                                     >
-                                      {practical.software_hardware_requirements}
+                                      {practical?.software_hardware_requirements || "N/A"}
                                     </td>
                                   </tr>
                                 </tbody>
@@ -684,15 +679,13 @@ function ViewLessonPlanPage() {
             }
 
             if (section.type === "cie") {
-              // Define the order of evaluation types
               const evaluationTypeOrder = [
                 "Course Prerequisites CIE",
                 "Lecture CIE",
-                "Practical CIE", // This will now include Internal Practical
+                "Practical CIE",
                 "Mid-term/Internal Exam",
               ];
 
-              // Group CIE by evaluation type in the specified order
               const cieGroups: {
                 type: string;
                 cies: any[];
@@ -708,11 +701,9 @@ function ViewLessonPlanPage() {
                 { type: "Mid-term/Internal Exam", cies: [], showTotal: false },
               ];
 
-              // Populate the groups
-              lessonPlan.form.cies?.forEach((cie: any) => {
-                const type = cie.type || "Other";
+              lessonPlan.form?.cies?.forEach((cie: any) => {
+                const type = cie?.type || "Other";
 
-                // Combine Practical CIE and Internal Practical
                 if (type === "Internal Practical") {
                   cieGroups[2].cies.push({ ...cie, originalType: type });
                 } else {
@@ -723,19 +714,17 @@ function ViewLessonPlanPage() {
                 }
               });
 
-              // Calculate overall totals
               const totalMarks =
-                lessonPlan.form.cies?.reduce(
-                  (sum: number, cie: any) => sum + (cie.marks || 0),
+                lessonPlan.form?.cies?.reduce(
+                  (sum: number, cie: any) => sum + (cie?.marks || 0),
                   0
                 ) || 0;
               const totalDuration =
-                lessonPlan.form.cies?.reduce(
-                  (sum: number, cie: any) => sum + (cie.duration || 0),
+                lessonPlan.form?.cies?.reduce(
+                  (sum: number, cie: any) => sum + (cie?.duration || 0),
                   0
                 ) || 0;
 
-              // Format duration for totals (x hours xx minutes)
               const formatDurationTotal = (minutes: number) => {
                 if (minutes >= 60) {
                   const hours = Math.floor(minutes / 60);
@@ -752,15 +741,12 @@ function ViewLessonPlanPage() {
                 return `${minutes} minutes`;
               };
 
-              // Format duration for individual rows (just minutes)
               const formatDurationIndividual = (minutes: number) => {
                 return `${minutes || 0}`;
               };
 
-              // Track global index for numbering across all tables
               let globalIndex = 0;
 
-              // Column width classes for consistent sizing
               const colClasses = {
                 no: "w-[5%] min-w-[30px]",
                 unit: "w-[12%] min-w-[100px]",
@@ -780,7 +766,6 @@ function ViewLessonPlanPage() {
                     {section.number}. {section.name}
                   </h2>
 
-                  {/* Header Table - Only shown once */}
                   <div className="mb-0">
                     <table className="w-full border-collapse table-fixed">
                       <thead>
@@ -840,16 +825,15 @@ function ViewLessonPlanPage() {
                     </table>
                   </div>
 
-                  {/* Data Tables */}
                   {cieGroups.map(({ type, cies, showTotal }) => {
                     if (cies.length === 0) return null;
 
                     const groupMarks = cies.reduce(
-                      (sum, cie) => sum + (cie.marks || 0),
+                      (sum, cie) => sum + (cie?.marks || 0),
                       0
                     );
                     const groupDuration = cies.reduce(
-                      (sum, cie) => sum + (cie.duration || 0),
+                      (sum, cie) => sum + (cie?.duration || 0),
                       0
                     );
 
@@ -860,7 +844,7 @@ function ViewLessonPlanPage() {
                             {cies.map((cie) => {
                               globalIndex++;
                               return (
-                                <tr key={cie.id || globalIndex}>
+                                <tr key={cie?.id || globalIndex}>
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.no}`}
                                   >
@@ -871,7 +855,7 @@ function ViewLessonPlanPage() {
                                   >
                                     {(() => {
                                       if (
-                                        typeof cie.units_covered === "string"
+                                        typeof cie?.units_covered === "string"
                                       ) {
                                         if (
                                           !cie.units_covered ||
@@ -890,7 +874,7 @@ function ViewLessonPlanPage() {
                                           const mappedUnits = unitIds
                                             .map((unitId) => {
                                               const unitIndex =
-                                                lessonPlan.form.units?.findIndex(
+                                                lessonPlan.form?.units?.findIndex(
                                                   (u: any) => u.id === unitId
                                                 );
                                               return unitIndex !== -1
@@ -904,13 +888,13 @@ function ViewLessonPlanPage() {
                                         }
                                         return cie.units_covered;
                                       }
-                                      if (Array.isArray(cie.units_covered)) {
+                                      if (Array.isArray(cie?.units_covered)) {
                                         if (cie.units_covered.length === 0)
                                           return "-";
                                         const unitNumbers = cie.units_covered
                                           .map((unitId) => {
                                             const unitIndex =
-                                              lessonPlan.form.units?.findIndex(
+                                              lessonPlan.form?.units?.findIndex(
                                                 (u: any) => u.id === unitId
                                               );
                                             return unitIndex !== -1
@@ -928,31 +912,31 @@ function ViewLessonPlanPage() {
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.date}`}
                                   >
-                                    {cie.date
+                                    {cie?.date
                                       ? cie.date.replace(/-/g, "/")
                                       : "-"}
                                   </td>
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.marks}`}
                                   >
-                                    {cie.marks || "-"}
+                                    {cie?.marks || "-"}
                                   </td>
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.duration}`}
                                   >
                                     {formatDurationIndividual(
-                                      cie.duration || 0
+                                      cie?.duration || 0
                                     )}
                                   </td>
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.evalType}`}
                                   >
-                                    {cie.originalType || cie.type || "-"}
+                                    {cie?.originalType || cie?.type || "-"}
                                   </td>
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.blooms}`}
                                   >
-                                    {cie.blooms_taxonomy &&
+                                    {cie?.blooms_taxonomy &&
                                     cie.blooms_taxonomy.length > 0
                                       ? cie.blooms_taxonomy.join(", ")
                                       : "-"}
@@ -960,7 +944,7 @@ function ViewLessonPlanPage() {
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.pedagogy}`}
                                   >
-                                    {cie.evaluation_pedagogy || "-"}
+                                    {cie?.evaluation_pedagogy || "-"}
                                   </td>
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.copso}`}
@@ -968,7 +952,7 @@ function ViewLessonPlanPage() {
                                     {(() => {
                                       let mappings = [];
                                       if (
-                                        cie.co_mapping &&
+                                        cie?.co_mapping &&
                                         cie.co_mapping.length > 0
                                       ) {
                                         const coNumbers = cie.co_mapping.map(
@@ -978,7 +962,7 @@ function ViewLessonPlanPage() {
                                         mappings.push(...coNumbers);
                                       }
                                       if (
-                                        cie.pso_mapping &&
+                                        cie?.pso_mapping &&
                                         cie.pso_mapping.length > 0
                                       ) {
                                         const psoNumbers = cie.pso_mapping.map(
@@ -987,7 +971,7 @@ function ViewLessonPlanPage() {
                                         mappings.push(...psoNumbers);
                                       }
                                       if (
-                                        cie.peo_mapping &&
+                                        cie?.peo_mapping &&
                                         cie.peo_mapping.length > 0
                                       ) {
                                         const peoNumbers = cie.peo_mapping.map(
@@ -1003,7 +987,7 @@ function ViewLessonPlanPage() {
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.skills}`}
                                   >
-                                    {cie.skill_mapping &&
+                                    {cie?.skill_mapping &&
                                     cie.skill_mapping.length > 0
                                       ? cie.skill_mapping
                                           .map((skill: any) =>
@@ -1018,11 +1002,10 @@ function ViewLessonPlanPage() {
                               );
                             })}
 
-                            {/* Group Total Row - Only for tables that should show totals */}
                             {showTotal && (
                               <tr className="font-bold">
                                 <td
-                                  className={`border border-black p-2 text-right ${colClasses.unit} w-[347px]`}
+                                  className={`border border-black p-2 text-center ${colClasses.unit} w-[347px]`}
                                   colSpan={3}
                                 >
                                   Total
@@ -1039,7 +1022,7 @@ function ViewLessonPlanPage() {
                                 </td>
                                 <td
                             className={`border border-black p-2 text-center`}
-                            colSpan={5} // Merges last 5 columns
+                            colSpan={5}
                           ></td>
                               </tr>
                             )}
@@ -1049,14 +1032,13 @@ function ViewLessonPlanPage() {
                     );
                   })}
 
-                  {/* Overall Total Row */}
                   <div className="mt-2">
                     <table className="w-full border-collapse table-fixed">
                       <tbody>
                         <tr className="font-bold">
                           <td
                             className={`border border-black p-2 text-right w-[347px]`}
-                            colSpan={2} // Merges No., Unit, and Date columns
+                            colSpan={2}
                           >
                             Overall Total
                           </td>
@@ -1072,7 +1054,7 @@ function ViewLessonPlanPage() {
                           </td>
                           <td
                             className={`border border-black p-2 text-center`}
-                            colSpan={5} // Merges last 5 columns
+                            colSpan={5}
                           ></td>
                         </tr>
                       </tbody>
@@ -1088,7 +1070,7 @@ function ViewLessonPlanPage() {
                   <h2 className="text-lg font-bold mb-2">
                     {section.number}. {section.name}
                   </h2>
-                  {lessonPlan.form.additionalInfo &&
+                  {lessonPlan.form?.additionalInfo &&
                     Object.keys(lessonPlan.form.additionalInfo).length > 0 && (
                       <div className="mb-6">
                         <table className="w-full border-collapse">
@@ -1111,7 +1093,7 @@ function ViewLessonPlanPage() {
                                 >
                                   {
                                     lessonPlan.form.additionalInfo
-                                      .academic_integrity
+                                      .academic_integrity || "N/A"
                                   }
                                 </td>
                               </tr>
@@ -1134,7 +1116,7 @@ function ViewLessonPlanPage() {
                                 >
                                   {
                                     lessonPlan.form.additionalInfo
-                                      .attendance_policy
+                                      .attendance_policy || "N/A"
                                   }
                                 </td>
                               </tr>
@@ -1156,7 +1138,7 @@ function ViewLessonPlanPage() {
                                 >
                                   {
                                     lessonPlan.form.additionalInfo
-                                      .cie_guidelines
+                                      .cie_guidelines || "N/A"
                                   }
                                 </td>
                               </tr>
@@ -1179,7 +1161,7 @@ function ViewLessonPlanPage() {
                                 >
                                   {
                                     lessonPlan.form.additionalInfo
-                                      .classroom_conduct
+                                      .classroom_conduct || "N/A"
                                   }
                                 </td>
                               </tr>
@@ -1202,12 +1184,11 @@ function ViewLessonPlanPage() {
                                 >
                                   {
                                     lessonPlan.form.additionalInfo
-                                      .communication_channels
+                                      .communication_channels || "N/A"
                                   }
                                 </td>
                               </tr>
                             )}
-                            {/* Add any other additional info fields here */}
                           </tbody>
                         </table>
                       </div>
@@ -1244,7 +1225,6 @@ function ViewLessonPlanPage() {
                           </td>
                         </tr>
 
-                        {/* Only show Unit Planning row for non-practical-only subjects */}
                         {!isSubjectPracticalOnly(lessonPlan.subjects) && (
                           <tr>
                             <td className="border border-black p-3 font-bold bg-gray-50">
@@ -1266,7 +1246,6 @@ function ViewLessonPlanPage() {
                           </tr>
                         )}
 
-                        {/* Only show Practical Planning row for non-theory-only subjects */}
                         {!isSubjectTheoryOnly(lessonPlan.subjects) && (
                           <tr>
                             <td className="border border-black p-3 font-bold bg-gray-50">
