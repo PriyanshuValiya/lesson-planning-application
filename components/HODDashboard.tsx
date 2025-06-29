@@ -674,13 +674,13 @@ export default function HODDashboard() {
     </Button>
   </DialogTrigger>
   <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-    <DialogHeader className="px-3">
+    <DialogHeader className="px-1">
       <DialogTitle className="text-[#1A5CA1] font-manrope font-bold text-[22px] leading-[25px] mb-4">
         Add New Faculty
       </DialogTitle>
     </DialogHeader>
     <Form {...facultyForm}>
-      <form onSubmit={facultyForm.handleSubmit(onAddFacultySubmit)} className="space-y-4 px-3">
+      <form onSubmit={facultyForm.handleSubmit(onAddFacultySubmit)} className="space-y-4 px-1">
         <FormField
           control={facultyForm.control}
           name="email"
@@ -791,7 +791,7 @@ export default function HODDashboard() {
         />
       </form>
     </Form>
-    <DialogFooter className="mt-6 px-3">
+    <DialogFooter className="mt-6 px-1">
       <div className="flex justify-between w-full">
         <Button type="button" variant="outline" onClick={() => setFacultyDialogOpen(false)}>
           Cancel
