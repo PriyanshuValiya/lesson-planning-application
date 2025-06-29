@@ -680,7 +680,7 @@ export default function HODDashboard() {
                         </DialogTitle>
                       </DialogHeader>
                       <Form {...facultyForm}>
-                        <form onSubmit={facultyForm.handleSubmit(onAddFacultySubmit)} className="space-y-4">
+                        <form onSubmit={facultyForm.handleSubmit(onAddFacultySubmit)} className="space-y-4 px-2">
                           <FormField
                             control={facultyForm.control}
                             name="email"
