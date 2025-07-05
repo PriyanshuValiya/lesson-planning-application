@@ -1,27 +1,21 @@
 //@ts-nocheck
-"use client";
+"use client"
 
-import type React from "react";
+import type React from "react"
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, AlertTriangle, Info } from "lucide-react";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/utils/supabase/client";
-import { savePracticalPlanningForm } from "@/app/dashboard/actions/savePracticalPlanningForm";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Plus, Trash2, AlertTriangle, Info } from "lucide-react"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { supabase } from "@/utils/supabase/client"
+import { savePracticalPlanningForm } from "@/app/dashboard/actions/savePracticalPlanningForm"
 import {
   Dialog,
   DialogContent,
@@ -29,24 +23,19 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  saveFormDraft,
-  loadFormDraft,
-  deleteFormDraft,
-} from "@/app/dashboard/actions/saveFormDraft";
-import { start } from "repl";
+} from "@/components/ui/dialog"
+import { saveFormDraft, loadFormDraft, deleteFormDraft } from "@/app/dashboard/actions/saveFormDraft"
 
 interface PSOPEOItem {
-  id: string;
-  label?: string;
-  description: string;
+  id: string
+  label?: string
+  description: string
 }
 
 interface PracticalPlanningFormProps {
-  lessonPlan: any;
-  setLessonPlan: React.Dispatch<React.SetStateAction<any>>;
-  userData: any;
+  lessonPlan: any
+  setLessonPlan: React.Dispatch<React.SetStateAction<any>>
+  userData: any
 }
 
 // Practical Pedagogy Options
@@ -62,7 +51,7 @@ const practicalPedagogyOptions = [
   "Peer Learning",
   "Research-Oriented Practical",
   "Other",
-];
+]
 
 // Evaluation Method Options
 const evaluationMethodOptions = [
@@ -74,10 +63,10 @@ const evaluationMethodOptions = [
   "Peer Evaluation",
   "Presentation",
   "Other",
-];
+]
 
 // Bloom's Taxonomy Options for Practicals
-const bloomsTaxonomyOptions = ["Apply", "Analyze", "Evaluate", "Create"];
+const bloomsTaxonomyOptions = ["Apply", "Analyze", "Evaluate", "Create"]
 
 // Skill Mapping Options
 const skillMappingOptions = [
@@ -90,7 +79,7 @@ const skillMappingOptions = [
   "Leadership and Teamwork Skills",
   "Creativity and Design Thinking Skills",
   "Ethical, Social, and Environmental Awareness Skills",
-];
+]
 
 // Default PSO/PEO options if none are found
 const defaultPsoOptions = [
@@ -99,7 +88,7 @@ const defaultPsoOptions = [
   { id: "pso-3", label: "PSO3", description: "Program Specific Outcome 3" },
   { id: "pso-4", label: "PSO4", description: "Program Specific Outcome 4" },
   { id: "pso-5", label: "PSO5", description: "Program Specific Outcome 5" },
-];
+]
 
 const defaultPeoOptions = [
   {
@@ -127,169 +116,150 @@ const defaultPeoOptions = [
     label: "PEO5",
     description: "Program Educational Objective 5",
   },
-];
+]
 
-export default function PracticalPlanningForm({
-  lessonPlan,
-  setLessonPlan,
-  userData,
-}: PracticalPlanningFormProps) {
-  const [activePractical, setActivePractical] = useState(0);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
+export default function PracticalPlanningForm({ lessonPlan, setLessonPlan, userData }: PracticalPlanningFormProps) {
+  const [activePractical, setActivePractical] = useState(0)
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([])
   const [departmentPsoPeo, setDepartmentPsoPeo] = useState<{
-    pso_data: PSOPEOItem[];
-    peo_data: PSOPEOItem[];
+    pso_data: PSOPEOItem[]
+    peo_data: PSOPEOItem[]
   }>({
     pso_data: [],
     peo_data: [],
-  });
-  const [loadingPsoPeo, setLoadingPsoPeo] = useState(false);
-  const [psoPeoError, setPsoPeoError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
-  const [currentWarning, setCurrentWarning] = useState("");
-  const [isSavingDraft, setIsSavingDraft] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [showOtherSkillInput, setShowOtherSkillInput] = useState(false);
-  const [otherSkillValue, setOtherSkillValue] = useState("");
-  const [showOtherPedagogyInput, setShowOtherPedagogyInput] = useState(false);
-  const [otherPedagogyValue, setOtherPedagogyValue] = useState("");
-  const [showOtherEvaluationInput, setShowOtherEvaluationInput] =
-    useState(false);
-  const [otherEvaluationValue, setOtherEvaluationValue] = useState("");
+  })
+  const [loadingPsoPeo, setLoadingPsoPeo] = useState(false)
+  const [psoPeoError, setPsoPeoError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [warningDialogOpen, setWarningDialogOpen] = useState(false)
+  const [currentWarning, setCurrentWarning] = useState("")
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [showOtherSkillInput, setShowOtherSkillInput] = useState(false)
+  const [otherSkillValue, setOtherSkillValue] = useState("")
+  const [showOtherPedagogyInput, setShowOtherPedagogyInput] = useState(false)
+  const [otherPedagogyValue, setOtherPedagogyValue] = useState("")
+  const [showOtherEvaluationInput, setShowOtherEvaluationInput] = useState(false)
+  const [otherEvaluationValue, setOtherEvaluationValue] = useState("")
+  const [draftLoaded, setDraftLoaded] = useState(false)
 
   // OPTIMIZED: Simplified term dates state
   const [termDates, setTermDates] = useState<{
-    startDate: string;
-    endDate: string;
+    startDate: string
+    endDate: string
   }>({
     startDate: "",
     endDate: "",
-  });
+  })
 
   // OPTIMIZED: Add loading state for weeks
-  const [loadingWeeks, setLoadingWeeks] = useState(false);
+  const [loadingWeeks, setLoadingWeeks] = useState(false)
 
   // Field-specific error states
-  const [practicalAimError, setPracticalAimError] = useState("");
-  const [associatedUnitsError, setAssociatedUnitsError] = useState("");
-  const [probableWeekError, setProbableWeekError] = useState("");
-  const [labHoursError, setLabHoursError] = useState("");
-  const [softwareHardwareError, setSoftwareHardwareError] = useState("");
-  const [practicalTasksError, setPracticalTasksError] = useState("");
-  const [evaluationMethodsError, setEvaluationMethodsError] = useState("");
-  const [practicalPedagogyError, setPracticalPedagogyError] = useState("");
-  const [referenceError, setReferenceError] = useState("");
-  const [coMappingError, setCoMappingError] = useState("");
-  const [bloomsError, setBloomsError] = useState("");
-  const [skillMappingError, setSkillMappingError] = useState("");
-  const [skillObjectivesError, setSkillObjectivesError] = useState("");
+  const [practicalAimError, setPracticalAimError] = useState("")
+  const [associatedUnitsError, setAssociatedUnitsError] = useState("")
+  const [probableWeekError, setProbableWeekError] = useState("")
+  const [labHoursError, setLabHoursError] = useState("")
+  const [softwareHardwareError, setSoftwareHardwareError] = useState("")
+  const [practicalTasksError, setPracticalTasksError] = useState("")
+  const [evaluationMethodsError, setEvaluationMethodsError] = useState("")
+  const [practicalPedagogyError, setPracticalPedagogyError] = useState("")
+  const [referenceError, setReferenceError] = useState("")
+  const [coMappingError, setCoMappingError] = useState("")
+  const [bloomsError, setBloomsError] = useState("")
+  const [skillMappingError, setSkillMappingError] = useState("")
+  const [skillObjectivesError, setSkillObjectivesError] = useState("")
 
   // Add this to your state variables at the top of the component
-  const [isLoadingDraft, setIsLoadingDraft] = useState(true);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(true)
 
   // FIXED: Check if subject is practical-only
-  const isPracticalOnly =
-    lessonPlan?.subject?.is_practical === true &&
-    lessonPlan?.subject?.is_theory === false;
+  const isPracticalOnly = lessonPlan?.subject?.is_practical === true && lessonPlan?.subject?.is_theory === false
 
   // FIXED: Helper function to check if a string is a UUID
   const isUUID = (str: string) => {
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(str);
-  };
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    return uuidRegex.test(str)
+  }
 
   // FIXED: Helper function to convert UUID to unit name
   const convertUUIDToUnitName = (unitId: string) => {
-    if (!isUUID(unitId)) return unitId; // Already a name
+    if (!isUUID(unitId)) return unitId // Already a name
 
-    const unit = (lessonPlan.units || []).find((u: any) => u.id === unitId);
+    const unit = (lessonPlan.units || []).find((u: any) => u.id === unitId)
     if (unit) {
-      return (
-        unit.unit_name ||
-        `Unit ${
-          (lessonPlan.units || []).findIndex((u: any) => u.id === unitId) + 1
-        }`
-      );
+      return unit.unit_name || `Unit ${(lessonPlan.units || []).findIndex((u: any) => u.id === unitId) + 1}`
     }
-    return unitId; // Fallback to original if not found
-  };
+    return unitId // Fallback to original if not found
+  }
 
   // OPTIMIZED: Memoized week generation function
   const generateWeekOptions = useMemo(() => {
     const generate = (startDateStr: string, endDateStr: string): string[] => {
       if (!startDateStr || !endDateStr) {
-        return [];
+        return []
       }
 
       try {
         // OPTIMIZED: Faster date parsing using direct Date constructor
         const parseDate = (dateStr: string): Date => {
-          const [day, month, year] = dateStr.split("-").map(Number);
-          return new Date(year, month - 1, day);
-        };
+          const [day, month, year] = dateStr.split("-").map(Number)
+          return new Date(year, month - 1, day)
+        }
 
-        const startDate = parseDate(startDateStr);
-        const endDate = parseDate(endDateStr);
+        const startDate = parseDate(startDateStr)
+        const endDate = parseDate(endDateStr)
 
-        console.log(startDate, endDate);
+        console.log(startDate, endDate)
 
         // OPTIMIZED: Calculate weeks more efficiently
-        const diffTime = endDate.getTime() - startDate.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        const numWeeks = Math.min(Math.ceil(diffDays / 7), 20); // Cap at 20 weeks for performance
+        const diffTime = endDate.getTime() - startDate.getTime()
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        const numWeeks = Math.min(Math.ceil(diffDays / 7), 20) // Cap at 20 weeks for performance
 
-        console.log(numWeeks, diffDays);
+        console.log(numWeeks, diffDays)
 
         // OPTIMIZED: Pre-calculate format function
         const formatDate = (date: Date): string => {
-          const day = date.getDate().toString().padStart(2, "0");
-          const month = (date.getMonth() + 1).toString().padStart(2, "0");
-          const year = date.getFullYear();
-          return `${day}-${month}-${year}`;
-        };
-
-        // OPTIMIZED: Generate weeks in batch
-        const weeks: string[] = [];
-        const startTime = startDate.getTime();
-        const endTime = endDate.getTime();
-        const weekMs = 7 * 24 * 60 * 60 * 1000;
-
-        for (let i = 0; i < numWeeks; i++) {
-          const weekStartTime = startTime + i * weekMs;
-          const weekEndTime = Math.min(
-            weekStartTime + weekMs - 24 * 60 * 60 * 1000,
-            endTime
-          );
-
-          const weekStartDate = new Date(weekStartTime);
-          const weekEndDate = new Date(weekEndTime);
-
-          weeks.push(
-            `Week ${i + 1} (${formatDate(weekStartDate)} - ${formatDate(
-              weekEndDate
-            )})` 
-          );
+          const day = date.getDate().toString().padStart(2, "0")
+          const month = (date.getMonth() + 1).toString().padStart(2, "0")
+          const year = date.getFullYear()
+          return `${day}-${month}-${year}`
         }
 
-        console.log("Generated weeks:", weeks);
-        return weeks;
-      } catch (error) {
-        console.error("Error generating week options:", error);
-        return [];
-      }
-    };
+        // OPTIMIZED: Generate weeks in batch
+        const weeks: string[] = []
+        const startTime = startDate.getTime()
+        const endTime = endDate.getTime()
+        const weekMs = 7 * 24 * 60 * 60 * 1000
 
-    return generate(termDates.startDate, termDates.endDate);
-  }, [termDates.startDate, termDates.endDate]);
+        for (let i = 0; i < numWeeks; i++) {
+          const weekStartTime = startTime + i * weekMs
+          const weekEndTime = Math.min(weekStartTime + weekMs - 24 * 60 * 60 * 1000, endTime)
+
+          const weekStartDate = new Date(weekStartTime)
+          const weekEndDate = new Date(weekEndTime)
+
+          weeks.push(`Week ${i + 1} (${formatDate(weekStartDate)} - ${formatDate(weekEndDate)})`)
+        }
+
+        console.log("Generated weeks:", weeks)
+        return weeks
+      } catch (error) {
+        console.error("Error generating week options:", error)
+        return []
+      }
+    }
+
+    return generate(termDates.startDate, termDates.endDate)
+  }, [termDates.startDate, termDates.endDate])
 
   // OPTIMIZED: Simplified and faster term dates fetching
   const fetchTermDates = useCallback(async () => {
-    if (!lessonPlan?.subject?.code || loadingWeeks) return;
+    if (!lessonPlan?.subject?.code || loadingWeeks) return
 
-    setLoadingWeeks(true);
+    setLoadingWeeks(true)
     console.log(lessonPlan.subject)
 
     try {
@@ -298,46 +268,46 @@ export default function PracticalPlanningForm({
         .from("subjects")
         .select("metadata")
         .eq("id", lessonPlan.subject.id)
-        .single();
+        .single()
 
       if (error || !data?.metadata) {
-        console.error("No metadata found for subject");
-        setLoadingWeeks(false);
-        return;
+        console.error("No metadata found for subject")
+        setLoadingWeeks(false)
+        return
       }
 
       // OPTIMIZED: Faster metadata parsing
-      let metadata = data.metadata;
+      let metadata = data.metadata
       if (typeof metadata === "string") {
         try {
-          metadata = JSON.parse(metadata);
+          metadata = JSON.parse(metadata)
         } catch (e) {
-          console.error("Error parsing metadata:", e);
-          setLoadingWeeks(false);
-          return;
+          console.error("Error parsing metadata:", e)
+          setLoadingWeeks(false)
+          return
         }
       }
 
       // OPTIMIZED: Direct state update
-      const startDate = metadata?.term_start_date || "";
-      const endDate = metadata?.term_end_date || "";
+      const startDate = metadata?.term_start_date || ""
+      const endDate = metadata?.term_end_date || ""
 
       if (startDate && endDate) {
-        setTermDates({ startDate, endDate });
+        setTermDates({ startDate, endDate })
       }
     } catch (error) {
-      console.error("Error fetching term dates:", error);
+      console.error("Error fetching term dates:", error)
     } finally {
-      setLoadingWeeks(false);
+      setLoadingWeeks(false)
     }
-  }, [lessonPlan?.subject?.code, loadingWeeks]);
+  }, [lessonPlan?.subject?.code, lessonPlan?.subject?.id, loadingWeeks])
 
   // OPTIMIZED: Reduced useEffect calls
   useEffect(() => {
     if (lessonPlan?.subject?.code && !termDates.startDate) {
-      fetchTermDates();
+      fetchTermDates()
     }
-  }, [lessonPlan?.subject?.code, termDates.startDate, fetchTermDates]);
+  }, [lessonPlan?.subject?.code, lessonPlan?.subject?.id, termDates.startDate, fetchTermDates])
 
   // Initialize practicals if empty
   useEffect(() => {
@@ -361,22 +331,22 @@ export default function PracticalPlanningForm({
         blooms_taxonomy: [],
         skill_mapping: [],
         skill_objectives: "",
-      };
+      }
 
       setLessonPlan((prev: any) => ({
         ...prev,
         practicals: [initialPractical],
-      }));
+      }))
     }
-  }, [lessonPlan?.practicals, setLessonPlan]);
+  }, [lessonPlan?.practicals, setLessonPlan])
 
   // Updated PSO/PEO loading logic to fetch from department_pso_peo table
   useEffect(() => {
     const loadPsoPeoData = async () => {
-      if (!lessonPlan.subject?.id) return;
+      if (!lessonPlan.subject?.id) return
 
-      setLoadingPsoPeo(true);
-      setPsoPeoError(null);
+      setLoadingPsoPeo(true)
+      setPsoPeoError(null)
 
       try {
         // Step 1: Get the department_id from the subject
@@ -384,71 +354,76 @@ export default function PracticalPlanningForm({
           .from("subjects")
           .select("department_id")
           .eq("id", lessonPlan.subject.id)
-          .single();
+          .single()
 
         if (subjectError || !subjectData?.department_id) {
-          throw new Error("Failed to fetch subject's department.");
+          throw new Error("Failed to fetch subject's department.")
         }
 
-        const departmentId = subjectData.department_id;
+        const departmentId = subjectData.department_id
 
         // Step 2: Fetch PSO/PEO data from department_pso_peo table
         const { data: deptPsoPeo, error: deptError } = await supabase
           .from("department_pso_peo")
           .select("pso_data, peo_data")
           .eq("department_id", departmentId)
-          .single();
+          .single()
 
-        let psoData = defaultPsoOptions;
-        let peoData = defaultPeoOptions;
+        let psoData = defaultPsoOptions
+        let peoData = defaultPeoOptions
 
         if (!deptError && deptPsoPeo) {
           if (Array.isArray(deptPsoPeo.pso_data)) {
-            psoData = deptPsoPeo.pso_data;
+            psoData = deptPsoPeo.pso_data
           }
 
           if (Array.isArray(deptPsoPeo.peo_data)) {
-            peoData = deptPsoPeo.peo_data;
+            peoData = deptPsoPeo.peo_data
           }
         } else {
-          console.warn(
-            "Falling back to default PSO/PEO due to missing department data or error."
-          );
+          console.warn("Falling back to default PSO/PEO due to missing department data or error.")
         }
 
         // Step 3: Set data to state
         setDepartmentPsoPeo({
           pso_data: psoData,
           peo_data: peoData,
-        });
+        })
 
         console.log("Loaded PSO/PEO from department_pso_peo:", {
           pso_count: psoData.length,
           peo_count: peoData.length,
-        });
+        })
       } catch (error) {
-        console.error("Error loading PSO/PEO:", error);
-        setPsoPeoError("Failed to load PSO/PEO. Default values used.");
+        console.error("Error loading PSO/PEO:", error)
+        setPsoPeoError("Failed to load PSO/PEO. Default values used.")
 
         setDepartmentPsoPeo({
           pso_data: defaultPsoOptions,
           peo_data: defaultPeoOptions,
-        });
+        })
       } finally {
-        setLoadingPsoPeo(false);
+        setLoadingPsoPeo(false)
       }
-    };
+    }
 
-    loadPsoPeoData();
-  }, [lessonPlan.subject?.id, lessonPlan.subject]);
+    loadPsoPeoData()
+  }, [lessonPlan.subject?.id, lessonPlan.subject, userData?.id])
 
   // Replace the existing useEffect for loading drafts with this improved implementation
   useEffect(() => {
     // Auto-load draft immediately when component mounts and required data is available
     const autoLoadDraft = async () => {
+      // Prevent multiple loads
+      if (draftLoaded) {
+        console.log("❌ PRACTICAL AUTO-LOAD: Draft already loaded, skipping")
+        setIsLoadingDraft(false)
+        return
+      }
+
       // Check if we have all required data - we need either userData.id OR faculty.id from lesson plan
-      const facultyId = lessonPlan?.faculty?.id || userData?.id;
-      const subjectId = lessonPlan?.subject?.id;
+      const facultyId = lessonPlan?.faculty?.id || userData?.id
+      const subjectId = lessonPlan?.subject?.id
 
       if (!facultyId || !subjectId) {
         console.log("❌ PRACTICAL AUTO-LOAD: Missing required data:", {
@@ -458,185 +433,147 @@ export default function PracticalPlanningForm({
           lessonPlanFacultyId: lessonPlan?.faculty?.id,
           hasLessonPlan: !!lessonPlan,
           hasSubject: !!lessonPlan?.subject,
-        });
-        setIsLoadingDraft(false);
-        return;
+        })
+        setIsLoadingDraft(false)
+        return
       }
 
       // Check if we already have practicals data to avoid unnecessary loading
-      const currentPracticals = lessonPlan.practicals || [];
+      const currentPracticals = lessonPlan.practicals || []
       const hasExistingData =
-        currentPracticals.length > 0 && currentPracticals[0]?.practical_aim;
+        currentPracticals.length > 0 &&
+        currentPracticals[0]?.practical_aim &&
+        currentPracticals[0]?.practical_aim.trim() !== ""
 
       if (hasExistingData) {
-        setIsLoadingDraft(false);
-        return;
+        console.log("❌ PRACTICAL AUTO-LOAD: Already has existing data, skipping")
+        setIsLoadingDraft(false)
+        setDraftLoaded(true)
+        return
       }
 
-      console.log("🚀 PRACTICAL AUTO-LOAD: Starting auto-load process...");
-      setIsLoadingDraft(true);
+      console.log("🚀 PRACTICAL AUTO-LOAD: Starting auto-load process...")
+      setIsLoadingDraft(true)
 
       try {
-        console.log(
-          "📡 PRACTICAL AUTO-LOAD: Making API call to loadFormDraft..."
-        );
-        const result = await loadFormDraft(
-          facultyId,
-          subjectId,
-          "practical_planning"
-        );
+        console.log("📡 PRACTICAL AUTO-LOAD: Making API call to loadFormDraft...")
+        const result = await loadFormDraft(facultyId, subjectId, "practical_planning")
 
-        console.log("📡 PRACTICAL AUTO-LOAD: API response:", result);
+        console.log("📡 PRACTICAL AUTO-LOAD: API response:", result)
 
         if (result.success && result.data) {
-          const data = result.data;
-          console.log("✅ PRACTICAL AUTO-LOAD: Draft data received:", data);
+          const data = result.data
+          console.log("✅ PRACTICAL AUTO-LOAD: Draft data received:", data)
 
           // Check if we have valid practical data structure
-          if (
-            data.practicals &&
-            Array.isArray(data.practicals) &&
-            data.practicals.length > 0
-          ) {
-            console.log(
-              "✅ PRACTICAL AUTO-LOAD: Valid practicals found:",
-              data.practicals.length
-            );
+          if (data.practicals && Array.isArray(data.practicals) && data.practicals.length > 0) {
+            console.log("✅ PRACTICAL AUTO-LOAD: Valid practicals found:", data.practicals.length)
 
             // FIXED: Ensure each practical has proper structure and convert UUIDs to unit names
-            const validPracticals = data.practicals.map(
-              (practical: any, index: number) => {
-                // FIXED: Convert UUID associated_units to unit names
-                const convertedUnits = (practical.associated_units || []).map(
-                  (unit: string) => convertUUIDToUnitName(unit)
-                );
+            const validPracticals = data.practicals.map((practical: any, index: number) => {
+              // FIXED: Convert UUID associated_units to unit names
+              const convertedUnits = (practical.associated_units || []).map((unit: string) =>
+                convertUUIDToUnitName(unit),
+              )
 
-                const validPractical = {
-                  ...practical,
-                  // Ensure all required fields have default values
-                  id: practical.id || `practical${index + 1}`,
-                  practical_aim: practical.practical_aim || "",
-                  associated_units: convertedUnits, // FIXED: Use converted unit names
-                  probable_week: practical.probable_week || "",
-                  lab_hours:
-                    typeof practical.lab_hours === "number"
-                      ? practical.lab_hours
-                      : 2,
-                  software_hardware_requirements:
-                    practical.software_hardware_requirements || "",
-                  practical_tasks: practical.practical_tasks || "",
-                  evaluation_methods: Array.isArray(
-                    practical.evaluation_methods
-                  )
-                    ? practical.evaluation_methods
-                    : [],
-                  other_evaluation_method:
-                    practical.other_evaluation_method || "",
-                  practical_pedagogy: practical.practical_pedagogy || "",
-                  other_pedagogy: practical.other_pedagogy || "",
-                  reference_material: practical.reference_material || "",
-                  co_mapping: Array.isArray(practical.co_mapping)
-                    ? practical.co_mapping
-                    : [],
-                  pso_mapping: Array.isArray(practical.pso_mapping)
-                    ? practical.pso_mapping
-                    : [],
-                  peo_mapping: Array.isArray(practical.peo_mapping)
-                    ? practical.peo_mapping
-                    : [],
-                  blooms_taxonomy: Array.isArray(practical.blooms_taxonomy)
-                    ? practical.blooms_taxonomy
-                    : [],
-                  skill_mapping: Array.isArray(practical.skill_mapping)
-                    ? practical.skill_mapping
-                    : [],
-                  skill_objectives: practical.skill_objectives || "",
-                };
-                return validPractical;
+              const validPractical = {
+                ...practical,
+                // Ensure all required fields have default values
+                id: practical.id || `practical${index + 1}`,
+                practical_aim: practical.practical_aim || "",
+                associated_units: convertedUnits, // FIXED: Use converted unit names
+                probable_week: practical.probable_week || "",
+                lab_hours: typeof practical.lab_hours === "number" ? practical.lab_hours : 2,
+                software_hardware_requirements: practical.software_hardware_requirements || "",
+                practical_tasks: practical.practical_tasks || "",
+                evaluation_methods: Array.isArray(practical.evaluation_methods) ? practical.evaluation_methods : [],
+                other_evaluation_method: practical.other_evaluation_method || "",
+                practical_pedagogy: practical.practical_pedagogy || "",
+                other_pedagogy: practical.other_pedagogy || "",
+                reference_material: practical.reference_material || "",
+                co_mapping: Array.isArray(practical.co_mapping) ? practical.co_mapping : [],
+                pso_mapping: Array.isArray(practical.pso_mapping) ? practical.pso_mapping : [],
+                peo_mapping: Array.isArray(practical.peo_mapping) ? practical.peo_mapping : [],
+                blooms_taxonomy: Array.isArray(practical.blooms_taxonomy) ? practical.blooms_taxonomy : [],
+                skill_mapping: Array.isArray(practical.skill_mapping) ? practical.skill_mapping : [],
+                skill_objectives: practical.skill_objectives || "",
               }
-            );
+              return validPractical
+            })
 
-            console.log(
-              "🔄 PRACTICAL AUTO-LOAD: Setting practicals to lesson plan..."
-            );
+            console.log("🔄 PRACTICAL AUTO-LOAD: Setting practicals to lesson plan...")
 
             // Update the lesson plan with loaded data
             setLessonPlan((prev: any) => {
-              console.log(
-                "🔄 PRACTICAL AUTO-LOAD: Previous lesson plan:",
-                prev
-              );
+              console.log("🔄 PRACTICAL AUTO-LOAD: Previous lesson plan:", prev)
               const updated = {
                 ...prev,
                 practicals: validPracticals,
                 practical_remarks: data.remarks || "",
-              };
-              console.log(
-                "🔄 PRACTICAL AUTO-LOAD: Updated lesson plan:",
-                updated
-              );
-              return updated;
-            });
+              }
+              console.log("🔄 PRACTICAL AUTO-LOAD: Updated lesson plan:", updated)
+              return updated
+            })
 
-            console.log("🎉 PRACTICAL AUTO-LOAD: Success! Showing toast...");
-            toast.success(
-              `Draft loaded automatically with ${validPracticals.length} practical(s)`
-            );
+            console.log("🎉 PRACTICAL AUTO-LOAD: Success! Showing toast...")
+            toast.success(`Draft loaded  with ${validPracticals.length} practical(s)`)
 
             // Set last saved time if available
             if (data.savedAt) {
-              setLastSaved(new Date(data.savedAt));
+              setLastSaved(new Date(data.savedAt))
             } else {
-              setLastSaved(new Date());
+              setLastSaved(new Date())
             }
+
+            // Mark draft as loaded to prevent future loads
+            setDraftLoaded(true)
           }
+        } else {
+          // No draft data found, mark as loaded to prevent retries
+          setDraftLoaded(true)
         }
       } catch (error) {
-        console.error("💥 PRACTICAL AUTO-LOAD: Error occurred:", error);
-        toast.error("Failed to auto-load draft");
+        console.error("💥 PRACTICAL AUTO-LOAD: Error occurred:", error)
+        toast.error("Failed to auto-load draft")
+        setDraftLoaded(true) // Mark as loaded even on error to prevent retries
       } finally {
-        console.log(
-          "🏁 PRACTICAL AUTO-LOAD: Process completed, setting loading to false"
-        );
-        setIsLoadingDraft(false);
+        console.log("🏁 PRACTICAL AUTO-LOAD: Process completed, setting loading to false")
+        setIsLoadingDraft(false)
       }
-    };
+    }
 
-    // Run auto-load when we have the required data (either userData.id OR faculty.id from lesson plan)
-    const facultyId = lessonPlan?.faculty?.id || userData?.id;
-    const subjectId = lessonPlan?.subject?.id;
+    // Only run auto-load once when we have the required data and haven't loaded yet
+    const facultyId = lessonPlan?.faculty?.id || userData?.id
+    const subjectId = lessonPlan?.subject?.id
 
-    if (facultyId && subjectId) {
-      autoLoadDraft();
-    } else {
-      setIsLoadingDraft(false);
+    if (facultyId && subjectId && !draftLoaded) {
+      autoLoadDraft()
+    } else if (!facultyId || !subjectId) {
+      setIsLoadingDraft(false)
     }
   }, [
     userData?.id,
     lessonPlan?.subject?.id,
-    lessonPlan,
-    setLessonPlan,
-    userData,
     lessonPlan?.faculty?.id,
-  ]);
+    draftLoaded, // Add this to dependencies
+    // Remove other dependencies that were causing re-runs
+  ])
 
   // Fetch faculty name for proper storage
   useEffect(() => {
     const fetchFacultyName = async () => {
-      const facultyId = lessonPlan?.faculty?.id || userData?.id;
-      if (!facultyId) return;
+      const facultyId = lessonPlan?.faculty?.id || userData?.id
+      if (!facultyId) return
 
       try {
         const { data: facultyData, error } = await supabase
           .from("users")
           .select("first_name, last_name")
           .eq("id", facultyId)
-          .single();
+          .single()
 
         if (!error && facultyData) {
-          const fullName = `${facultyData.first_name || ""} ${
-            facultyData.last_name || ""
-          }`.trim();
+          const fullName = `${facultyData.first_name || ""} ${facultyData.last_name || ""}`.trim()
 
           // Update all practicals with the correct faculty name
           setLessonPlan((prev: any) => ({
@@ -645,71 +582,74 @@ export default function PracticalPlanningForm({
               ...practical,
               faculty_name: fullName || "Current Faculty",
             })),
-          }));
+          }))
         }
       } catch (error) {
-        console.error("Error fetching faculty name:", error);
+        console.error("Error fetching faculty name:", error)
       }
-    };
+    }
 
-    fetchFacultyName();
-  }, [lessonPlan?.faculty?.id, userData?.id, setLessonPlan]);
+    fetchFacultyName()
+  }, [lessonPlan?.faculty?.id, userData?.id, setLessonPlan])
 
-  const handlePracticalChange = (index: number, field: string, value: any) => {
-    const updatedPracticals = [...(lessonPlan.practicals || [])];
+  const handlePracticalChange = useCallback(
+    (index: number, field: string, value: any) => {
+      const updatedPracticals = [...(lessonPlan.practicals || [])]
 
-    updatedPracticals[index] = {
-      ...updatedPracticals[index],
-      [field]: value,
-    };
+      updatedPracticals[index] = {
+        ...updatedPracticals[index],
+        [field]: value,
+      }
 
-    setLessonPlan((prev: any) => ({
-      ...prev,
-      practicals: updatedPracticals,
-    }));
+      setLessonPlan((prev: any) => ({
+        ...prev,
+        practicals: updatedPracticals,
+      }))
 
-    validatePractical(updatedPracticals[index], index);
-  };
+      validatePractical(updatedPracticals[index], index)
+    },
+    [lessonPlan.practicals],
+  )
 
   const validatePractical = (practical: any, index: number) => {
-    const errors: string[] = [];
-    const warnings: string[] = [];
+    const errors: string[] = []
+    const warnings: string[] = []
 
     // Add validation logic here if needed
 
-    setValidationErrors(errors);
-    setValidationWarnings(warnings);
-  };
+    setValidationErrors(errors)
+    setValidationWarnings(warnings)
+  }
 
   const validateAllPracticals = () => {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    const currentPracticals = lessonPlan.practicals || [];
+    const errors: string[] = []
+    const warnings: string[] = []
+    const currentPracticals = lessonPlan.practicals || []
 
     // Add validation logic here if needed
 
-    return { errors, warnings };
-  };
+    return { errors, warnings }
+  }
 
   const resetFieldErrors = () => {
-    setPracticalAimError("");
-    setAssociatedUnitsError("");
-    setProbableWeekError("");
-    setLabHoursError("");
-    setSoftwareHardwareError("");
-    setPracticalTasksError("");
-    setEvaluationMethodsError("");
-    setPracticalPedagogyError("");
-    setReferenceError("");
-    setCoMappingError("");
-    setBloomsError("");
-    setSkillMappingError("");
-    setSkillObjectivesError("");
-  };
+    setPracticalAimError("")
+    setAssociatedUnitsError("")
+    setProbableWeekError("")
+    setLabHoursError("")
+    setSoftwareHardwareError("")
+    setPracticalTasksError("")
+    setEvaluationMethodsError("")
+    setPracticalPedagogyError("")
+    setReferenceError("")
+    setCoMappingError("")
+    setBloomsError("")
+    setSkillMappingError("")
+    setSkillObjectivesError("")
+  }
 
   const addPractical = () => {
-    const currentPracticals = lessonPlan.practicals || [];
-    const newPracticalNumber = currentPracticals.length + 1;
+    const currentPracticals = lessonPlan.practicals || []
+    const newPracticalNumber = currentPracticals.length + 1
     const newPractical = {
       id: `practical${newPracticalNumber}`,
       practical_aim: "",
@@ -729,216 +669,195 @@ export default function PracticalPlanningForm({
       blooms_taxonomy: [],
       skill_mapping: [],
       skill_objectives: "",
-    };
+    }
 
     setLessonPlan((prev: any) => ({
       ...prev,
       practicals: [...currentPracticals, newPractical],
-    }));
+    }))
 
-    setActivePractical(currentPracticals.length);
-  };
+    setActivePractical(currentPracticals.length)
+  }
 
   const removePractical = (index: number) => {
-    const currentPracticals = lessonPlan.practicals || [];
+    const currentPracticals = lessonPlan.practicals || []
     if (currentPracticals.length <= 1) {
-      toast.error("At least one practical is required");
-      return;
+      toast.error("At least one practical is required")
+      return
     }
 
-    const updatedPracticals = currentPracticals.filter(
-      (_: any, i: number) => i !== index
-    );
+    const updatedPracticals = currentPracticals.filter((_: any, i: number) => i !== index)
     setLessonPlan((prev: any) => ({
       ...prev,
       practicals: updatedPracticals,
-    }));
+    }))
 
     if (activePractical >= index && activePractical > 0) {
-      setActivePractical(activePractical - 1);
+      setActivePractical(activePractical - 1)
     }
-  };
+  }
 
   const handleSaveDraft = async () => {
-    setIsSavingDraft(true);
+    setIsSavingDraft(true)
 
     try {
       // Ensure we have valid practical data structure
-      const validPracticals = (lessonPlan.practicals || []).map(
-        (practical: any) => ({
-          ...practical,
-          // Ensure all required fields have default values
-          id: practical.id || `practical${Date.now()}`,
-          practical_aim: practical.practical_aim || "",
-          associated_units: practical.associated_units || [],
-          probable_week: practical.probable_week || "",
-          lab_hours: practical.lab_hours || 2,
-          software_hardware_requirements:
-            practical.software_hardware_requirements || "",
-          practical_tasks: practical.practical_tasks || "",
-          evaluation_methods: practical.evaluation_methods || [],
-          other_evaluation_method: practical.other_evaluation_method || "",
-          practical_pedagogy: practical.practical_pedagogy || "",
-          other_pedagogy: practical.other_pedagogy || "",
-          reference_material: practical.reference_material || "",
-          co_mapping: practical.co_mapping || [],
-          pso_mapping: practical.pso_mapping || [],
-          peo_mapping: practical.peo_mapping || [],
-          blooms_taxonomy: practical.blooms_taxonomy || [],
-          skill_mapping: practical.skill_mapping || [],
-          skill_objectives: practical.skill_objectives || "",
-        })
-      );
+      const validPracticals = (lessonPlan.practicals || []).map((practical: any) => ({
+        ...practical,
+        // Ensure all required fields have default values
+        id: practical.id || `practical${Date.now()}`,
+        practical_aim: practical.practical_aim || "",
+        associated_units: practical.associated_units || [],
+        probable_week: practical.probable_week || "",
+        lab_hours: practical.lab_hours || 2,
+        software_hardware_requirements: practical.software_hardware_requirements || "",
+        practical_tasks: practical.practical_tasks || "",
+        evaluation_methods: practical.evaluation_methods || [],
+        other_evaluation_method: practical.other_evaluation_method || "",
+        practical_pedagogy: practical.practical_pedagogy || "",
+        other_pedagogy: practical.other_pedagogy || "",
+        reference_material: practical.reference_material || "",
+        co_mapping: practical.co_mapping || [],
+        pso_mapping: practical.pso_mapping || [],
+        peo_mapping: practical.peo_mapping || [],
+        blooms_taxonomy: practical.blooms_taxonomy || [],
+        skill_mapping: practical.skill_mapping || [],
+        skill_objectives: practical.skill_objectives || "",
+      }))
 
       const formData = {
         practicals: validPracticals,
         remarks: lessonPlan.practical_remarks || "",
-      };
+      }
 
-      console.log("Saving practical draft data:", formData); // Debug log
+      console.log("Saving practical draft data:", formData) // Debug log
 
       const result = await saveFormDraft(
         lessonPlan?.faculty?.id || userData?.id || "",
         lessonPlan?.subject?.id || "",
         "practical_planning",
-        formData
-      );
+        formData,
+      )
 
       if (result.success) {
-        setLastSaved(new Date());
-        toast.success("Draft saved successfully");
+        setLastSaved(new Date())
+        toast.success("Draft saved successfully")
       } else {
-        console.error("Draft save failed:", result.error);
-        toast.error(`Failed to save draft: ${result.error}`);
+        console.error("Draft save failed:", result.error)
+        toast.error(`Failed to save draft: ${result.error}`)
       }
     } catch (error) {
-      console.error("Error saving draft:", error);
-      toast.error("Failed to save draft");
+      console.error("Error saving draft:", error)
+      toast.error("Failed to save draft")
     } finally {
-      setIsSavingDraft(false);
+      setIsSavingDraft(false)
     }
-  };
+  }
 
   const clearDraft = async () => {
     try {
       const result = await deleteFormDraft(
         lessonPlan?.faculty?.id || userData?.id || "",
         lessonPlan?.subject?.id || "",
-        "practical_planning"
-      );
+        "practical_planning",
+      )
 
       if (result.success) {
-        console.log("Practical draft cleared after successful submission");
+        console.log("Practical draft cleared after successful submission")
       }
     } catch (error) {
-      console.error("Error clearing practical draft:", error);
+      console.error("Error clearing practical draft:", error)
     }
-  };
+  }
 
   const handleSave = async () => {
-    setSaving(true);
-    resetFieldErrors();
+    setSaving(true)
+    resetFieldErrors()
 
     // Validate current practical fields
-    let hasFieldErrors = false;
+    let hasFieldErrors = false
 
     if (!currentPractical.practical_aim) {
-      setPracticalAimError("Practical aim is required");
-      hasFieldErrors = true;
+      setPracticalAimError("Practical aim is required")
+      hasFieldErrors = true
     }
 
     // FIXED: Only validate associated units for non-practical-only subjects
-    if (
-      !isPracticalOnly &&
-      (!currentPractical.associated_units ||
-        currentPractical.associated_units.length === 0)
-    ) {
-      setAssociatedUnitsError("Associated units are required");
-      hasFieldErrors = true;
+    if (!isPracticalOnly && (!currentPractical.associated_units || currentPractical.associated_units.length === 0)) {
+      setAssociatedUnitsError("Associated units are required")
+      hasFieldErrors = true
     }
 
     if (!currentPractical.probable_week) {
-      setProbableWeekError("Probable week is required");
-      hasFieldErrors = true;
+      setProbableWeekError("Probable week is required")
+      hasFieldErrors = true
     }
 
     if (!currentPractical.lab_hours || currentPractical.lab_hours < 1) {
-      setLabHoursError("Lab hours must be at least 1");
-      hasFieldErrors = true;
+      setLabHoursError("Lab hours must be at least 1")
+      hasFieldErrors = true
     }
 
     if (!currentPractical.software_hardware_requirements) {
-      setSoftwareHardwareError("Software/hardware requirements are required");
-      hasFieldErrors = true;
+      setSoftwareHardwareError("Software/hardware requirements are required")
+      hasFieldErrors = true
     }
 
     if (!currentPractical.practical_tasks) {
-      setPracticalTasksError("Practical tasks are required");
-      hasFieldErrors = true;
+      setPracticalTasksError("Practical tasks are required")
+      hasFieldErrors = true
     }
 
-    if (
-      !currentPractical.evaluation_methods ||
-      currentPractical.evaluation_methods.length === 0
-    ) {
-      setEvaluationMethodsError("At least one evaluation method is required");
-      hasFieldErrors = true;
+    if (!currentPractical.evaluation_methods || currentPractical.evaluation_methods.length === 0) {
+      setEvaluationMethodsError("At least one evaluation method is required")
+      hasFieldErrors = true
     }
 
     if (!currentPractical.practical_pedagogy) {
-      setPracticalPedagogyError("Practical pedagogy is required");
-      hasFieldErrors = true;
+      setPracticalPedagogyError("Practical pedagogy is required")
+      hasFieldErrors = true
     }
 
     if (!currentPractical.reference_material) {
-      setReferenceError("Reference material is required");
-      hasFieldErrors = true;
+      setReferenceError("Reference material is required")
+      hasFieldErrors = true
     }
 
-    if (
-      !currentPractical.co_mapping ||
-      currentPractical.co_mapping.length === 0
-    ) {
-      setCoMappingError("CO mapping is required");
-      hasFieldErrors = true;
+    if (!currentPractical.co_mapping || currentPractical.co_mapping.length === 0) {
+      setCoMappingError("CO mapping is required")
+      hasFieldErrors = true
     }
 
-    if (
-      !currentPractical.blooms_taxonomy ||
-      currentPractical.blooms_taxonomy.length === 0
-    ) {
-      setBloomsError("At least one Bloom's taxonomy level is required");
-      hasFieldErrors = true;
+    if (!currentPractical.blooms_taxonomy || currentPractical.blooms_taxonomy.length === 0) {
+      setBloomsError("At least one Bloom's taxonomy level is required")
+      hasFieldErrors = true
     }
 
-    if (
-      !currentPractical.skill_mapping ||
-      currentPractical.skill_mapping.length === 0
-    ) {
-      setSkillMappingError("At least one skill must be mapped");
-      hasFieldErrors = true;
+    if (!currentPractical.skill_mapping || currentPractical.skill_mapping.length === 0) {
+      setSkillMappingError("At least one skill must be mapped")
+      hasFieldErrors = true
     }
 
     if (!currentPractical.skill_objectives) {
-      setSkillObjectivesError("Skill objectives are required");
-      hasFieldErrors = true;
+      setSkillObjectivesError("Skill objectives are required")
+      hasFieldErrors = true
     }
 
-    const { errors, warnings } = validateAllPracticals();
+    const { errors, warnings } = validateAllPracticals()
 
     if (errors.length > 0 || hasFieldErrors) {
-      setValidationErrors(errors);
-      setValidationWarnings(warnings);
-      toast.error("Please fix validation errors before saving");
-      setSaving(false);
-      return;
+      setValidationErrors(errors)
+      setValidationWarnings(warnings)
+      toast.error("Please fix validation errors before saving")
+      setSaving(false)
+      return
     }
 
     if (warnings.length > 0) {
-      setValidationWarnings(warnings);
+      setValidationWarnings(warnings)
     }
 
-    console.log(currentPractical);
+    console.log(currentPractical)
 
     try {
       const result = await savePracticalPlanningForm({
@@ -946,36 +865,36 @@ export default function PracticalPlanningForm({
         subject_id: lessonPlan.subject?.id || "",
         practicals: lessonPlan.practicals,
         remarks: lessonPlan.practical_remarks,
-      });
+      })
 
       if (result.success) {
-        toast.success("Practical details saved successfully");
-        setValidationErrors([]);
-        setValidationWarnings([]);
+        toast.success("Practical details saved successfully")
+        setValidationErrors([])
+        setValidationWarnings([])
 
         setLessonPlan((prev: any) => ({
           ...prev,
           practical_planning_completed: true,
-        }));
+        }))
 
         // Clear the draft after successful submission
-        await clearDraft();
+        await clearDraft()
       } else {
-        toast.error(result.error || "Failed to save practical details");
+        toast.error(result.error || "Failed to save practical details")
       }
     } catch (error) {
-      console.error("Error saving practical details:", error);
-      toast.error("An unexpected error occurred");
+      console.error("Error saving practical details:", error)
+      toast.error("An unexpected error occurred")
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
-  const currentPracticals = lessonPlan.practicals || [];
-  const currentPractical = currentPracticals[activePractical];
+  const currentPracticals = lessonPlan.practicals || []
+  const currentPractical = currentPracticals[activePractical]
 
   if (!currentPractical) {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>
   }
 
   return (
@@ -1027,11 +946,7 @@ export default function PracticalPlanningForm({
             <Button
               key={practical.id}
               variant={activePractical === index ? "default" : "outline"}
-              className={
-                activePractical === index
-                  ? "bg-[#1A5CA1] hover:bg-[#154A80]"
-                  : ""
-              }
+              className={activePractical === index ? "bg-[#1A5CA1] hover:bg-[#154A80]" : ""}
               onClick={() => setActivePractical(index)}
             >
               Practical {index + 1}
@@ -1062,9 +977,7 @@ export default function PracticalPlanningForm({
 
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-semibold">
-            Practical {activePractical + 1}
-          </h3>
+          <h3 className="text-xl font-semibold">Practical {activePractical + 1}</h3>
         </div>
 
         {/* Practical Aim */}
@@ -1075,19 +988,11 @@ export default function PracticalPlanningForm({
           <Input
             id="practical-aim"
             value={currentPractical.practical_aim || ""}
-            onChange={(e) =>
-              handlePracticalChange(
-                activePractical,
-                "practical_aim",
-                e.target.value
-              )
-            }
+            onChange={(e) => handlePracticalChange(activePractical, "practical_aim", e.target.value)}
             placeholder="Enter practical aim"
             className="mt-1"
           />
-          {practicalAimError && (
-            <p className="text-red-500 text-xs mt-1">{practicalAimError}</p>
-          )}
+          {practicalAimError && <p className="text-red-500 text-xs mt-1">{practicalAimError}</p>}
         </div>
 
         {/* FIXED: Only show Associated Units for non-practical-only subjects */}
@@ -1099,46 +1004,30 @@ export default function PracticalPlanningForm({
             <Select
               value=""
               onValueChange={(value) => {
-                const currentUnits = currentPractical.associated_units || [];
+                const currentUnits = currentPractical.associated_units || []
                 // Find the unit by ID to get its name
-                const selectedUnit = (lessonPlan.units || []).find(
-                  (unit: any) => unit.id === value
-                );
+                const selectedUnit = (lessonPlan.units || []).find((unit: any) => unit.id === value)
                 const unitName =
                   selectedUnit?.unit_name ||
-                  `Unit ${
-                    (lessonPlan.units || []).findIndex(
-                      (u: any) => u.id === value
-                    ) + 1
-                  }`;
+                  `Unit ${(lessonPlan.units || []).findIndex((u: any) => u.id === value) + 1}`
 
                 if (!currentUnits.includes(unitName)) {
-                  handlePracticalChange(activePractical, "associated_units", [
-                    ...currentUnits,
-                    unitName,
-                  ]);
+                  handlePracticalChange(activePractical, "associated_units", [...currentUnits, unitName])
                 }
               }}
             >
               <SelectTrigger id="associated-units" className="mt-1">
-                <SelectValue
-                  placeholder={`${
-                    (currentPractical.associated_units || []).length
-                  } unit(s) selected`}
-                />
+                <SelectValue placeholder={`${(currentPractical.associated_units || []).length} unit(s) selected`} />
               </SelectTrigger>
               <SelectContent>
                 {(lessonPlan.units || []).map((unit: any, index: number) => (
-                  <SelectItem
-                    key={unit.id || `unit-${index}`}
-                    value={unit.id || `unit-${index}`}
-                  >
+                  <SelectItem key={unit.id || `unit-${index}`} value={unit.id || `unit-${index}`}>
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        checked={(
-                          currentPractical.associated_units || []
-                        ).includes(unit.unit_name || `Unit ${index + 1}`)}
+                        checked={(currentPractical.associated_units || []).includes(
+                          unit.unit_name || `Unit ${index + 1}`,
+                        )}
                         onChange={() => {}}
                         className="mr-2"
                       />
@@ -1148,44 +1037,29 @@ export default function PracticalPlanningForm({
                 ))}
               </SelectContent>
             </Select>
-            {associatedUnitsError && (
-              <p className="text-red-500 text-xs mt-1">
-                {associatedUnitsError}
-              </p>
-            )}
+            {associatedUnitsError && <p className="text-red-500 text-xs mt-1">{associatedUnitsError}</p>}
 
             {/* Display selected units */}
-            {currentPractical.associated_units &&
-              currentPractical.associated_units.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {currentPractical.associated_units.map(
-                    (unitName: string, index: number) => (
-                      <Badge
-                        key={`${unitName}-${index}`}
-                        variant="secondary"
-                        className="text-xs"
-                      >
-                        {unitName}
-                        <button
-                          onClick={() => {
-                            const updated = (
-                              currentPractical.associated_units || []
-                            ).filter((name: string) => name !== unitName);
-                            handlePracticalChange(
-                              activePractical,
-                              "associated_units",
-                              updated
-                            );
-                          }}
-                          className="ml-1 text-red-500 hover:text-red-700"
-                        >
-                          ×
-                        </button>
-                      </Badge>
-                    )
-                  )}
-                </div>
-              )}
+            {currentPractical.associated_units && currentPractical.associated_units.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {currentPractical.associated_units.map((unitName: string, index: number) => (
+                  <Badge key={`${unitName}-${index}`} variant="secondary" className="text-xs">
+                    {unitName}
+                    <button
+                      onClick={() => {
+                        const updated = (currentPractical.associated_units || []).filter(
+                          (name: string) => name !== unitName,
+                        )
+                        handlePracticalChange(activePractical, "associated_units", updated)
+                      }}
+                      className="ml-1 text-red-500 hover:text-red-700"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -1197,17 +1071,11 @@ export default function PracticalPlanningForm({
             </Label>
             <Select
               value={currentPractical.probable_week || ""}
-              onValueChange={(value) =>
-                handlePracticalChange(activePractical, "probable_week", value)
-              }
+              onValueChange={(value) => handlePracticalChange(activePractical, "probable_week", value)}
               disabled={loadingWeeks}
             >
               <SelectTrigger id="probable-week" className="mt-1">
-                <SelectValue
-                  placeholder={
-                    loadingWeeks ? "Loading weeks..." : "Select probable week"
-                  }
-                />
+                <SelectValue placeholder={loadingWeeks ? "Loading weeks..." : "Select probable week"} />
               </SelectTrigger>
               <SelectContent>
                 {loadingWeeks ? (
@@ -1227,9 +1095,7 @@ export default function PracticalPlanningForm({
                 )}
               </SelectContent>
             </Select>
-            {probableWeekError && (
-              <p className="text-red-500 text-xs mt-1">{probableWeekError}</p>
-            )}
+            {probableWeekError && <p className="text-red-500 text-xs mt-1">{probableWeekError}</p>}
           </div>
 
           <div>
@@ -1241,44 +1107,27 @@ export default function PracticalPlanningForm({
               type="number"
               min="1"
               value={currentPractical.lab_hours || ""}
-              onChange={(e) =>
-                handlePracticalChange(
-                  activePractical,
-                  "lab_hours",
-                  Number(e.target.value)
-                )
-              }
+              onChange={(e) => handlePracticalChange(activePractical, "lab_hours", Number(e.target.value))}
               className="mt-1"
             />
-            {labHoursError && (
-              <p className="text-red-500 text-xs mt-1">{labHoursError}</p>
-            )}
+            {labHoursError && <p className="text-red-500 text-xs mt-1">{labHoursError}</p>}
           </div>
         </div>
 
         {/* Software/Hardware Requirements */}
         <div>
           <Label htmlFor="software-hardware">
-            Software/Hardware Requirements{" "}
-            <span className="text-red-500">*</span>
+            Software/Hardware Requirements <span className="text-red-500">*</span>
           </Label>
           <Textarea
             id="software-hardware"
             value={currentPractical.software_hardware_requirements || ""}
-            onChange={(e) =>
-              handlePracticalChange(
-                activePractical,
-                "software_hardware_requirements",
-                e.target.value
-              )
-            }
+            onChange={(e) => handlePracticalChange(activePractical, "software_hardware_requirements", e.target.value)}
             placeholder="Enter software/hardware requirements"
             className="mt-2"
             rows={3}
           />
-          {softwareHardwareError && (
-            <p className="text-red-500 text-xs mt-1">{softwareHardwareError}</p>
-          )}
+          {softwareHardwareError && <p className="text-red-500 text-xs mt-1">{softwareHardwareError}</p>}
         </div>
 
         {/* Practical Tasks */}
@@ -1808,14 +1657,13 @@ export default function PracticalPlanningForm({
             rows={3}
           />
         </div>
-        
+
         {/* Action Buttons */}
         <div className="flex justify-between mt-8">
           <div className="flex items-center">
             {lastSaved && (
               <span className="text-sm text-gray-500">
-                Last saved: {lastSaved.toLocaleTimeString()}{" "}
-                {lastSaved.toLocaleDateString()}
+                Last saved: {lastSaved.toLocaleTimeString()} {lastSaved.toLocaleDateString()}
               </span>
             )}
           </div>
@@ -1825,7 +1673,7 @@ export default function PracticalPlanningForm({
               variant="outline"
               onClick={handleSaveDraft}
               disabled={isSavingDraft}
-              className="min-w-[100px]"
+              className="min-w-[100px] bg-transparent"
             >
               {isSavingDraft ? "Saving..." : "Save Draft"}
             </Button>
@@ -1849,16 +1697,13 @@ export default function PracticalPlanningForm({
             <DialogDescription>{currentWarning}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setWarningDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setWarningDialogOpen(false)}>
               Cancel
             </Button>
             <Button
               onClick={() => {
-                setWarningDialogOpen(false);
-                handleSave();
+                setWarningDialogOpen(false)
+                handleSave()
               }}
             >
               Continue
@@ -1867,5 +1712,5 @@ export default function PracticalPlanningForm({
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }
