@@ -203,8 +203,8 @@ function ViewLessonPlanPage() {
                     Term Duration:
                   </td>
                   <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
-                    {formatDate(lessonPlan.subjects?.metadata?.term_start_date) || "N/A"} to{" "}
-                    {formatDate(lessonPlan.subjects?.metadata?.term_end_date) || "N/A"}
+                    {lessonPlan.subjects?.metadata?.term_start_date} to{" "}
+                    {lessonPlan.subjects?.metadata?.term_end_date}
                   </td>
                 </tr>
                 <tr>
