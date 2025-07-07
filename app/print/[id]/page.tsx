@@ -8,9 +8,12 @@ import { isSubjectTheoryOnly, isSubjectPracticalOnly } from "@/utils/dateUtils";
 
 const getAcademicYear = (dateString: string) => {
   if (!dateString) return "N/A";
-  const date = new Date(dateString);
-  const year = date.getFullYear();
-  return `${year}-${(year % 100) + 1}`;
+  const parts = dateString.split("-");
+  if (parts.length === 3) {
+    const year = Number.parseInt(parts[2], 10);
+    return `${year}-${(year % 100) + 1}`;
+  }
+  return "N/A";
 };
 
 export default function PrintLessonPlanPage() {
@@ -359,7 +362,7 @@ export default function PrintLessonPlanPage() {
                 </td>
                 <td className="border border-black p-2 break-words overflow-hidden text-ellipsis max-w-0">
                   {getAcademicYear(
-                    lessonPlan.subjects.metadata.term_start_date
+                    lessonPlan?.subjects?.metadata.term_start_date
                   )}
                 </td>
               </tr>
