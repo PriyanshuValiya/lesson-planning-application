@@ -57,9 +57,9 @@ export default function ProfilePhotoUploadModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (5KB = 5 * 1024 bytes)
-    if (file.size > 5 * 1024) {
-      toast.error("Profile photo must be less than 5KB");
+    // Check file size (25KB = 25 * 1024 bytes)
+    if (file.size > 25 * 1024) {
+      toast.error("Profile photo must be less than 25KB");
       return;
     }
 
@@ -190,7 +190,7 @@ export default function ProfilePhotoUploadModal({
                 disabled={isUploading || isDeleting}
               />
               <p className="text-xs text-gray-500">
-                Photo must be less than 5KB
+                Photo must be less than 25KB
               </p>
             </div>
           </div>
