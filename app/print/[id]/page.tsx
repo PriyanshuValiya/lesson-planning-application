@@ -12,7 +12,7 @@ const getAcademicYear = (dateString: string) => {
     return "N/A";
   }
 
-  console.log(dateString);
+  console.log("Date:", dateString);
   const parts = dateString.split("-");
   
   if (parts.length === 3) {
