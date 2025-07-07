@@ -7,8 +7,14 @@ import { fetchViewLP } from "@/app/dashboard/actions/fetchViewLP";
 import { isSubjectTheoryOnly, isSubjectPracticalOnly } from "@/utils/dateUtils";
 
 const getAcademicYear = (dateString: string) => {
-  if (!dateString) return "N/A";
+  if (!dateString) {
+    console.error("Date String is missing");
+    return "N/A";
+  }
+
+  console.log(dateString);
   const parts = dateString.split("-");
+  
   if (parts.length === 3) {
     const year = Number.parseInt(parts[2], 10);
     return `${year}-${(year % 100) + 1}`;
