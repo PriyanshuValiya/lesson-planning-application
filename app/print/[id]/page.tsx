@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -26,7 +25,6 @@ export default function PrintLessonPlanPage() {
       try {
         setIsLoading(true);
         const result = await fetchViewLP(params.id as string);
-
         if (result.success) {
           setLessonPlan(result.data);
           setUserDataPlan(result.userRoleData);
@@ -73,7 +71,6 @@ export default function PrintLessonPlanPage() {
     // Accept lessonPlan as argument
     let sectionNumber = 2;
     const sections = [];
-
     // Only add Unit Details for non-practical-only subjects
     if (!isSubjectPracticalOnly(currentLessonPlan.subjects)) {
       sections.push({
@@ -82,7 +79,6 @@ export default function PrintLessonPlanPage() {
         type: "units",
       });
     }
-
     // Only add Practical Details for non-theory-only subjects
     if (!isSubjectTheoryOnly(currentLessonPlan.subjects)) {
       sections.push({
@@ -91,7 +87,6 @@ export default function PrintLessonPlanPage() {
         type: "practicals",
       });
     }
-
     sections.push({
       number: sectionNumber++,
       name: "CIE DETAILS",
@@ -107,7 +102,6 @@ export default function PrintLessonPlanPage() {
       name: "COMPLETION STATUS",
       type: "completion",
     });
-
     return sections;
   };
 
@@ -149,34 +143,28 @@ export default function PrintLessonPlanPage() {
             size: A4 landscape;
             margin: 15mm 10mm 15mm 10mm;
           }
-
           @media print {
             * {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
-
             body {
               width: 100%;
               margin: 0;
               padding: 0;
               font-family: Arial, sans-serif !important;
             }
-
             /* Hide all non-essential elements during print */
             .print\\:hidden {
               display: none !important;
             }
-
             /* Ensure proper page breaks */
             .page-break-before {
               page-break-before: always;
             }
-
             .page-break-after {
               page-break-after: always;
             }
-
             /* Section headers should not break */
             h1,
             h2,
@@ -187,12 +175,10 @@ export default function PrintLessonPlanPage() {
               page-break-after: avoid;
               page-break-inside: avoid;
             }
-
             /* Keep table headers with content */
             thead {
               display: table-header-group;
             }
-
             /* Table styling for print */
             table {
               width: 100% !important;
@@ -200,7 +186,6 @@ export default function PrintLessonPlanPage() {
               table-layout: fixed !important;
               page-break-inside: auto;
             }
-
             th,
             td {
               padding: 3px !important;
@@ -211,13 +196,11 @@ export default function PrintLessonPlanPage() {
               overflow-wrap: break-word !important;
               white-space: normal !important;
             }
-
             /* Prevent table rows from breaking across pages when possible */
             tr {
               page-break-inside: avoid;
               page-break-after: auto;
             }
-
             /* Specific table column widths for better layout */
             .unit-details-table th:nth-child(1),
             .unit-details-table td:nth-child(1) {
@@ -243,48 +226,39 @@ export default function PrintLessonPlanPage() {
             .unit-details-table td:nth-child(7) {
               width: 11% !important;
             }
-
             /* Section spacing */
             .mb-6 {
               margin-bottom: 12pt !important;
             }
-
             /* Header section */
             .text-center {
               text-align: center !important;
             }
-
             .text-xl {
               font-size: 12pt !important;
               font-weight: bold !important;
             }
-
             .text-lg {
               font-size: 11pt !important;
               font-weight: bold !important;
             }
-
             .text-md {
               font-size: 10pt !important;
               font-weight: 600 !important;
             }
-
             /* Ensure sections don't break awkwardly */
             .units-section {
               page-break-inside: avoid;
             }
-
             /* Digital signature at bottom */
             .text-right {
               text-align: right !important;
               margin-top: 20pt !important;
             }
-
             /* Force page breaks before major sections if needed */
             .section-break {
               page-break-before: always;
             }
-
             /* Add this to ensure each section starts on a new page */
             .units-section,
             .practicals-section,
@@ -444,7 +418,6 @@ export default function PrintLessonPlanPage() {
                 <h2 className="text-lg font-bold mb-2">
                   {section.number}. {section.name}
                 </h2>
-
                 {(lessonPlan.form.unitPlanning?.units || []).map(
                   (unit: any, index: number) => (
                     <div
@@ -454,7 +427,6 @@ export default function PrintLessonPlanPage() {
                       <h3 className="text-lg font-semibold mb-2 mt-5">
                         Unit {index + 1}
                       </h3>
-
                       <table className="w-full border-collapse table-fixed mb-4">
                         <tbody>
                           <tr>
@@ -498,11 +470,13 @@ export default function PrintLessonPlanPage() {
                             <td className="border border-black p-2" colSpan={3}>
                               {unit.co_mapping
                                 .map((coId: any) => {
-                                  const outcome =
-                                    lessonPlan.form.generalDetails.courseOutcomes.find(
+                                  const outcomeIndex =
+                                    lessonPlan.form.generalDetails.courseOutcomes.findIndex(
                                       (co: any) => co.id === coId
                                     );
-                                  return outcome ? outcome.text : coId;
+                                  return outcomeIndex !== -1
+                                    ? `CO${outcomeIndex + 1}`
+                                    : coId;
                                 })
                                 .join(", ")}
                             </td>
@@ -636,7 +610,6 @@ export default function PrintLessonPlanPage() {
                             <h3 className="text-lg font-semibold mb-2">
                               Practical {index + 1}
                             </h3>
-
                             <table className="w-full border-collapse table-fixed mb-4">
                               <tbody>
                                 <tr>
@@ -666,11 +639,13 @@ export default function PrintLessonPlanPage() {
                                   <td className="border border-black p-2">
                                     {practical.co_mapping
                                       .map((coId: any) => {
-                                        const outcome =
-                                          lessonPlan.form.generalDetails.courseOutcomes.find(
+                                        const outcomeIndex =
+                                          lessonPlan.form.generalDetails.courseOutcomes.findIndex(
                                             (co: any) => co.id === coId
                                           );
-                                        return outcome ? outcome.text : coId;
+                                        return outcomeIndex !== -1
+                                          ? `CO${outcomeIndex + 1}`
+                                          : coId;
                                       })
                                       .join(", ")}
                                   </td>
@@ -690,7 +665,6 @@ export default function PrintLessonPlanPage() {
                                     </td>
                                   </tr>
                                 )}
-
                                 <tr>
                                   <td className="border border-black p-2 font-bold bg-gray-50">
                                     Practical Aim:
@@ -820,231 +794,207 @@ export default function PrintLessonPlanPage() {
             );
           }
 
-           if (section.type === "cie") {
-              // Define the order of evaluation types
-              const evaluationTypeOrder = [
-                "Course Prerequisites CIE",
-                "Lecture CIE",
-                "Practical CIE", // This will now include Internal Practical
-                "Mid-term/Internal Exam",
-              ];
+          if (section.type === "cie") {
+            // Define the order of evaluation types
+            const evaluationTypeOrder = [
+              "Course Prerequisites CIE",
+              "Lecture CIE",
+              "Practical CIE", // This will now include Internal Practical
+              "Mid-term/Internal Exam",
+            ];
 
-              // Group CIE by evaluation type in the specified order
-              const cieGroups: {
-                type: string;
-                cies: any[];
-                showTotal: boolean;
-              }[] = [
-                {
-                  type: "Course Prerequisites CIE",
-                  cies: [],
-                  showTotal: false,
-                },
-                { type: "Lecture CIE", cies: [], showTotal: true },
-                { type: "Practical CIE", cies: [], showTotal: true },
-                { type: "Mid-term/Internal Exam", cies: [], showTotal: false },
-              ];
+            // Group CIE by evaluation type in the specified order
+            const cieGroups: {
+              type: string;
+              cies: any[];
+              showTotal: boolean;
+            }[] = [
+              {
+                type: "Course Prerequisites CIE",
+                cies: [],
+                showTotal: false,
+              },
+              { type: "Lecture CIE", cies: [], showTotal: true },
+              { type: "Practical CIE", cies: [], showTotal: true },
+              { type: "Mid-term/Internal Exam", cies: [], showTotal: false },
+            ];
 
-              // Populate the groups
-              lessonPlan.form.cies?.forEach((cie: any) => {
-                const type = cie.type || "Other";
-
-                // Combine Practical CIE and Internal Practical
-                if (type === "Internal Practical") {
-                  cieGroups[2].cies.push({ ...cie, originalType: type });
-                } else {
-                  const group = cieGroups.find((g) => g.type === type);
-                  if (group) {
-                    group.cies.push(cie);
-                  }
+            // Populate the groups
+            lessonPlan.form.cies?.forEach((cie: any) => {
+              const type = cie.type || "Other";
+              // Combine Practical CIE and Internal Practical
+              if (type === "Internal Practical") {
+                cieGroups[2].cies.push({ ...cie, originalType: type });
+              } else {
+                const group = cieGroups.find((g) => g.type === type);
+                if (group) {
+                  group.cies.push(cie);
                 }
-              });
+              }
+            });
 
-              // Calculate overall totals
-              const totalMarks =
-                lessonPlan.form.cies?.reduce(
-                  (sum: number, cie: any) => sum + (cie.marks || 0),
-                  0
-                ) || 0;
-              const totalDuration =
-                lessonPlan.form.cies?.reduce(
-                  (sum: number, cie: any) => sum + (cie.duration || 0),
-                  0
-                ) || 0;
+            // Calculate overall totals
+            const totalMarks =
+              lessonPlan.form.cies?.reduce(
+                (sum: number, cie: any) => sum + (cie.marks || 0),
+                0
+              ) || 0;
 
-              // Format duration for totals (x hours xx minutes)
-              const formatDurationTotal = (minutes: number) => {
-                if (minutes >= 60) {
-                  const hours = Math.floor(minutes / 60);
-                  const mins = minutes % 60;
-                  return (
-                    <div className="flex flex-col items-center">
-                      <span>
-                        {hours} hour{hours !== 1 ? "s" : ""}
-                      </span>
-                      {mins > 0 && <span>{mins} minutes</span>}
-                    </div>
-                  );
-                }
-                return `${minutes} minutes`;
-              };
+            const totalDuration =
+              lessonPlan.form.cies?.reduce(
+                (sum: number, cie: any) => sum + (cie.duration || 0),
+                0
+              ) || 0;
 
-              // Format duration for individual rows (just minutes)
-              const formatDurationIndividual = (minutes: number) => {
-                return `${minutes || 0}`;
-              };
-
-              // Track global index for numbering across all tables
-              let globalIndex = 0;
-
-              // Column width classes for consistent sizing
-              const colClasses = {
-                no: "w-[5%] min-w-[30px]",
-                unit: "w-[12%] min-w-[100px]",
-                date: "w-[8%] min-w-[80px]",
-                marks: "w-[6%] min-w-[50px]",
-                duration: "w-[8%] min-w-[70px]",
-                evalType: "w-[12%] min-w-[100px]",
-                blooms: "w-[12%] min-w-[100px]",
-                pedagogy: "w-[14%] min-w-[120px]",
-                copso: "w-[12%] min-w-[100px]",
-                skills: "w-[8%] min-w-[70px]",
-              };
-
-              return (
-                <div key="cie" className="mb-6 cie-section">
-                  <h2 className="text-lg font-bold mb-2">
-                    {section.number}. {section.name}
-                  </h2>
-
-                  {/* Header Table - Only shown once */}
-                  <div className="mb-0">
-                    <table className="w-full border-collapse table-fixed">
-                      <thead>
-                        <tr>
-                          <th
-                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.no}`}
-                          >
-                            No.
-                          </th>
-                          <th
-                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.unit}`}
-                          >
-                            Unit Covered
-                          </th>
-                          <th
-                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.date}`}
-                          >
-                            Date
-                          </th>
-                          <th
-                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.marks}`}
-                          >
-                            Marks
-                          </th>
-                          <th
-                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.duration}`}
-                          >
-                            Duration (mins)
-                          </th>
-                          <th
-                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.evalType}`}
-                          >
-                            Evaluation Type
-                          </th>
-                          <th
-                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.blooms}`}
-                          >
-                            Bloom's Taxonomy
-                          </th>
-                          <th
-                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.pedagogy}`}
-                          >
-                            Evaluation Pedagogy
-                          </th>
-                          <th
-                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.copso}`}
-                          >
-                            CO/PSO/PEO
-                          </th>
-                          <th
-                            className={`border border-black p-2 font-bold text-center break-words ${colClasses.skills}`}
-                          >
-                            Skills
-                          </th>
-                        </tr>
-                      </thead>
-                    </table>
+            // Format duration for totals (x hours xx minutes)
+            const formatDurationTotal = (minutes: number) => {
+              if (minutes >= 60) {
+                const hours = Math.floor(minutes / 60);
+                const mins = Math.floor(minutes % 60);
+                return (
+                  <div className="flex flex-col items-center">
+                    <span>
+                      {hours} hour{hours !== 1 ? "s" : ""}
+                    </span>
+                    {mins > 0 && <span>{mins} minutes</span>}
                   </div>
+                );
+              }
+              return `${minutes} minutes`;
+            };
 
-                  {/* Data Tables */}
-                  {cieGroups.map(({ type, cies, showTotal }) => {
-                    if (cies.length === 0) return null;
+            // Format duration for individual rows (just minutes)
+            const formatDurationIndividual = (minutes: number) => {
+              return `${minutes || 0}`;
+            };
 
-                    const groupMarks = cies.reduce(
-                      (sum, cie) => sum + (cie.marks || 0),
-                      0
-                    );
-                    const groupDuration = cies.reduce(
-                      (sum, cie) => sum + (cie.duration || 0),
-                      0
-                    );
+            // Track global index for numbering across all tables
+            let globalIndex = 0;
 
-                    return (
-                      <div key={type} className="mb-2">
-                        <table className="w-full border-collapse table-fixed">
-                          <tbody>
-                            {cies.map((cie) => {
-                              globalIndex++;
-                              return (
-                                <tr key={cie.id || globalIndex}>
-                                  <td
-                                    className={`border border-black p-2 text-center break-words ${colClasses.no}`}
-                                  >
-                                    {globalIndex}
-                                  </td>
-                                  <td
-                                    className={`border border-black p-2 text-center break-words ${colClasses.unit}`}
-                                  >
-                                    {(() => {
+            // Column width classes for consistent sizing
+            const colClasses = {
+              no: "w-[5%] min-w-[30px]",
+              unit: "w-[12%] min-w-[100px]",
+              date: "w-[8%] min-w-[80px]",
+              marks: "w-[6%] min-w-[50px]",
+              duration: "w-[8%] min-w-[70px]",
+              evalType: "w-[12%] min-w-[100px]",
+              blooms: "w-[12%] min-w-[100px]",
+              pedagogy: "w-[14%] min-w-[120px]",
+              copso: "w-[12%] min-w-[100px]",
+              skills: "w-[8%] min-w-[70px]",
+            };
+
+            return (
+              <div key="cie" className="mb-6 cie-section">
+                <h2 className="text-lg font-bold mb-2">
+                  {section.number}. {section.name}
+                </h2>
+                {/* Header Table - Only shown once */}
+                <div className="mb-0">
+                  <table className="w-full border-collapse table-fixed">
+                    <thead>
+                      <tr>
+                        <th
+                          className={`border border-black p-2 font-bold text-center break-words ${colClasses.no}`}
+                        >
+                          No.
+                        </th>
+                        <th
+                          className={`border border-black p-2 font-bold text-center break-words ${colClasses.unit}`}
+                        >
+                          Unit Covered
+                        </th>
+                        <th
+                          className={`border border-black p-2 font-bold text-center break-words ${colClasses.date}`}
+                        >
+                          Date
+                        </th>
+                        <th
+                          className={`border border-black p-2 font-bold text-center break-words ${colClasses.marks}`}
+                        >
+                          Marks
+                        </th>
+                        <th
+                          className={`border border-black p-2 font-bold text-center break-words ${colClasses.duration}`}
+                        >
+                          Duration (mins)
+                        </th>
+                        <th
+                          className={`border border-black p-2 font-bold text-center break-words ${colClasses.evalType}`}
+                        >
+                          Evaluation Type
+                        </th>
+                        <th
+                          className={`border border-black p-2 font-bold text-center break-words ${colClasses.blooms}`}
+                        >
+                          Bloom's Taxonomy
+                        </th>
+                        <th
+                          className={`border border-black p-2 font-bold text-center break-words ${colClasses.pedagogy}`}
+                        >
+                          Evaluation Pedagogy
+                        </th>
+                        <th
+                          className={`border border-black p-2 font-bold text-center break-words ${colClasses.copso}`}
+                        >
+                          CO/PSO/PEO
+                        </th>
+                        <th
+                          className={`border border-black p-2 font-bold text-center break-words ${colClasses.skills}`}
+                        >
+                          Skills
+                        </th>
+                      </tr>
+                    </thead>
+                  </table>
+                </div>
+                {/* Data Tables */}
+                {cieGroups.map(({ type, cies, showTotal }) => {
+                  if (cies.length === 0) return null;
+
+                  const groupMarks = cies.reduce(
+                    (sum, cie) => sum + (cie.marks || 0),
+                    0
+                  );
+                  const groupDuration = cies.reduce(
+                    (sum, cie) => sum + (cie.duration || 0),
+                    0
+                  );
+
+                  return (
+                    <div key={type} className="mb-2">
+                      <table className="w-full border-collapse table-fixed">
+                        <tbody>
+                          {cies.map((cie) => {
+                            globalIndex++;
+                            return (
+                              <tr key={cie.id || globalIndex}>
+                                <td
+                                  className={`border border-black p-2 text-center break-words ${colClasses.no}`}
+                                >
+                                  {globalIndex}
+                                </td>
+                                <td
+                                  className={`border border-black p-2 text-center break-words ${colClasses.unit}`}
+                                >
+                                  {(() => {
+                                    if (typeof cie.units_covered === "string") {
                                       if (
-                                        typeof cie.units_covered === "string"
-                                      ) {
-                                        if (
-                                          !cie.units_covered ||
-                                          cie.units_covered.trim() === ""
+                                        !cie.units_covered ||
+                                        cie.units_covered.trim() === ""
+                                      )
+                                        return "-";
+                                      const unitIds = cie.units_covered
+                                        .split(",")
+                                        .map((id: any) => id.trim());
+                                      if (
+                                        unitIds.some(
+                                          (id: any) =>
+                                            id.length > 20 && id.includes("-")
                                         )
-                                          return "-";
-                                        const unitIds = cie.units_covered
-                                          .split(",")
-                                          .map((id: any) => id.trim());
-                                        if (
-                                          unitIds.some(
-                                            (id: any) =>
-                                              id.length > 20 && id.includes("-")
-                                          )
-                                        ) {
-                                          const mappedUnits = unitIds
-                                            .map((unitId: any) => {
-                                              const unitIndex =
-                                                lessonPlan.form.units?.findIndex(
-                                                  (u: any) => u.id === unitId
-                                                );
-                                              return unitIndex !== -1
-                                                ? unitIndex + 1
-                                                : null;
-                                            })
-                                            .filter((num: any) => num !== null);
-                                          return mappedUnits.length > 0
-                                            ? mappedUnits.join(", ")
-                                            : "-";
-                                        }
-                                        return cie.units_covered;
-                                      }
-                                      if (Array.isArray(cie.units_covered)) {
-                                        if (cie.units_covered.length === 0)
-                                          return "-";
-                                        const unitNumbers = cie.units_covered
+                                      ) {
+                                        const mappedUnits = unitIds
                                           .map((unitId: any) => {
                                             const unitIndex =
                                               lessonPlan.form.units?.findIndex(
@@ -1055,169 +1005,204 @@ export default function PrintLessonPlanPage() {
                                               : null;
                                           })
                                           .filter((num: any) => num !== null);
-                                        return unitNumbers.length > 0
-                                          ? unitNumbers.join(", ")
+                                        return mappedUnits.length > 0
+                                          ? mappedUnits.join(", ")
                                           : "-";
                                       }
-                                      return "-";
-                                    })()}
-                                  </td>
-                                  <td
-                                    className={`border border-black p-2 text-center break-words ${colClasses.date}`}
-                                  >
-                                    {cie.date
-                                      ? cie.date.replace(/-/g, "/")
-                                      : "-"}
-                                  </td>
-                                  <td
-                                    className={`border border-black p-2 text-center break-words ${colClasses.marks}`}
-                                  >
-                                    {cie.marks || "-"}
-                                  </td>
-                                  <td
-                                    className={`border border-black p-2 text-center break-words ${colClasses.duration}`}
-                                  >
-                                    {formatDurationIndividual(
-                                      cie.duration || 0
-                                    )}
-                                  </td>
-                                  <td
-                                    className={`border border-black p-2 text-center break-words ${colClasses.evalType}`}
-                                  >
-                                    {cie.originalType || cie.type || "-"}
-                                  </td>
-                                  <td
-                                    className={`border border-black p-2 text-center break-words ${colClasses.blooms}`}
-                                  >
-                                    {cie.blooms_taxonomy &&
-                                    cie.blooms_taxonomy.length > 0
-                                      ? cie.blooms_taxonomy.join(", ")
-                                      : "-"}
-                                  </td>
-                                  <td
-                                    className={`border border-black p-2 text-center break-words ${colClasses.pedagogy}`}
-                                  >
-                                    {cie.evaluation_pedagogy || "-"}
-                                  </td>
-                                  <td
-                                    className={`border border-black p-2 text-center break-words ${colClasses.copso}`}
-                                  >
-                                    {(() => {
-                                      let mappings = [];
-                                      if (
-                                        cie.co_mapping &&
-                                        cie.co_mapping.length > 0
-                                      ) {
-                                        const coNumbers = cie.co_mapping.map(
-                                          (coId: any, idx: number) =>
-                                            `CO${idx + 1}`
-                                        );
-                                        mappings.push(...coNumbers);
-                                      }
-                                      if (
-                                        cie.pso_mapping &&
-                                        cie.pso_mapping.length > 0
-                                      ) {
-                                        const psoNumbers = cie.pso_mapping.map(
-                                          (pso: any) => pso.toUpperCase()
-                                        );
-                                        mappings.push(...psoNumbers);
-                                      }
-                                      if (
-                                        cie.peo_mapping &&
-                                        cie.peo_mapping.length > 0
-                                      ) {
-                                        const peoNumbers = cie.peo_mapping.map(
-                                          (peo: any) => peo.toUpperCase()
-                                        );
-                                        mappings.push(...peoNumbers);
-                                      }
-                                      return mappings.length > 0
-                                        ? mappings.join(", ")
+                                      return cie.units_covered;
+                                    }
+                                    if (Array.isArray(cie.units_covered)) {
+                                      if (cie.units_covered.length === 0)
+                                        return "-";
+                                      const unitNumbers = cie.units_covered
+                                        .map((unitId: any) => {
+                                          const unitIndex =
+                                            lessonPlan.form.units?.findIndex(
+                                              (u: any) => u.id === unitId
+                                            );
+                                          return unitIndex !== -1
+                                            ? unitIndex + 1
+                                            : null;
+                                        })
+                                        .filter((num: any) => num !== null);
+                                      return unitNumbers.length > 0
+                                        ? unitNumbers.join(", ")
                                         : "-";
-                                    })()}
-                                  </td>
-                                  <td
-                                    className={`border border-black p-2 text-center break-words ${colClasses.skills}`}
-                                  >
-                                    {cie.skill_mapping &&
-                                    cie.skill_mapping.length > 0
-                                      ? cie.skill_mapping
-                                          .map((skill: any) =>
-                                            typeof skill === "object"
-                                              ? skill.skill
-                                              : skill
-                                          )
-                                          .join(", ")
-                                      : "-"}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-
-                            {/* Group Total Row - Only for tables that should show totals */}
-                            {showTotal && (
-                              <tr className="font-bold">
-                                <td
-                                  className={`border border-black p-2 text-right ${colClasses.unit} w-[347px]`}
-                                  colSpan={3}
-                                >
-                                  Total
+                                    }
+                                    return "-";
+                                  })()}
                                 </td>
                                 <td
-                                  className={`border border-black p-2 text-center ${colClasses.marks} w-[84px]`}
+                                  className={`border border-black p-2 text-center break-words ${colClasses.date}`}
                                 >
-                                  {groupMarks}
+                                  {cie.date ? cie.date.replace(/-/g, "/") : "-"}
                                 </td>
                                 <td
-                                  className={`border border-black p-2 text-center ${colClasses.duration} w-[111px]`}
+                                  className={`border border-black p-2 text-center break-words ${colClasses.marks}`}
                                 >
-                                  {formatDurationTotal(groupDuration)}
+                                  <div className="flex flex-col">
+                                    <p>{cie?.marks || "-"}</p>
+                                    <p className="text-sm">Marks</p>
+                                  </div>
                                 </td>
                                 <td
-                            className={`border border-black p-2 text-center`}
-                            colSpan={5} // Merges last 5 columns
-                          ></td>
+                                  className={`border border-black p-2 text-center break-words ${colClasses.duration}`}
+                                >
+                                  <div className="flex flex-col">
+                                    <p>
+                                      {formatDurationIndividual(
+                                        cie.duration || 0
+                                      )}
+                                    </p>
+                                    <p className="text-sm">mins</p>
+                                  </div>
+                                </td>
+                                <td
+                                  className={`border border-black p-2 text-center break-words ${colClasses.evalType}`}
+                                >
+                                  {cie.originalType || cie.type || "-"}
+                                </td>
+                                <td
+                                  className={`border border-black p-2 text-center break-words ${colClasses.blooms}`}
+                                >
+                                  {cie.blooms_taxonomy &&
+                                  cie.blooms_taxonomy.length > 0
+                                    ? cie.blooms_taxonomy.join(", ")
+                                    : "-"}
+                                </td>
+                                <td
+                                  className={`border border-black p-2 text-center break-words ${colClasses.pedagogy}`}
+                                >
+                                  {cie.evaluation_pedagogy || "-"}
+                                </td>
+                                <td
+                                  className={`border border-black p-2 text-center break-words ${colClasses.copso}`}
+                                >
+                                  {(() => {
+                                    const mappings = [];
+                                    if (
+                                      cie.co_mapping &&
+                                      cie.co_mapping.length > 0
+                                    ) {
+                                      const coNumbers = cie.co_mapping.map(
+                                        (coId: any, idx: number) =>
+                                          `CO${idx + 1}`
+                                      );
+                                      mappings.push(...coNumbers);
+                                    }
+                                    if (
+                                      cie.pso_mapping &&
+                                      cie.pso_mapping.length > 0
+                                    ) {
+                                      const psoNumbers = cie.pso_mapping.map(
+                                        (pso: any) => pso.toUpperCase()
+                                      );
+                                      mappings.push(...psoNumbers);
+                                    }
+                                    if (
+                                      cie.peo_mapping &&
+                                      cie.peo_mapping.length > 0
+                                    ) {
+                                      const peoNumbers = cie.peo_mapping.map(
+                                        (peo: any) => peo.toUpperCase()
+                                      );
+                                      mappings.push(...peoNumbers);
+                                    }
+                                    return mappings.length > 0
+                                      ? mappings.join(", ")
+                                      : "-";
+                                  })()}
+                                </td>
+                                <td
+                                  className={`border border-black p-2 text-center break-words ${colClasses.skills}`}
+                                >
+                                  {cie.skill_mapping &&
+                                  cie.skill_mapping.length > 0
+                                    ? cie.skill_mapping
+                                        .map((skill: any) =>
+                                          typeof skill === "object"
+                                            ? skill.skill
+                                            : skill
+                                        )
+                                        .join(", ")
+                                    : "-"}
+                                </td>
                               </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })}
-
-                  {/* Overall Total Row */}
-                  <div className="mt-2">
-                    <table className="w-full border-collapse table-fixed">
-                      <tbody>
-                        <tr className="font-bold">
-                          <td
-                            className={`border border-black p-2 text-right w-[374px]`}
-                            colSpan={2} // Merges No., Unit, and Date columns
-                          >
-                            Overall Total
-                          </td>
-                          <td
-                            className={`border border-black p-2 text-center ${colClasses.marks} w-[91px]`}
-                          >
-                            {totalMarks}
-                          </td>
-                          <td
-                            className={`border border-black p-2 text-center ${colClasses.duration} w-[120px]`}
-                          >
-                            {formatDurationTotal(totalDuration)}
-                          </td>
-                          <td
-                            className={`border border-black p-2 text-center`}
-                            colSpan={5} // Merges last 5 columns
-                          ></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                            );
+                          })}
+                          {/* Group Total Row - Only for tables that should show totals */}
+                          {showTotal && (
+                            <tr className="font-bold">
+                              <td
+                                className={`border border-black p-2 text-right ${colClasses.unit} w-[347px]`}
+                                colSpan={3}
+                              >
+                                Total
+                              </td>
+                              <td
+                                className={`border border-black p-2 text-center ${colClasses.marks} w-[84px]`}
+                              >
+                                <div className="flex flex-col">
+                                  <p>{groupMarks}</p>
+                                  <p className="text-sm">Marks</p>
+                                </div>
+                              </td>
+                              <td
+                                className={`border border-black p-2 text-center ${colClasses.duration} w-[111px]`}
+                              >
+                                {formatDurationTotal(groupDuration)}
+                              </td>
+                              <td
+                                className={`border border-black p-2 text-center`}
+                                colSpan={5}
+                              >
+                                {/* Merges last 5 columns */}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })}
+                {/* Overall Total Row */}
+                <div className="mt-2">
+                  <table className="w-full border-collapse table-fixed">
+                    <tbody>
+                      <tr className="font-bold">
+                        <td
+                          className={`border border-black p-2 text-right w-[374px]`}
+                          colSpan={2}
+                        >
+                          {/* Merges No., Unit, and Date columns */}
+                          Overall Total
+                        </td>
+                        <td
+                          className={`border border-black p-2 text-center ${colClasses.marks} w-[91px]`}
+                        >
+                          <div className="flex flex-col">
+                            <p>{totalMarks}</p>
+                            <p className="text-sm">Marks</p>
+                          </div>
+                        </td>
+                        <td
+                          className={`border border-black p-2 text-center ${colClasses.duration} w-[120px]`}
+                        >
+                          {formatDurationTotal(totalDuration)}
+                        </td>
+                        <td
+                          className={`border border-black p-2 text-center`}
+                          colSpan={5}
+                        >
+                          {/* Merges last 5 columns */}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-              );
-            }
+              </div>
+            );
+          }
 
           if (section.type === "additional") {
             return (
