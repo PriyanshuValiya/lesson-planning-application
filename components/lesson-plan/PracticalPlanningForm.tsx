@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Trash2, AlertTriangle, Info } from "lucide-react"
+import { Plus, Trash2, AlertTriangle, Info, Save } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/utils/supabase/client"
@@ -1683,7 +1683,8 @@ export default function PracticalPlanningForm({ lessonPlan, setLessonPlan, userD
               disabled={saving}
               className="min-w-[100px] bg-[#1A5CA1] hover:bg-[#154A80]"
             >
-              {saving ? "Submitting..." : "Submit"}
+              <Save className="h-4 w-4" />
+              {saving ? "Submitting..." : "Submit Practical Planning"}
             </Button>
           </div>
         </div>
