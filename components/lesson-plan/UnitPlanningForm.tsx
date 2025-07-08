@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Trash2, Save, InfoIcon, X, Users } from "lucide-react"
+import { Plus, Trash2, Save, InfoIcon, X, Users, Save } from "lucide-react"
 import { toast } from "sonner"
 import { type UnitPlanningFormValues, skillMappingOptions } from "@/utils/schema"
 import { saveUnitPlanningForm } from "@/app/dashboard/actions/saveUnitPlanningForm"
@@ -1684,8 +1684,8 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
             {isSavingDraft ? "Saving..." : "Save Draft"}
           </Button>
           <Button type="submit" disabled={isSaving} className="bg-[#1A5CA1] hover:bg-[#154A80]">
-            <Save className="mr-2 h-4 w-4" />
-            {isSaving ? "Submitting..." : "Submit"}
+           <Save className="h-4 w-4" />
+           {isSaving ? "Submitting..." : "Submit Unit Planning"}
           </Button>
         </div>
       </div>
