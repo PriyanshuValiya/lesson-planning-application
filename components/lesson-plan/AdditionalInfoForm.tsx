@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Trash2, Save, CheckCircle, Upload, FileText, AlertCircle } from "lucide-react"
+import { Plus, Trash2, Save, Upload, FileText, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import { additionalInfoSchema, type AdditionalInfoFormValues } from "@/utils/schema"
 import { saveAdditionalInfoForm } from "@/app/dashboard/actions/saveAdditionalInfoForm"
@@ -1013,13 +1013,13 @@ export default function AdditionalInfoForm({ lessonPlan, setLessonPlan }: Additi
           >
             {isSaving ? (
               <>
-                <Save className="mr-2 h-4 w-4" />
+                <Save className="h-4 w-4" />
                 Submitting...
               </>
             ) : (
               <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Submit
+                <Save className="h-4 w-4" />
+                Submit Additional Information
               </>
             )}
           </Button>
