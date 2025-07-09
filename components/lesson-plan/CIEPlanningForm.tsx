@@ -644,6 +644,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         return
       }
 
+
       // VALIDATION 4: Check for Bloom's taxonomy warnings when selecting bloom's levels (THEORY CIEs ONLY)
       const theoryCIETypes = ["Lecture CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
       if (theoryCIETypes.includes(updatedCIEs[index].type)) {
@@ -899,14 +900,59 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
     }
 
     // Minimum 7 days gap between consecutive CIEs
-    for (let i = 1; i < sortedCIEs.length; i++) {
-      const prevDateStr = convertYYYYMMDDToDDMMYYYY(sortedCIEs[i - 1].date)
-      const currDateStr = convertYYYYMMDDToDDMMYYYY(sortedCIEs[i].date)
+    // for (let i = 1; i < sortedCIEs.length; i++) {
+    //   const prevDateStr = convertYYYYMMDDToDDMMYYYY(sortedCIEs[i - 1].date)
+    //   const currDateStr = convertYYYYMMDDToDDMMYYYY(sortedCIEs[i].date)
 
-      const daysDiff = getDaysDifferenceBetweenDates(prevDateStr, currDateStr)
-      if (daysDiff < 7) {
-        errors.push(`CIE dates must be at least 7 days apart`)
+    //   const daysDiff = getDaysDifferenceBetweenDates(prevDateStr, currDateStr)
+    //   if (daysDiff < 7) {
+    //     errors.push(`CIE dates must be at least 7 days apart`)
+    //   }
+    // }
+    // UPDATED: Modified 7-day gap validation - only for specific CIE type groups
+    const validateDateGaps = (cieList: any[], groupName: string) => {
+      if (cieList.length < 2) return // Need at least 2 CIEs to check gaps
+
+      const sortedCIEs = [...cieList]
+        .filter((cie) => cie.date)
+        .sort((a, b) => {
+          const dateA = parseDateToDDMMYYYY(a.date)
+          const dateB = parseDateToDDMMYYYY(b.date)
+          if (!dateA || !dateB) return 0
+          return dateA.getTime() - dateB.getTime()
+        })
+
+      for (let i = 1; i < sortedCIEs.length; i++) {
+        const prevDate = parseDateToDDMMYYYY(sortedCIEs[i - 1].date)
+        const currDate = parseDateToDDMMYYYY(sortedCIEs[i].date)
+
+        if (prevDate && currDate) {
+          const daysDiff = getDaysDifferenceBetweenDates(
+            convertYYYYMMDDToDDMMYYYY(sortedCIEs[i - 1].date),
+            convertYYYYMMDDToDDMMYYYY(sortedCIEs[i].date),
+          )
+          if (daysDiff < 7) {
+            errors.push(`${groupName} CIE dates must be at least 7 days apart`)
+            break // Only show this error once per group
+          }
+        }
       }
+    }
+
+    // Group CIEs by type for 7-day validation
+    const lectureCIEs = currentCIEs.filter((cie: any) =>
+      ["Lecture CIE"].includes(cie.type),
+    )
+
+    const practicalCIEs = currentCIEs.filter((cie: any) => ["Practical CIE", "Internal Practical"].includes(cie.type))
+
+    // Validate 7-day gaps within each group
+    if (lectureCIEs.length > 1) {
+      validateDateGaps(lectureCIEs, "Lecture")
+    }
+
+    if (practicalCIEs.length > 1) {
+      validateDateGaps(practicalCIEs, "Practical")
     }
 
     // VALIDATION 2: FIXED - Check that at least one of each required CIE type is present
@@ -995,42 +1041,44 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
     }
 
     // VALIDATION 3 & 12: FIXED - Check for duplicate Bloom's taxonomy combinations
-    const allBloomsCombinations = currentCIEs
-      .map((cie: any) => (cie.blooms_taxonomy || []).sort().join(","))
-      .filter(Boolean)
+    // const allBloomsCombinations = currentCIEs
+    //   .map((cie: any) => (cie.blooms_taxonomy || []).sort().join(","))
+    //   .filter(Boolean)
 
-    const uniqueBloomsCombinations = new Set(allBloomsCombinations)
+    // const uniqueBloomsCombinations = new Set(allBloomsCombinations)
 
-    console.log("🔍 FRONTEND Bloom's validation:", {
-      allCombinations: allBloomsCombinations,
-      uniqueCombinations: Array.from(uniqueBloomsCombinations),
-      shouldError: allBloomsCombinations.length > 1 && uniqueBloomsCombinations.size === 1,
-    })
+    // console.log("🔍 FRONTEND Bloom's validation:", {
+    //   allCombinations: allBloomsCombinations,
+    //   uniqueCombinations: Array.from(uniqueBloomsCombinations),
+    //   shouldError: allBloomsCombinations.length > 1 && uniqueBloomsCombinations.size === 1,
+    // })
 
-    // FIXED: Check for ANY duplicate combinations, not just if ALL are the same
-    const combinationCounts = new Map<string, number[]>()
+    // // FIXED: Check for ANY duplicate combinations, not just if ALL are the same
+    // const combinationCounts = new Map<string, number[]>()
 
-    allBloomsCombinations.forEach((combination, index) => {
-      if (!combinationCounts.has(combination)) {
-        combinationCounts.set(combination, [])
-      }
-      combinationCounts.get(combination)!.push(index + 1) // Store 1-based CIE numbers
-    })
+    // allBloomsCombinations.forEach((combination, index) => {
+    //   if (!combinationCounts.has(combination)) {
+    //     combinationCounts.set(combination, [])
+    //   }
+    //   combinationCounts.get(combination)!.push(index + 1) // Store 1-based CIE numbers
+    // })
 
-    // Check for duplicates
-    const duplicates: string[] = []
-    combinationCounts.forEach((cieNumbers, combination) => {
-      if (cieNumbers.length > 1) {
-        duplicates.push(
-          `CIEs ${cieNumbers.join(", ")} have the same Bloom's Taxonomy combination: [${combination.split(",").join(", ")}]`,
-        )
-      }
-    })
+    // // Check for duplicates
+    // const duplicates: string[] = []
+    // combinationCounts.forEach((cieNumbers, combination) => {
+    //   if (cieNumbers.length > 1) {
+    //     duplicates.push(
+    //       `CIEs ${cieNumbers.join(", ")} have the same Bloom's Taxonomy combination: [${combination.split(",").join(", ")}]`,
+    //     )
+    //   }
+    // })
 
-    if (duplicates.length > 0) {
-      errors.push(`Duplicate Bloom's Taxonomy combinations found: ${duplicates.join("; ")}`)
-    }
+    // if (duplicates.length > 0) {
+    //   errors.push(`Duplicate Bloom's Taxonomy combinations found: ${duplicates.join("; ")}`)
+    // }
 
+
+    
     // VALIDATION 13 & 14: Validate Bloom's taxonomy usage limits
     const allBloomsUsage = currentCIEs.flatMap((cie: any) => cie.blooms_taxonomy || [])
     const rememberCount = allBloomsUsage.filter((bloom: string) => bloom === "Remember").length
@@ -1068,14 +1116,14 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
     // VALIDATION 7 & 11: Traditional pedagogy usage validation (only for Lecture CIEs)
     const traditionalPedagogies = evaluationPedagogyOptions.traditional
-    const lectureCIEs = currentCIEs.filter((cie: any) => cie.type === "Lecture CIE")
-    const lecturePedagogies = lectureCIEs.map((cie: any) => cie.evaluation_pedagogy).filter(Boolean)
+    const onlylectureCIEs = currentCIEs.filter((cie: any) => cie.type === "Lecture CIE")
+    const lecturePedagogies = onlylectureCIEs.map((cie: any) => cie.evaluation_pedagogy).filter(Boolean)
     const usedTraditionalInLecture = lecturePedagogies.filter((pedagogy: string) =>
       traditionalPedagogies.includes(pedagogy),
     )
 
     // At least one traditional pedagogy is required in Lecture CIEs
-    if (lectureCIEs.length > 0 && usedTraditionalInLecture.length === 0) {
+    if (onlylectureCIEs.length > 0 && usedTraditionalInLecture.length === 0) {
       errors.push("At least one traditional pedagogy method must be used in Lecture CIEs")
     }
 
