@@ -3500,6 +3500,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         return
       }
 
+
       // VALIDATION 4: Check for Bloom's taxonomy warnings when selecting bloom's levels (THEORY CIEs ONLY)
       const theoryCIETypes = ["Lecture CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
       if (theoryCIETypes.includes(updatedCIEs[index].type)) {
@@ -3755,14 +3756,59 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
     }
 
     // Minimum 7 days gap between consecutive CIEs
-    for (let i = 1; i < sortedCIEs.length; i++) {
-      const prevDateStr = convertYYYYMMDDToDDMMYYYY(sortedCIEs[i - 1].date)
-      const currDateStr = convertYYYYMMDDToDDMMYYYY(sortedCIEs[i].date)
+    // for (let i = 1; i < sortedCIEs.length; i++) {
+    //   const prevDateStr = convertYYYYMMDDToDDMMYYYY(sortedCIEs[i - 1].date)
+    //   const currDateStr = convertYYYYMMDDToDDMMYYYY(sortedCIEs[i].date)
 
-      const daysDiff = getDaysDifferenceBetweenDates(prevDateStr, currDateStr)
-      if (daysDiff < 7) {
-        errors.push(`CIE dates must be at least 7 days apart`)
+    //   const daysDiff = getDaysDifferenceBetweenDates(prevDateStr, currDateStr)
+    //   if (daysDiff < 7) {
+    //     errors.push(`CIE dates must be at least 7 days apart`)
+    //   }
+    // }
+    // UPDATED: Modified 7-day gap validation - only for specific CIE type groups
+    const validateDateGaps = (cieList: any[], groupName: string) => {
+      if (cieList.length < 2) return // Need at least 2 CIEs to check gaps
+
+      const sortedCIEs = [...cieList]
+        .filter((cie) => cie.date)
+        .sort((a, b) => {
+          const dateA = parseDateToDDMMYYYY(a.date)
+          const dateB = parseDateToDDMMYYYY(b.date)
+          if (!dateA || !dateB) return 0
+          return dateA.getTime() - dateB.getTime()
+        })
+
+      for (let i = 1; i < sortedCIEs.length; i++) {
+        const prevDate = parseDateToDDMMYYYY(sortedCIEs[i - 1].date)
+        const currDate = parseDateToDDMMYYYY(sortedCIEs[i].date)
+
+        if (prevDate && currDate) {
+          const daysDiff = getDaysDifferenceBetweenDates(
+            convertYYYYMMDDToDDMMYYYY(sortedCIEs[i - 1].date),
+            convertYYYYMMDDToDDMMYYYY(sortedCIEs[i].date),
+          )
+          if (daysDiff < 7) {
+            errors.push(`${groupName} CIE dates must be at least 7 days apart`)
+            break // Only show this error once per group
+          }
+        }
       }
+    }
+
+    // Group CIEs by type for 7-day validation
+    const lectureCIEs = currentCIEs.filter((cie: any) =>
+      ["Lecture CIE"].includes(cie.type),
+    )
+
+    const practicalCIEs = currentCIEs.filter((cie: any) => ["Practical CIE", "Internal Practical"].includes(cie.type))
+
+    // Validate 7-day gaps within each group
+    if (lectureCIEs.length > 1) {
+      validateDateGaps(lectureCIEs, "Lecture")
+    }
+
+    if (practicalCIEs.length > 1) {
+      validateDateGaps(practicalCIEs, "Practical")
     }
 
     // VALIDATION 2: FIXED - Check that at least one of each required CIE type is present
@@ -3926,14 +3972,14 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
     // VALIDATION 7 & 11: Traditional pedagogy usage validation (only for Lecture CIEs)
     const traditionalPedagogies = evaluationPedagogyOptions.traditional
-    const lectureCIEs = currentCIEs.filter((cie: any) => cie.type === "Lecture CIE")
-    const lecturePedagogies = lectureCIEs.map((cie: any) => cie.evaluation_pedagogy).filter(Boolean)
+    const onlylectureCIEs = currentCIEs.filter((cie: any) => cie.type === "Lecture CIE")
+    const lecturePedagogies = onlylectureCIEs.map((cie: any) => cie.evaluation_pedagogy).filter(Boolean)
     const usedTraditionalInLecture = lecturePedagogies.filter((pedagogy: string) =>
       traditionalPedagogies.includes(pedagogy),
     )
 
     // At least one traditional pedagogy is required in Lecture CIEs
-    if (lectureCIEs.length > 0 && usedTraditionalInLecture.length === 0) {
+    if (onlylectureCIEs.length > 0 && usedTraditionalInLecture.length === 0) {
       errors.push("At least one traditional pedagogy method must be used in Lecture CIEs")
     }
 
