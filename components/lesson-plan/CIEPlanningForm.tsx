@@ -3851,42 +3851,44 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
     }
 
     // VALIDATION 3 & 12: FIXED - Check for duplicate Bloom's taxonomy combinations
-    const allBloomsCombinations = currentCIEs
-      .map((cie: any) => (cie.blooms_taxonomy || []).sort().join(","))
-      .filter(Boolean)
+    // const allBloomsCombinations = currentCIEs
+    //   .map((cie: any) => (cie.blooms_taxonomy || []).sort().join(","))
+    //   .filter(Boolean)
 
-    const uniqueBloomsCombinations = new Set(allBloomsCombinations)
+    // const uniqueBloomsCombinations = new Set(allBloomsCombinations)
 
-    console.log("🔍 FRONTEND Bloom's validation:", {
-      allCombinations: allBloomsCombinations,
-      uniqueCombinations: Array.from(uniqueBloomsCombinations),
-      shouldError: allBloomsCombinations.length > 1 && uniqueBloomsCombinations.size === 1,
-    })
+    // console.log("🔍 FRONTEND Bloom's validation:", {
+    //   allCombinations: allBloomsCombinations,
+    //   uniqueCombinations: Array.from(uniqueBloomsCombinations),
+    //   shouldError: allBloomsCombinations.length > 1 && uniqueBloomsCombinations.size === 1,
+    // })
 
-    // FIXED: Check for ANY duplicate combinations, not just if ALL are the same
-    const combinationCounts = new Map<string, number[]>()
+    // // FIXED: Check for ANY duplicate combinations, not just if ALL are the same
+    // const combinationCounts = new Map<string, number[]>()
 
-    allBloomsCombinations.forEach((combination, index) => {
-      if (!combinationCounts.has(combination)) {
-        combinationCounts.set(combination, [])
-      }
-      combinationCounts.get(combination)!.push(index + 1) // Store 1-based CIE numbers
-    })
+    // allBloomsCombinations.forEach((combination, index) => {
+    //   if (!combinationCounts.has(combination)) {
+    //     combinationCounts.set(combination, [])
+    //   }
+    //   combinationCounts.get(combination)!.push(index + 1) // Store 1-based CIE numbers
+    // })
 
-    // Check for duplicates
-    const duplicates: string[] = []
-    combinationCounts.forEach((cieNumbers, combination) => {
-      if (cieNumbers.length > 1) {
-        duplicates.push(
-          `CIEs ${cieNumbers.join(", ")} have the same Bloom's Taxonomy combination: [${combination.split(",").join(", ")}]`,
-        )
-      }
-    })
+    // // Check for duplicates
+    // const duplicates: string[] = []
+    // combinationCounts.forEach((cieNumbers, combination) => {
+    //   if (cieNumbers.length > 1) {
+    //     duplicates.push(
+    //       `CIEs ${cieNumbers.join(", ")} have the same Bloom's Taxonomy combination: [${combination.split(",").join(", ")}]`,
+    //     )
+    //   }
+    // })
 
-    if (duplicates.length > 0) {
-      errors.push(`Duplicate Bloom's Taxonomy combinations found: ${duplicates.join("; ")}`)
-    }
+    // if (duplicates.length > 0) {
+    //   errors.push(`Duplicate Bloom's Taxonomy combinations found: ${duplicates.join("; ")}`)
+    // }
 
+
+    
     // VALIDATION 13 & 14: Validate Bloom's taxonomy usage limits
     const allBloomsUsage = currentCIEs.flatMap((cie: any) => cie.blooms_taxonomy || [])
     const rememberCount = allBloomsUsage.filter((bloom: string) => bloom === "Remember").length
