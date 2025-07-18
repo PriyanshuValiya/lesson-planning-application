@@ -62,6 +62,34 @@ export default function EditActualForm({
     (formsData.form?.units || []).flatMap(unit => unit.co_mapping || [])
   )
 );
+  const comapping = formsData?.form?.generalDetails?.courseOutcomes || [];
+
+const coIdToTextMap = comapping.reduce((acc, co) => {
+  acc[co.id] = co.text;
+  return acc;
+}, {});
+  //idk if im even allowed to query here
+  const [users, setUsers] = useState([]);
+
+    useEffect(() => {
+      async function fetchUsers() {
+        const { data, error } = await supabase.from("users").select("id, name");
+
+        if (error) {
+          console.error("Error fetching users:", error);
+        } else {
+          setUsers(data);
+        }
+      }
+
+      fetchUsers();
+    }, []);
+    const idToNameFaculty = users.reduce((acc, user) => {
+      acc[user.id] = user.name;
+      return acc;
+    }, {});
+
+
 
   //Disabling scroll because if not then we have 2 scrolls then ui gets weird 
   useEffect(() => {
@@ -169,10 +197,11 @@ export default function EditActualForm({
       .includes(key)).map(([key, value]) => {
         if (Array.isArray(value) && value.length === 0) return null;
 
-        // Format labels
-        const label = key
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (char) => char.toUpperCase());
+        // Format labels the assinged faculty name is like a temp solution for now will fix it when needed to fix
+        const label = key === "assigned_faculty_id"
+            ? "Assigned Faculty Name"
+            : key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+
           
 
         return (
@@ -181,13 +210,19 @@ export default function EditActualForm({
             {Array.isArray(value) ? (
               <div className="flex flex-wrap gap-2 mt-1">
                 {value.map((item, idx) => (
-                  <Badge key={idx} variant="secondary" className="text-xs">
-                    {item}
-                  </Badge>
-                ))}
+  <Badge key={idx} variant="secondary" className="text-xs">
+    {key === "co_mapping" ? coIdToTextMap[item] || item : item}
+  </Badge>
+))}
+
               </div>
             ) : (
-              <p className="text-sm mt-1 text-gray-900 whitespace-pre-line">{value || "-"}</p>
+              <p className="text-sm mt-1 text-gray-900 whitespace-pre-line">
+  {key === "assigned_faculty_id"
+    ? idToNameFaculty?.[value] || value
+    : value || "-"}
+</p>
+
             )}
           </div>
         );
@@ -245,36 +280,34 @@ export default function EditActualForm({
                                           placeholder={`${field.value?.length || 0} Selected`}
                                         />
                                       </SelectTrigger>
-                                      <SelectContent className="max-h-60 overflow-y-auto">
-                                          {allCOs.map((coId: string) => {
-                                            const selected = field.value.includes(coId);
-                                            return (
-                                              <div
-                                                key={coId}
-                                                className="flex items-center w-full px-3 py-2 cursor-pointer hover:bg-gray-100"
-                                                onClick={() => {
-                                                  const updated = selected
-                                                    ? field.value.filter((item) => item !== coId)
-                                                    : [...field.value, coId];
-                                                  field.onChange(updated);
-                                                }}
-                                              >
-                                                <Checkbox checked={selected} className="mr-2" />
-                                                <span className="text-sm font-mono">{coId}</span>
-                                              </div>
-                                            );
-                                          })}
-                                        </SelectContent>
+                                     <SelectContent className="max-h-60 overflow-y-auto">
+                                        {comapping.map((co) => {
+                                          const selected = field.value.includes(co.id);
+                                          return (
+                                            <div
+                                              key={co.id}
+                                              className="flex items-center w-full px-3 py-2 cursor-pointer hover:bg-gray-100"
+                                              onClick={() => {
+                                                const updated = selected
+                                                  ? field.value.filter((item) => item !== co.id)
+                                                  : [...field.value, co.id];
+                                                field.onChange(updated);
+                                              }}
+                                            >
+                                              <Checkbox checked={selected} className="mr-2" />
+                                              <span className="text-sm font-mono">{co.text}</span>
+                                            </div>
+                                          );
+                                        })}
+                                      </SelectContent>
+
                                     </Select>
               
                                     <div className="mt-2 flex flex-wrap gap-2">
                                       {(field.value || []).map((coId: string) => (
-                                        <Badge
-                                          key={coId}
-                                          variant="secondary"
-                                          className="text-xs font-mono"
-                                        >
-                                          {coId}
+  <Badge key={coId} variant="secondary" className="text-xs font-mono">
+    {coIdToTextMap[coId] || coId}
+
                                           <button
                                             onClick={() => {
                                               const updated = field.value.filter((v) => v !== coId);
