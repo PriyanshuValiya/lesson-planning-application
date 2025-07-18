@@ -12,7 +12,6 @@ const getAcademicYear = (dateString: string) => {
     return "N/A";
   }
 
-  console.log("Date:", dateString);
   const parts = dateString.split("-");
   
   if (parts.length === 3) {
@@ -1180,14 +1179,13 @@ export default function PrintLessonPlanPage() {
                     <tbody>
                       <tr className="font-bold">
                         <td
-                          className={`border border-black p-2 text-right w-[374px]`}
+                          className={`border border-black p-2 text-right w-[253px]`}
                           colSpan={2}
                         >
-                          {/* Merges No., Unit, and Date columns */}
                           Overall Total
                         </td>
                         <td
-                          className={`border border-black p-2 text-center ${colClasses.marks} w-[91px]`}
+                          className={`border border-black p-2 text-center ${colClasses.marks} w-[62px]`}
                         >
                           <div className="flex flex-col">
                             <p>{totalMarks}</p>
@@ -1195,7 +1193,7 @@ export default function PrintLessonPlanPage() {
                           </div>
                         </td>
                         <td
-                          className={`border border-black p-2 text-center ${colClasses.duration} w-[120px]`}
+                          className={`border border-black p-2 text-center ${colClasses.duration} w-[79px]`}
                         >
                           {formatDurationTotal(totalDuration)}
                         </td>
@@ -1268,6 +1266,28 @@ export default function PrintLessonPlanPage() {
                                 }
                               </td>
                             </tr>
+                          )}  
+                          {lessonPlan.form.additionalInfo
+                            .lesson_planning_guidelines && (
+                            <tr>
+                              <td
+                                className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                style={{ width: "250px", minWidth: "250px" }}
+                              >
+                                Lesson Planning Guidelines:
+                              </td>
+                              <td
+                                className="border border-black p-3 align-top"
+                                style={{
+                                  wordBreak: "break-word",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {
+                                  lessonPlan.form.additionalInfo.lesson_planning_guidelines
+                                }
+                              </td>
+                            </tr>
                           )}
                           {lessonPlan.form.additionalInfo.cie_guidelines && (
                             <tr>
@@ -1285,6 +1305,72 @@ export default function PrintLessonPlanPage() {
                                 }}
                               >
                                 {lessonPlan.form.additionalInfo.cie_guidelines}
+                              </td>
+                            </tr>
+                          )}
+                          {lessonPlan.form.additionalInfo
+                            .self_study_guidelines && (
+                            <tr>
+                              <td
+                                className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                style={{ width: "250px", minWidth: "250px" }}
+                              >
+                                Self Study/Homework Guidelines:
+                              </td>
+                              <td
+                                className="border border-black p-3 align-top"
+                                style={{
+                                  wordBreak: "break-word",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {
+                                  lessonPlan.form.additionalInfo.self_study_guidelines
+                                }
+                              </td>
+                            </tr>
+                          )}
+                          {lessonPlan.form.additionalInfo
+                            .topics_beyond_syllabus && (
+                            <tr>
+                              <td
+                                className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                style={{ width: "250px", minWidth: "250px" }}
+                              >
+                                Topics Beyond Syllabus:
+                              </td>
+                              <td
+                                className="border border-black p-3 align-top"
+                                style={{
+                                  wordBreak: "break-word",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {
+                                  lessonPlan.form.additionalInfo.topics_beyond_syllabus
+                                }
+                              </td>
+                            </tr>
+                          )}
+                          {lessonPlan.form.additionalInfo
+                            .reference_materials && (
+                            <tr>
+                              <td
+                                className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                style={{ width: "250px", minWidth: "250px" }}
+                              >
+                                Reference Material:
+                              </td>
+                              <td
+                                className="border border-black p-3 align-top"
+                                style={{
+                                  wordBreak: "break-word",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {
+                                  lessonPlan.form.additionalInfo.reference_materials
+                                }
                               </td>
                             </tr>
                           )}
@@ -1333,7 +1419,94 @@ export default function PrintLessonPlanPage() {
                               </td>
                             </tr>
                           )}
-                          {/* Add any other additional info fields here */}
+                          {lessonPlan.form.additionalInfo
+                            .interdisciplinary_integration && (
+                            <tr>
+                              <td
+                                className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                style={{ width: "250px", minWidth: "250px" }}
+                              >
+                                Interdisciplinary/Industry/Research Integration:
+                              </td>
+                              <td
+                                className="border border-black p-3 align-top"
+                                style={{
+                                  wordBreak: "break-word",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {
+                                  lessonPlan.form.additionalInfo.interdisciplinary_integration
+                                }
+                              </td>
+                            </tr>
+                          )}
+                          {lessonPlan.form.additionalInfo
+                            .fast_learner_planning && (
+                            <tr>
+                              <td
+                                className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                style={{ width: "250px", minWidth: "250px" }}
+                              >
+                                Fast Learner Planning:
+                              </td>
+                              <td
+                                className="border border-black p-3 align-top"
+                                style={{
+                                  wordBreak: "break-word",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {
+                                  lessonPlan.form.additionalInfo.fast_learner_planning
+                                }
+                              </td>
+                            </tr>
+                          )}
+                          {lessonPlan.form.additionalInfo
+                            .medium_learner_planning && (
+                            <tr>
+                              <td
+                                className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                style={{ width: "250px", minWidth: "250px" }}
+                              >
+                                Medium Learner Planning:
+                              </td>
+                              <td
+                                className="border border-black p-3 align-top"
+                                style={{
+                                  wordBreak: "break-word",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {
+                                  lessonPlan.form.additionalInfo.medium_learner_planning
+                                }
+                              </td>
+                            </tr>
+                          )}
+                          {lessonPlan.form.additionalInfo
+                            .slow_learner_planning && (
+                            <tr>
+                              <td
+                                className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                style={{ width: "250px", minWidth: "250px" }}
+                              >
+                                Slow Learner Planning:
+                              </td>
+                              <td
+                                className="border border-black p-3 align-top"
+                                style={{
+                                  wordBreak: "break-word",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {
+                                  lessonPlan.form.additionalInfo.slow_learner_planning
+                                }
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
