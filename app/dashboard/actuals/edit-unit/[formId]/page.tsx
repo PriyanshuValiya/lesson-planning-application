@@ -7,7 +7,7 @@ export type paramsType = Promise<{ formId: string }>;
 async function EditActualUnit(props: { params: paramsType }) {
   const { formId } = await props.params;
   const supabase = await createClient();
-
+  console.log("form id from props", formId);
   const {
     data: { user },
     error: authError,
@@ -42,11 +42,11 @@ async function EditActualUnit(props: { params: paramsType }) {
   const formUnits = allForms?.filter(
     (row) => row.form && Array.isArray(row.form.units)
   ) || [];
-  const current_unit_Data = formUnits[0] ;
+  const current_unit_Data = formUnits[0];
   const { data: actualUnitData, error: actualUnitError } = await supabase
     .from("actual_units")
     .select("*")
-    .eq("forms_id", formUnits[0]?.id); 
+    .eq("forms_id", formUnits[0]?.id);
 
   if (actualUnitError) {
     console.error("Error fetching actual Units:", actualUnitError);
@@ -63,8 +63,6 @@ async function EditActualUnit(props: { params: paramsType }) {
     console.error("Error fetching department PSO/PEO data:", departmentPsoPeoError);
   }
 
-  console.log("sybau",actualUnitData);
-  console.log("sybau2",current_unit_Data)
   return (
     <div className="mx-4 mt-3">
       <Card>
@@ -75,7 +73,7 @@ async function EditActualUnit(props: { params: paramsType }) {
         </CardHeader>
         <CardContent>
           <EditActualForm
-            formsData={current_unit_Data} 
+            formsData={current_unit_Data}
             actualUnitData={actualUnitData || []}
             userRoleData={userRoleData}
             departmentPsoPeoData={departmentPsoPeoData || []}

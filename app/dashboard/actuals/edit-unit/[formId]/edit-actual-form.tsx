@@ -19,29 +19,30 @@ import { Badge } from "@/components/ui/badge";
 
 const pedagogyOptions = [
   "Active Learning", "Blended Learning", "Concept/Mind Mapping", "Demonstration/Simulation-Based Learning",
-  "Experiential Learning", "Flipped Classroom", "Collaborative Learning", "Peer Learning",
+  "Experiential Learning", , "Chalk and Talk", "Flipped Classroom", "Collaborative Learning", "Peer Learning",
   "Problem-Based Learning", "Project-Based Learning", "Reflective Learning", "Role Play",
   "Storytelling/Narrative Pedagogy", "Other",
 ];
-
 const unitSchema = z.object({
-  unit_name: z.string().min(1, "Required"),
-  faculty_name: z.string().min(1, "Required"),
-  co_mapping: z.array(z.string().min(1, "Required")),
+  unit_name: z.string(),
+  faculty_name: z.string(),
+  co_mapping: z.array(z.string()),
+  other_pedagogy: z.string(),
   pso: z.array(z.string()),
-  unit_topics: z.string().min(1, "Required"),
+  unit_topics: z.string(),
   self_study_topics: z.string(),
   self_study_materials: z.string(),
-  teaching_pedagogy: z.array(z.string().min(1, "Required")),
-  skill_mapping: z.array(z.string().min(1, "Required")),
+  teaching_pedagogy: z.array(z.string()),
+  skill_mapping: z.array(z.string()),
+  skill_objectives: z.string(),
   unit_materials: z.string().optional(),
   skill_objectives: z.string().optional(),
   topics_beyond_unit: z.string().optional(),
   interlink_topics: z.string().optional(),
-  actual_start_date: z.string().min(1),
+  actual_start_date: z.string(),
   actual_end_date: z.string().optional(),
-  topics_covered: z.string().min(1),
-  no_of_lectures: z.number().min(1),
+  topics_covered: z.string(),
+  no_of_lectures: z.number(),
 });
 type UnitFormData = z.infer<typeof unitSchema>;
 export default function EditActualForm({
@@ -96,6 +97,106 @@ export default function EditActualForm({
       document.body.style.overflow = "auto";
     };
   }, []);
+  const formInstances = allUnits.map(() =>
+    useForm<UnitFormData>({
+      resolver: zodResolver(unitSchema),
+      defaultValues: {
+        unit_name: "",
+        faculty_name: "",
+        co_mapping: [],
+        pso: [],
+        unit_topics: "",
+        self_study_topics: "",
+        self_study_materials: "",
+        teaching_pedagogy: [],
+        other_pedagogy: "",
+        skill_mapping: [],
+        unit_materials: "",
+        skill_objectives: "",
+        topics_beyond_unit: "",
+        interlink_topics: "",
+        actual_start_date: "",
+        actual_end_date: "",
+        topics_covered: "",
+        no_of_lectures: 1,
+      },
+    })
+  );
+  const onSubmit = async (e?: React.FormEvent) => {
+    setIsSubmitting(true);
+    try {
+      const allUnits = await Promise.all(
+        formInstances.map(async (form) => form.getValues())
+      );
+
+      const payload = {
+        forms_id: formsData.id,
+        subject_id: userRoleData.subjects.id,
+        faculty_id: userRoleData.users.id,
+        forms: allUnits,
+      };
+
+      const { data, error } = await supabase
+        .from("actual_units")
+        .upsert(payload, {
+          onConflict: ["forms_id", "faculty_id"],
+        });
+
+      if (error) {
+        console.error("Upsert error:", error);
+        toast.error("Failed to save units: " + error.message);
+      } else {
+        toast.success("All units saved successfully");
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      toast.error("Unexpected error occurred");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  useEffect(() => {
+    const index = parseInt(visibleUnit.replace("unit-", ""), 10);
+    const form = formInstances[index];
+    const actualDefaults = actualUnitData?.[0]?.forms?.[index] ?? {};
+    const unitDefaults = formsData.form?.units?.[index] ?? {};
+
+    requestAnimationFrame(() => {
+      form.reset({
+        unit_name: actualDefaults.unit_name || unitDefaults.unit_name || "",
+        faculty_name: actualDefaults.faculty_name || unitDefaults.faculty_name || "",
+        co_mapping: actualDefaults.co_mapping || unitDefaults.co_mapping || [],
+        other_pedagogy: actualDefaults.other_pedagogy || unitDefaults.other_pedagogy || "",
+        pso: actualDefaults.pso || unitDefaults.pso || [],
+        unit_topics: actualDefaults.unit_topics || unitDefaults.unit_topics || "",
+        self_study_topics: actualDefaults.self_study_topics || unitDefaults.self_study_topics || "",
+        self_study_materials: actualDefaults.self_study_materials || unitDefaults.self_study_materials || "",
+        teaching_pedagogy: actualDefaults.teaching_pedagogy || unitDefaults.teaching_pedagogy || [],
+        skill_mapping: actualDefaults.skill_mapping || unitDefaults.skill_mapping || [],
+        unit_materials: actualDefaults.unit_materials || unitDefaults.unit_materials || "",
+        skill_objectives: actualDefaults.skill_objectives || unitDefaults.skill_objectives || "",
+        topics_beyond_unit: actualDefaults.topics_beyond_unit || unitDefaults.topics_beyond_unit || "",
+        interlink_topics: actualDefaults.interlink_topics || unitDefaults.interlink_topics || "",
+        actual_start_date:
+          actualDefaults.actual_start_date ||
+          unitDefaults.actual_start_date ||
+          unitDefaults.probable_start_date ||
+          "",
+        actual_end_date:
+          actualDefaults.actual_end_date ||
+          unitDefaults.actual_end_date ||
+          unitDefaults.probable_end_date ||
+          "",
+        topics_covered: actualDefaults.topics_covered || unitDefaults.topics_covered || "",
+        no_of_lectures: actualDefaults.no_of_lectures || unitDefaults.no_of_lectures || 1,
+      });
+    });
+  }, [visibleUnit, actualUnitData]);
+
+
+
+
+
 
 
 
@@ -103,96 +204,19 @@ export default function EditActualForm({
     <div className="min-h-screen  bg-white px-4 py-6">
       <div className="max-w-6xl mx-auto">
         {allUnits.map((_, index) => {
+          const form = formInstances[index];
           if (visibleUnit !== `unit-${index}`) return null;
-
           const actual = actualUnitData;
-
-          const actualDefaults = actualUnitData?.[0]?.forms?.[index] ?? {};
-
           const unitDefaults = formsData.form?.units?.[index] ?? {};
-          const displayData = Object.entries(
-            Object.keys(actualDefaults).length > 0 ? actualDefaults : unitDefaults
-          ).filter(([key]) => !["id", "isNew"].includes(key));
-          const form = useForm<UnitFormData>({
-            resolver: zodResolver(unitSchema),
-            defaultValues: {
-              unit_name: "",
-              faculty_name: "",
-              co_mapping: [],
-              pso: [],
-              unit_topics: "",
-              self_study_topics: "",
-              self_study_materials: "",
-              teaching_pedagogy: [],
-              skill_mapping: [],
-              unit_materials: "",
-              skill_objectives: "",
-              topics_beyond_unit: "",
-              interlink_topics: "",
-              probable_start_date: "",
-              probable_end_date: "",
-              topics_covered: "",
-              no_of_lectures: 1,
-            },
-          });
-
-          useEffect(() => {
-            form.reset({
-              unit_name: actualDefaults.unit_name || unitDefaults.unit_name || "",
-              faculty_name: actualDefaults.faculty_name || unitDefaults.faculty_name || "",
-              co_mapping: actualDefaults.co_mapping || unitDefaults.co_mapping || [],
-              pso: actualDefaults.pso || unitDefaults.pso || [],
-              unit_topics: actualDefaults.unit_topics || unitDefaults.unit_topics || "",
-              self_study_topics: actualDefaults.self_study_topics || unitDefaults.self_study_topics || "",
-              self_study_materials: actualDefaults.self_study_materials || unitDefaults.self_study_materials || "",
-              teaching_pedagogy: actualDefaults.teaching_pedagogy || unitDefaults.teaching_pedagogy || [],
-              skill_mapping: actualDefaults.skill_mapping || unitDefaults.skill_mapping || [],
-              unit_materials: actualDefaults.unit_materials || unitDefaults.unit_materials || "",
-              skill_objectives: actualDefaults.skill_objectives || unitDefaults.skill_objectives || "",
-              topics_beyond_unit: actualDefaults.topics_beyond_unit || unitDefaults.topics_beyond_unit || "",
-              interlink_topics: actualDefaults.interlink_topics || unitDefaults.interlink_topics || "",
-              actual_start_date: actualDefaults.actual_start_date || unitDefaults.actual_start_date || unitDefaults.probable_start_date || "",
-              actual_end_date: actualDefaults.actual_end_date || unitDefaults.actual_end_date || unitDefaults.probable_end_date || "",
-              topics_covered: actualDefaults.topics_covered || unitDefaults.topics_covered || "",
-              no_of_lectures: actualDefaults.no_of_lectures || unitDefaults.no_of_lectures || 1,
-            });
-          }, [form, actualDefaults, unitDefaults]);
+          const displayData = Object.entries(unitDefaults).filter(
+            ([key]) => !["id", "isNew"].includes(key)
+          );
 
 
-          const onSubmit = async (values: UnitFormData) => {
-            setIsSubmitting(true);
 
-            try {
-              const payload = {
-                forms_id: formsData.id,
-                subject_id: userRoleData.subjects.id,
-                faculty_id: userRoleData.users.id,
-                forms: [values]
-              };
 
-              console.log("Submitting to Supabase:", payload);
 
-              const { data, error } = await supabase
-                .from("actual_units")
-                .upsert(payload, {
-                  onConflict: ["forms_id", "faculty_id"]
-                });
 
-              if (error) {
-                console.error("Supabase error:", error);
-                toast.error(`Error: ${error.message}`);
-                return;
-              }
-
-              toast.success(`Unit ${index + 1} saved successfully`);
-              console.log("Supabase insert success:", data);
-            } catch (err) {
-              console.error("Unhandled error during submit:", err);
-              toast.error("Unexpected error occurred");
-            } finally {
-              setIsSubmitting(false);
-            }
-          };
 
           return (
             <div key={index} className="flex flex-col lg:flex-row gap-2">
@@ -237,6 +261,7 @@ export default function EditActualForm({
               </Card>
               <Card key={index} className="flex-1 w-full">
                 <CardContent className="py-6">
+                  <h2 className="text-lg font-semibold mb-4">Actual Implementation</h2>
                   <div className="flex flex-wrap gap-2 mb-6">
                     {allUnits.map((_, index) => (
                       <Button
@@ -253,21 +278,25 @@ export default function EditActualForm({
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                       {[
                         ["unit_name", "Unit Name"],
-                        ["no_of_lectures", "No. of Lectures", "number"],
+                        ["co", "CO"],
                         ["unit_topics", "Unit Topics"],
+                        ["skill_mapping", "Skill Mapping"],
+                        ["skill_objectives", "Skill Objectives"],
+                        // ["topics_covered", "Topics Covered"],
+                        // ["faculty_name", "Faculty Name"],
+                        ["no_of_lectures", "No. of Lectures", "number"],
+                        ["unit_materials", "Unit Materials"],
+                        ["interlink_topics", "Interlink Topics"],
                         ["probable_start_date", "Actual Start Date", "date"],
                         ["probable_end_date", "Actual End Date", "date"],
                         ["self_study_topics", "Self Study Topics"],
                         ["self_study_materials", "Self Study Materials"],
-                        ["unit_materials", "Unit Materials"],
-                        // ["faculty_name", "Faculty Name"],
-                        ["co", "CO"],
                         ["pso", "PSO"],
-                        ["skill_objectives", "Skill Objectives"],
                         ["teaching_pedagogy", "Teaching Pedagogy"],
+                        ["other_pedagogy", "Other Pedagogy"],
                         ["topics_beyond_unit", "Topics Beyond Unit"],
-                        ["interlink_topics", "Interlink Topics"],
-                        ["topics_covered", "Topics Covered"],
+
+
                         ["remarks", "Remarks (To be filled if diverted from lesson plan)"]
 
                       ].map(([name, label, type = "text"]) => {
@@ -454,7 +483,7 @@ export default function EditActualForm({
                             </div>
                           );
                         }
-                        else if (name === "skill_objectives") {
+                        else if (name === "skill_mapping") {
                           return (
                             <div key={name}>
                               <FormField
