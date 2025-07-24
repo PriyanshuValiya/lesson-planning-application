@@ -398,7 +398,14 @@ function ViewLessonPlanPage() {
                                 className="border border-black p-2 text-sm break-words whitespace-normal"
                                 colSpan={3}
                               >
-                                {unit?.teaching_pedagogy?.join(", ") || "N/A"}
+                                {unit?.teaching_pedagogy
+                                  ?.map((pedagogy) => {
+                                    if (pedagogy.startsWith("Other: ")) {
+                                      return pedagogy.replace("Other: ", "");
+                                    }
+                                    return pedagogy;
+                                  })
+                                  .join(", ") || "N/A"}
                               </td>
                             </tr>
                             <tr>
@@ -585,9 +592,20 @@ function ViewLessonPlanPage() {
                                       {Array.isArray(
                                         practical?.evaluation_methods
                                       )
-                                        ? practical.evaluation_methods.join(
-                                            ", "
-                                          )
+                                        ? practical.evaluation_methods
+                                            .map((method) => {
+                                              // Remove "Other: " prefix if present
+                                              if (
+                                                method.startsWith("Other: ")
+                                              ) {
+                                                return method.replace(
+                                                  "Other: ",
+                                                  ""
+                                                );
+                                              }
+                                              return method;
+                                            })
+                                            .join(", ")
                                         : practical?.evaluation_methods ||
                                           "N/A"}
                                     </td>
@@ -937,7 +955,7 @@ function ViewLessonPlanPage() {
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.evalType}`}
                                   >
-                                    {cie?.originalType || cie?.type || "-"}
+                                    {cie?.type == "Lecture CIE" ? "Theory CIE" : cie?.type || "-"}
                                   </td>
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.blooms}`}
@@ -950,7 +968,9 @@ function ViewLessonPlanPage() {
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.pedagogy}`}
                                   >
-                                    {cie?.evaluation_pedagogy || "-"}
+                                    {cie?.evaluation_pedagogy == "Other"
+                                      ? cie?.other_pedagogy
+                                      : cie?.evaluation_pedagogy}
                                   </td>
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.copso}`}
@@ -1075,308 +1095,322 @@ function ViewLessonPlanPage() {
             }
 
             if (section.type === "additional") {
-            return (
-              <div key="additional" className="mb-6 additional-section">
-                <h2 className="text-lg font-bold mb-2">
-                  {section.number}. {section.name}
-                </h2>
-                {lessonPlan.form.additionalInfo &&
-                  Object.keys(lessonPlan.form.additionalInfo).length > 0 && (
-                    <div className="mb-6">
-                      <table className="w-full border-collapse">
-                        <tbody>
-                          {lessonPlan.form.additionalInfo
-                            .academic_integrity && (
-                            <tr>
-                              <td
-                                className="border border-black p-3 font-bold bg-gray-50 align-top"
-                                style={{ width: "250px", minWidth: "250px" }}
-                              >
-                                Academic Integrity:
-                              </td>
-                              <td
-                                className="border border-black p-3 align-top"
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {
-                                  lessonPlan.form.additionalInfo
-                                    .academic_integrity
-                                }
-                              </td>
-                            </tr>
-                          )}
-                          {lessonPlan.form.additionalInfo.attendance_policy && (
-                            <tr>
-                              <td
-                                className="border border-black p-3 font-bold bg-gray-50 align-top"
-                                style={{ width: "250px", minWidth: "250px" }}
-                              >
-                                Attendance Policy:
-                              </td>
-                              <td
-                                className="border border-black p-3 align-top"
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {
-                                  lessonPlan.form.additionalInfo
-                                    .attendance_policy
-                                }
-                              </td>
-                            </tr>
-                          )}  
-                          {lessonPlan.form.additionalInfo
-                            .lesson_planning_guidelines && (
-                            <tr>
-                              <td
-                                className="border border-black p-3 font-bold bg-gray-50 align-top"
-                                style={{ width: "250px", minWidth: "250px" }}
-                              >
-                                Lesson Planning Guidelines:
-                              </td>
-                              <td
-                                className="border border-black p-3 align-top"
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {
-                                  lessonPlan.form.additionalInfo.lesson_planning_guidelines
-                                }
-                              </td>
-                            </tr>
-                          )}
-                          {lessonPlan.form.additionalInfo.cie_guidelines && (
-                            <tr>
-                              <td
-                                className="border border-black p-3 font-bold bg-gray-50 align-top"
-                                style={{ width: "250px", minWidth: "250px" }}
-                              >
-                                CIE Guidelines:
-                              </td>
-                              <td
-                                className="border border-black p-3 align-top"
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {lessonPlan.form.additionalInfo.cie_guidelines}
-                              </td>
-                            </tr>
-                          )}
-                          {lessonPlan.form.additionalInfo
-                            .self_study_guidelines && (
-                            <tr>
-                              <td
-                                className="border border-black p-3 font-bold bg-gray-50 align-top"
-                                style={{ width: "250px", minWidth: "250px" }}
-                              >
-                                Self Study/Homework Guidelines:
-                              </td>
-                              <td
-                                className="border border-black p-3 align-top"
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {
-                                  lessonPlan.form.additionalInfo.self_study_guidelines
-                                }
-                              </td>
-                            </tr>
-                          )}
-                          {lessonPlan.form.additionalInfo
-                            .topics_beyond_syllabus && (
-                            <tr>
-                              <td
-                                className="border border-black p-3 font-bold bg-gray-50 align-top"
-                                style={{ width: "250px", minWidth: "250px" }}
-                              >
-                                Topics Beyond Syllabus:
-                              </td>
-                              <td
-                                className="border border-black p-3 align-top"
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {
-                                  lessonPlan.form.additionalInfo.topics_beyond_syllabus
-                                }
-                              </td>
-                            </tr>
-                          )}
-                          {lessonPlan.form.additionalInfo
-                            .reference_materials && (
-                            <tr>
-                              <td
-                                className="border border-black p-3 font-bold bg-gray-50 align-top"
-                                style={{ width: "250px", minWidth: "250px" }}
-                              >
-                                Reference Material:
-                              </td>
-                              <td
-                                className="border border-black p-3 align-top"
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {
-                                  lessonPlan.form.additionalInfo.reference_materials
-                                }
-                              </td>
-                            </tr>
-                          )}
-                          {lessonPlan.form.additionalInfo.classroom_conduct && (
-                            <tr>
-                              <td
-                                className="border border-black p-3 font-bold bg-gray-50 align-top"
-                                style={{ width: "250px", minWidth: "250px" }}
-                              >
-                                Classroom Conduct:
-                              </td>
-                              <td
-                                className="border border-black p-3 align-top"
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {
-                                  lessonPlan.form.additionalInfo
-                                    .classroom_conduct
-                                }
-                              </td>
-                            </tr>
-                          )}
-                          {lessonPlan.form.additionalInfo
-                            .communication_channels && (
-                            <tr>
-                              <td
-                                className="border border-black p-3 font-bold bg-gray-50 align-top"
-                                style={{ width: "250px", minWidth: "250px" }}
-                              >
-                                Communication Channels:
-                              </td>
-                              <td
-                                className="border border-black p-3 align-top"
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {
-                                  lessonPlan.form.additionalInfo
-                                    .communication_channels
-                                }
-                              </td>
-                            </tr>
-                          )}
-                          {lessonPlan.form.additionalInfo
-                            .interdisciplinary_integration && (
-                            <tr>
-                              <td
-                                className="border border-black p-3 font-bold bg-gray-50 align-top"
-                                style={{ width: "250px", minWidth: "250px" }}
-                              >
-                                Interdisciplinary/Industry/Research Integration:
-                              </td>
-                              <td
-                                className="border border-black p-3 align-top"
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {
-                                  lessonPlan.form.additionalInfo.interdisciplinary_integration
-                                }
-                              </td>
-                            </tr>
-                          )}
-                          {lessonPlan.form.additionalInfo
-                            .fast_learner_planning && (
-                            <tr>
-                              <td
-                                className="border border-black p-3 font-bold bg-gray-50 align-top"
-                                style={{ width: "250px", minWidth: "250px" }}
-                              >
-                                Fast Learner Planning:
-                              </td>
-                              <td
-                                className="border border-black p-3 align-top"
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {
-                                  lessonPlan.form.additionalInfo.fast_learner_planning
-                                }
-                              </td>
-                            </tr>
-                          )}
-                          {lessonPlan.form.additionalInfo
-                            .medium_learner_planning && (
-                            <tr>
-                              <td
-                                className="border border-black p-3 font-bold bg-gray-50 align-top"
-                                style={{ width: "250px", minWidth: "250px" }}
-                              >
-                                Medium Learner Planning:
-                              </td>
-                              <td
-                                className="border border-black p-3 align-top"
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {
-                                  lessonPlan.form.additionalInfo.medium_learner_planning
-                                }
-                              </td>
-                            </tr>
-                          )}
-                          {lessonPlan.form.additionalInfo
-                            .slow_learner_planning && (
-                            <tr>
-                              <td
-                                className="border border-black p-3 font-bold bg-gray-50 align-top"
-                                style={{ width: "250px", minWidth: "250px" }}
-                              >
-                                Slow Learner Planning:
-                              </td>
-                              <td
-                                className="border border-black p-3 align-top"
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {
-                                  lessonPlan.form.additionalInfo.slow_learner_planning
-                                }
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-              </div>
-            );
-          }
+              return (
+                <div key="additional" className="mb-6 additional-section">
+                  <h2 className="text-lg font-bold mb-2">
+                    {section.number}. {section.name}
+                  </h2>
+                  {lessonPlan.form.additionalInfo &&
+                    Object.keys(lessonPlan.form.additionalInfo).length > 0 && (
+                      <div className="mb-6">
+                        <table className="w-full border-collapse">
+                          <tbody>
+                            {lessonPlan.form.additionalInfo
+                              .academic_integrity && (
+                              <tr>
+                                <td
+                                  className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                  style={{ width: "250px", minWidth: "250px" }}
+                                >
+                                  Academic Integrity:
+                                </td>
+                                <td
+                                  className="border border-black p-3 align-top"
+                                  style={{
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {
+                                    lessonPlan.form.additionalInfo
+                                      .academic_integrity
+                                  }
+                                </td>
+                              </tr>
+                            )}
+                            {lessonPlan.form.additionalInfo
+                              .attendance_policy && (
+                              <tr>
+                                <td
+                                  className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                  style={{ width: "250px", minWidth: "250px" }}
+                                >
+                                  Attendance Policy:
+                                </td>
+                                <td
+                                  className="border border-black p-3 align-top"
+                                  style={{
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {
+                                    lessonPlan.form.additionalInfo
+                                      .attendance_policy
+                                  }
+                                </td>
+                              </tr>
+                            )}
+                            {lessonPlan.form.additionalInfo
+                              .lesson_planning_guidelines && (
+                              <tr>
+                                <td
+                                  className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                  style={{ width: "250px", minWidth: "250px" }}
+                                >
+                                  Lesson Planning Guidelines:
+                                </td>
+                                <td
+                                  className="border border-black p-3 align-top"
+                                  style={{
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {
+                                    lessonPlan.form.additionalInfo
+                                      .lesson_planning_guidelines
+                                  }
+                                </td>
+                              </tr>
+                            )}
+                            {lessonPlan.form.additionalInfo.cie_guidelines && (
+                              <tr>
+                                <td
+                                  className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                  style={{ width: "250px", minWidth: "250px" }}
+                                >
+                                  CIE Guidelines:
+                                </td>
+                                <td
+                                  className="border border-black p-3 align-top"
+                                  style={{
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {
+                                    lessonPlan.form.additionalInfo
+                                      .cie_guidelines
+                                  }
+                                </td>
+                              </tr>
+                            )}
+                            {lessonPlan.form.additionalInfo
+                              .self_study_guidelines && (
+                              <tr>
+                                <td
+                                  className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                  style={{ width: "250px", minWidth: "250px" }}
+                                >
+                                  Self Study/Homework Guidelines:
+                                </td>
+                                <td
+                                  className="border border-black p-3 align-top"
+                                  style={{
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {
+                                    lessonPlan.form.additionalInfo
+                                      .self_study_guidelines
+                                  }
+                                </td>
+                              </tr>
+                            )}
+                            {lessonPlan.form.additionalInfo
+                              .topics_beyond_syllabus && (
+                              <tr>
+                                <td
+                                  className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                  style={{ width: "250px", minWidth: "250px" }}
+                                >
+                                  Topics Beyond Syllabus:
+                                </td>
+                                <td
+                                  className="border border-black p-3 align-top"
+                                  style={{
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {
+                                    lessonPlan.form.additionalInfo
+                                      .topics_beyond_syllabus
+                                  }
+                                </td>
+                              </tr>
+                            )}
+                            {lessonPlan.form.additionalInfo
+                              .reference_materials && (
+                              <tr>
+                                <td
+                                  className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                  style={{ width: "250px", minWidth: "250px" }}
+                                >
+                                  Reference Material:
+                                </td>
+                                <td
+                                  className="border border-black p-3 align-top"
+                                  style={{
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {
+                                    lessonPlan.form.additionalInfo
+                                      .reference_materials
+                                  }
+                                </td>
+                              </tr>
+                            )}
+                            {lessonPlan.form.additionalInfo
+                              .classroom_conduct && (
+                              <tr>
+                                <td
+                                  className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                  style={{ width: "250px", minWidth: "250px" }}
+                                >
+                                  Classroom Conduct:
+                                </td>
+                                <td
+                                  className="border border-black p-3 align-top"
+                                  style={{
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {
+                                    lessonPlan.form.additionalInfo
+                                      .classroom_conduct
+                                  }
+                                </td>
+                              </tr>
+                            )}
+                            {lessonPlan.form.additionalInfo
+                              .communication_channels && (
+                              <tr>
+                                <td
+                                  className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                  style={{ width: "250px", minWidth: "250px" }}
+                                >
+                                  Communication Channels:
+                                </td>
+                                <td
+                                  className="border border-black p-3 align-top"
+                                  style={{
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {
+                                    lessonPlan.form.additionalInfo
+                                      .communication_channels
+                                  }
+                                </td>
+                              </tr>
+                            )}
+                            {lessonPlan.form.additionalInfo
+                              .interdisciplinary_integration && (
+                              <tr>
+                                <td
+                                  className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                  style={{ width: "250px", minWidth: "250px" }}
+                                >
+                                  Interdisciplinary/Industry/Research
+                                  Integration:
+                                </td>
+                                <td
+                                  className="border border-black p-3 align-top"
+                                  style={{
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {
+                                    lessonPlan.form.additionalInfo
+                                      .interdisciplinary_integration
+                                  }
+                                </td>
+                              </tr>
+                            )}
+                            {lessonPlan.form.additionalInfo
+                              .fast_learner_planning && (
+                              <tr>
+                                <td
+                                  className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                  style={{ width: "250px", minWidth: "250px" }}
+                                >
+                                  Fast Learner Planning:
+                                </td>
+                                <td
+                                  className="border border-black p-3 align-top"
+                                  style={{
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {
+                                    lessonPlan.form.additionalInfo
+                                      .fast_learner_planning
+                                  }
+                                </td>
+                              </tr>
+                            )}
+                            {lessonPlan.form.additionalInfo
+                              .medium_learner_planning && (
+                              <tr>
+                                <td
+                                  className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                  style={{ width: "250px", minWidth: "250px" }}
+                                >
+                                  Medium Learner Planning:
+                                </td>
+                                <td
+                                  className="border border-black p-3 align-top"
+                                  style={{
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {
+                                    lessonPlan.form.additionalInfo
+                                      .medium_learner_planning
+                                  }
+                                </td>
+                              </tr>
+                            )}
+                            {lessonPlan.form.additionalInfo
+                              .slow_learner_planning && (
+                              <tr>
+                                <td
+                                  className="border border-black p-3 font-bold bg-gray-50 align-top"
+                                  style={{ width: "250px", minWidth: "250px" }}
+                                >
+                                  Slow Learner Planning:
+                                </td>
+                                <td
+                                  className="border border-black p-3 align-top"
+                                  style={{
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {
+                                    lessonPlan.form.additionalInfo
+                                      .slow_learner_planning
+                                  }
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                </div>
+              );
+            }
 
             if (section.type === "completion") {
               return (
