@@ -140,9 +140,8 @@ function ViewLessonPlanPage() {
                 Charotar University of Science and Technology (CHARUSAT)
               </h1>
               <h2 className="text-xl font-bold">
-                {userDataPlan?.departments?.institutes?.name || "N/A"}
-                {userDataPlan?.departments?.institutes?.abbreviation_insti ||
-                  ""}
+                {userDataPlan?.departments?.institutes?.name} (
+                {userDataPlan?.departments?.institutes?.abbreviation_insti})
               </h2>
               <h3 className="text-xl font-bold">
                 Department of {userDataPlan?.departments?.name || "N/A"}
@@ -955,7 +954,9 @@ function ViewLessonPlanPage() {
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.evalType}`}
                                   >
-                                    {cie?.type == "Lecture CIE" ? "Theory CIE" : cie?.type || "-"}
+                                    {cie?.type == "Lecture CIE"
+                                      ? "Theory CIE"
+                                      : cie?.type || "-"}
                                   </td>
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.blooms}`}
