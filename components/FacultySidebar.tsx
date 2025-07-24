@@ -40,9 +40,7 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
       .split(" ")
       .map((n) => n[0])
       .join("");
-  };
-  console.log('userData', userData);
-  
+  };  
 
   // Check if user has a profile photo
   const hasProfilePhoto =

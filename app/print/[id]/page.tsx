@@ -13,7 +13,7 @@ const getAcademicYear = (dateString: string) => {
   }
 
   const parts = dateString.split("-");
-  
+
   if (parts.length === 3) {
     const year = Number.parseInt(parts[2], 10);
     return `${year}-${(year % 100) + 1}`;
@@ -530,7 +530,14 @@ export default function PrintLessonPlanPage() {
                               className="border border-black p-2 text-sm break-words whitespace-normal"
                               colSpan={3}
                             >
-                              {unit.teaching_pedagogy.join(", ")}
+                              {unit?.teaching_pedagogy
+                                ?.map((pedagogy: any) => {
+                                  if (pedagogy.startsWith("Other: ")) {
+                                    return pedagogy.replace("Other: ", "");
+                                  }
+                                  return pedagogy;
+                                })
+                                .join(", ") || "N/A"}
                             </td>
                           </tr>
                           <tr>
@@ -712,11 +719,24 @@ export default function PrintLessonPlanPage() {
                                   </td>
                                   <td
                                     className="border border-black p-2 text-sm break-words whitespace-normal"
-                                    colSpan={3}
+                                    colSpan={5}
                                   >
-                                    {Array.isArray(practical.evaluation_methods)
-                                      ? practical.evaluation_methods.join(", ")
-                                      : practical.evaluation_methods}
+                                    {Array.isArray(
+                                      practical?.evaluation_methods
+                                    )
+                                      ? practical.evaluation_methods
+                                          .map((method: any) => {
+                                            // Remove "Other: " prefix if present
+                                            if (method.startsWith("Other: ")) {
+                                              return method.replace(
+                                                "Other: ",
+                                                ""
+                                              );
+                                            }
+                                            return method;
+                                          })
+                                          .join(", ")
+                                      : practical?.evaluation_methods || "N/A"}
                                   </td>
                                 </tr>
                                 <tr>
@@ -1068,7 +1088,9 @@ export default function PrintLessonPlanPage() {
                                 <td
                                   className={`border border-black p-2 text-center break-words ${colClasses.evalType}`}
                                 >
-                                  {cie.originalType || cie.type || "-"}
+                                  {cie?.type == "Lecture CIE"
+                                    ? "Theory CIE"
+                                    : cie?.type || "-"}
                                 </td>
                                 <td
                                   className={`border border-black p-2 text-center break-words ${colClasses.blooms}`}
@@ -1081,7 +1103,9 @@ export default function PrintLessonPlanPage() {
                                 <td
                                   className={`border border-black p-2 text-center break-words ${colClasses.pedagogy}`}
                                 >
-                                  {cie.evaluation_pedagogy || "-"}
+                                  {cie?.evaluation_pedagogy == "Other"
+                                    ? cie?.other_pedagogy
+                                    : cie?.evaluation_pedagogy}
                                 </td>
                                 <td
                                   className={`border border-black p-2 text-center break-words ${colClasses.copso}`}
@@ -1266,7 +1290,7 @@ export default function PrintLessonPlanPage() {
                                 }
                               </td>
                             </tr>
-                          )}  
+                          )}
                           {lessonPlan.form.additionalInfo
                             .lesson_planning_guidelines && (
                             <tr>
@@ -1284,7 +1308,8 @@ export default function PrintLessonPlanPage() {
                                 }}
                               >
                                 {
-                                  lessonPlan.form.additionalInfo.lesson_planning_guidelines
+                                  lessonPlan.form.additionalInfo
+                                    .lesson_planning_guidelines
                                 }
                               </td>
                             </tr>
@@ -1325,7 +1350,8 @@ export default function PrintLessonPlanPage() {
                                 }}
                               >
                                 {
-                                  lessonPlan.form.additionalInfo.self_study_guidelines
+                                  lessonPlan.form.additionalInfo
+                                    .self_study_guidelines
                                 }
                               </td>
                             </tr>
@@ -1347,7 +1373,8 @@ export default function PrintLessonPlanPage() {
                                 }}
                               >
                                 {
-                                  lessonPlan.form.additionalInfo.topics_beyond_syllabus
+                                  lessonPlan.form.additionalInfo
+                                    .topics_beyond_syllabus
                                 }
                               </td>
                             </tr>
@@ -1369,7 +1396,8 @@ export default function PrintLessonPlanPage() {
                                 }}
                               >
                                 {
-                                  lessonPlan.form.additionalInfo.reference_materials
+                                  lessonPlan.form.additionalInfo
+                                    .reference_materials
                                 }
                               </td>
                             </tr>
@@ -1436,7 +1464,8 @@ export default function PrintLessonPlanPage() {
                                 }}
                               >
                                 {
-                                  lessonPlan.form.additionalInfo.interdisciplinary_integration
+                                  lessonPlan.form.additionalInfo
+                                    .interdisciplinary_integration
                                 }
                               </td>
                             </tr>
@@ -1458,7 +1487,8 @@ export default function PrintLessonPlanPage() {
                                 }}
                               >
                                 {
-                                  lessonPlan.form.additionalInfo.fast_learner_planning
+                                  lessonPlan.form.additionalInfo
+                                    .fast_learner_planning
                                 }
                               </td>
                             </tr>
@@ -1480,7 +1510,8 @@ export default function PrintLessonPlanPage() {
                                 }}
                               >
                                 {
-                                  lessonPlan.form.additionalInfo.medium_learner_planning
+                                  lessonPlan.form.additionalInfo
+                                    .medium_learner_planning
                                 }
                               </td>
                             </tr>
@@ -1502,7 +1533,8 @@ export default function PrintLessonPlanPage() {
                                 }}
                               >
                                 {
-                                  lessonPlan.form.additionalInfo.slow_learner_planning
+                                  lessonPlan.form.additionalInfo
+                                    .slow_learner_planning
                                 }
                               </td>
                             </tr>
