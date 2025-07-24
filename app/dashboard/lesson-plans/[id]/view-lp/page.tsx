@@ -140,9 +140,8 @@ function ViewLessonPlanPage() {
                 Charotar University of Science and Technology (CHARUSAT)
               </h1>
               <h2 className="text-xl font-bold">
-                {userDataPlan?.departments?.institutes?.name || "N/A"}
-                {userDataPlan?.departments?.institutes?.abbreviation_insti ||
-                  ""}
+                {userDataPlan?.departments?.institutes?.name} (
+                {userDataPlan?.departments?.institutes?.abbreviation_insti})
               </h2>
               <h3 className="text-xl font-bold">
                 Department of {userDataPlan?.departments?.name || "N/A"}
