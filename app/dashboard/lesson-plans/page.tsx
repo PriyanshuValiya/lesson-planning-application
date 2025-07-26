@@ -437,7 +437,7 @@ export default function LessonPlansPage() {
                             )}
                           </button>
                           {isUnitExpanded && (
-                            <div className="flex justify-between mt-2 space-y-2 px-2">
+                            <div className="flex justify-between mt-2 gap-2 px-2">
                               <Link
                               href={`/dashboard/actuals/edit-unit/${subject.id}`}
                                 className="w-[49%] flex items-center justify-center">
@@ -479,7 +479,7 @@ export default function LessonPlansPage() {
                             )}
                           </button>
                           {isCIEExpanded && (
-                            <div className="flex justify-between mt-2 space-y-2 px-2">
+                            <div className="flex justify-between mt-2 gap-2 px-2">
                               <Link
                                 href={`/dashboard/actuals/edit-cie/${subject.id}`}
                                 className="w-[49%] flex items-center justify-center"

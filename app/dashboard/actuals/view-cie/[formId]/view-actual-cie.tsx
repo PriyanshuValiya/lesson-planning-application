@@ -18,8 +18,26 @@ import { toast } from "sonner"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { format, parseISO, parse } from "date-fns"
+import {
+    Table,
+    TableBody,
+    TableCaption,
+    TableCell,
+    TableFooter,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+
+interface ViewActualCieFormProps {
+    formsData: any;
+    actualCieData: any[];
+    userRoleData: any;
+    departmentPsoPeoData: any;
+}
 
 export default function ViewActualCie({
     formsData,
@@ -28,130 +46,200 @@ export default function ViewActualCie({
     departmentPsoPeoData,
 }: ViewActualCieFormProps) {
     const supabase = createClientComponentClient();
-    const ciesFromForm = actualCieData || [];
     const [activeTab, setActiveTab] = useState<string>("")
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isDraftSaving, setIsDraftSaving] = useState(false)
-    console.log(actualCieData)
-    console.log(actualCieData.length)
+    useEffect(() => {
+        if (actualCieData && actualCieData.length > 0) {
+            setActiveTab(`cie-${actualCieData[0].id}`);
+        }
+    }, [actualCieData]);
+
+    const getExistingActual = (cieId: string) => {
+        const CieNumber = Number.parseInt(cieId.replace("cie", ""))
+        return actualCieData.find((actual) => actual.cie_number === CieNumber)
+    }
+
+    console.log("test", formsData);
+
 
     return (
         <div>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList
-                    className="grid w-full grid-cols-auto gap-2"
-                    style={{ gridTemplateColumns: `repeat(${actualCieData.length}, 1fr)` }}>
-                    {actualCieData.map((cie: any, index: number) => {
+            {formsData.form.cies.map((cie: any, index: number) => {
+                const actual = getExistingActual(cie.id);
+                if (!actual) return null;
 
-                        return (
-                            <TabsTrigger key={cie.id} value={`cie-${cie.id}`} className="relative">
-                                <div className="flex items-center gap-3">
-                                    <span>CIE {index + 1}</span>
-                                </div>
-                            </TabsTrigger>
+                return (
+                    <div key={index}>
+                        <h1 className="font-semibold text-xl py-2">CIE {index + 1}</h1>
+                        <Table className="border-1 mb-12 border-gray-300">
+                            <TableCaption>{actual.number}</TableCaption>
+                            <TableHeader className="bg-gray-200">
+                                <TableRow className="border border-gray-300">
+                                    {["", "Units", "Date", "Marks", "Duration", "CO/PSO", "Pedagogy", "Blooms Taxonomy"].map((header, idx) => (
+                                        <TableHead
+                                            key={idx}
+                                            className="border whitespace-normal w-5 text-center border-gray-300 px-2 py-1"
+                                        >
+                                            {header === "Duration" ? (
+                                                <div>
+                                                    Duration
+                                                    <div className="text-xs text-gray-500 leading-tight">(mins)</div>
+                                                </div>
+                                            ) : (
+                                                header
+                                            )}
+                                        </TableHead>
+                                    ))}
 
-                        )
-                    })}
-                </TabsList>
-                {actualCieData.map((cie: any) => (
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow className="text-center" key={`row-${cie.id}`}>
+                                    <TableCell className="font-medium">Planned</TableCell>
+                                    <TableCell className="border-1 border-gray-200">
+                                        {Array.isArray(formsData.form.unitPlanning?.units) &&
+                                            Array.isArray(cie.units_covered) &&
+                                            cie.units_covered.length > 0
+                                            ? cie.units_covered
+                                                .map((unitId) => {
+                                                    const unit = formsData.form.unitPlanning.units.find((u) => u.id === unitId);
+                                                    return unit?.unit_name ?? `-`;
+                                                })
+                                                .join(", ")
+                                            : "-"}
+                                    </TableCell>
 
-                    <TabsContent key={cie.id} value={`cie-${cie.id}`} className="mt-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-800">
-
-                            <div className="space-y-4">
-                                <div>
-                                    <p className="font-semibold">CIE Date</p>
-                                    <p>{format(parseISO(cie.actual_date), "yyyy-MM-dd") || '-'}</p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold">Blooms Taxonomy Followed</p>
-                                    <div className="flex flex-row space-x-2 py-1">
-                                        {cie.actual_blooms?.split(',').map((blooms: string, index: number) => (
-                                            <div key={index}>
-                                                <Badge className="bg-gray-100 text-black">{blooms.trim()}</Badge>
-                                            </div>
-                                        ))}
-                                    </div>
-
-
-                                </div>
-                                <div>
-                                    <p className="font-semibold">Syllabus Units</p>
-                                    <p>{cie.actual_units || "-"}</p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold">CIE Duration</p>
-                                    <p>{cie.actual_duration || '-'} Minutes</p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold">PSO</p>
-                                    <p>{cie.pso || '-'}</p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold">Quality Review Date</p>
-                                    {cie.quality_review_date && cie.quality_review_date.length > 0 && (
-                                        <p>{format(parseISO(cie.quality_review_date), "yyyy-MM-dd")}</p>
-                                    )|| "-"}
-                                </div>
-
-                            </div>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <p className="font-semibold">CIE Number</p>
-                                    <p>{cie.cie_number || "-"}</p>
-
-                                </div>
-                                <div>
-                                    <p className="font-semibold">Pedagogy Followed</p>
-                                    <p>{cie.actual_pedagogy || '-'}</p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold">Maximum Marks</p>
-                                    <p>{cie.actual_marks || '-'}</p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold">CO Mapping</p>
-                                    <div className="flex flex-row space-x-1 py-1">
-                                        {cie.co?.split(',').map((co: string, index: number) => (
-                                            <div key={index}>
-                                                <Badge className="bg-gray-100 text-black">CO{index + 1}</Badge>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <p className="font-semibold">Reason For Change</p>
-                                    <p>
-                                        {cie.reason_for_change || "-"}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold">Quality Review Completed</p>
-                                    <p>
-                                        {cie.quality_review_complete ? "Yes" : "No" || "-"}
-                                    </p>
-                                </div>
-                            </div>
-
-                        </div>
-                    </TabsContent>
-                ))}
+                                    <TableCell className="border-1 border-gray-200">
+                                        {formsData.form.cies[index].date || "-"}
+                                    </TableCell>
 
 
+                                    <TableCell className=" border-1 border-gray-200">{formsData.form.cies[index].marks ? `${formsData.form.cies[index].marks}` : "-"}</TableCell>
+                                    <TableCell className=" border-1 border-gray-200">{formsData.form.cies[index].duration}
+                                    </TableCell>
+                                    <TableCell className="border border-gray-200 text-center">
+                                        <div className="">
+                                            {[
+                                                ...(Array.isArray(formsData.form.cies[index].co_mapping)
+                                                    ? formsData.form.cies[index].co_mapping.map((_, i) => `CO${i + 1}`)
+                                                    : []),
+                                                ...(Array.isArray(formsData.form.cies[index].pso_mapping)
+                                                    ? formsData.form.cies[index].pso_mapping.map((_, i) => `PSO${i + 1}`)
+                                                    : [])
+                                            ].join(', ')}
+
+                                        </div>
+                                    </TableCell>
+
+                                    <TableCell className="border border-gray-200 text-center">
+                                        <div className="whitespace-normal w-50 mx-auto text-center">
+                                            {formsData.form.cies[index].evaluation_pedagogy}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="border border-gray-200 text-center">
+                                        <div className="flex flex-wrap justify-center gap-1">
+                                            {[
+                                                ...(Array.isArray(formsData.form.cies[index].blooms_taxonomy)
+                                                    ? formsData.form.cies[index].blooms_taxonomy.map((_, i) => `${_}`)
+                                                    : []),
+                                            ].join(', ')}
+                                        </div>
+                                    </TableCell>
 
 
+                                </TableRow>
+                                <TableRow className="text-center " key={`row2-${actual.id}`}>
+                                    <TableCell className="font-medium">Actual</TableCell>
+                                    <TableCell className="border-1 border-gray-200">
+                                        {actual.actual_units
+                                            ? (() => {
+                                                const unitNames = actual.actual_units
+                                                    .split(',')
+                                                    .map((unitNumber) => {
+                                                        const unitIndex = parseInt(unitNumber.trim()) - 1;
+                                                        const unit = formsData.form.unitPlanning?.units?.[unitIndex];
+                                                        return unit?.unit_name ?? null;
+                                                    })
+                                                    .filter(Boolean);
+
+                                                return unitNames.length > 0 ? unitNames.join(', ') : "-";
+                                            })()
+                                            : "-"}
+                                    </TableCell>
 
 
+                                    <TableCell className="border-1 border-gray-200">{actual.actual_date ? format(parseISO(actual.actual_date), "dd-MM-yyyy") : "-"}</TableCell>
+                                    <TableCell className=" border-1 border-gray-200">{actual.actual_marks ? `${actual.actual_marks}` : "-"}</TableCell>
+                                    <TableCell className=" border-1 border-gray-200">{actual.actual_duration}</TableCell>
+                                    <TableCell className="border border-gray-200 text-center">
+                                        {(actual.co?.split(',').map((_, i) => `CO${i + 1}`) ?? [])
+                                            .concat(actual.pso?.split(',').map((_, i) => `PSO${i + 1}`) ?? [])
+                                            .join(',')}
+                                    </TableCell>
+
+                                    <TableCell className="border border-gray-200 text-center">
+                                        <div className="whitespace-normal w-50 mx-auto text-center">
+                                            {actual.actual_pedagogy}
+                                        </div>
+                                    </TableCell>
+
+                                    <TableCell className="border border-gray-200 text-center">
+                                        <div className="flex flex-wrap justify-center gap-1">
+                                            {actual.actual_blooms
+                                                ? actual.actual_blooms
+                                                    .split(',')
+                                                    .map((bloom) => bloom.trim())
+                                                    .join(', ')
+                                                : "-"}
+
+                                        </div>
+                                    </TableCell>
 
 
+                                </TableRow>
+                            </TableBody>
+                            <TableFooter>
+                                <TableRow>
+                                    <TableHead
+                                        className={`border border-gray-200 text-center align-middle p-2`}>
+                                        <p className={`whitespace-normal mx-auto text-sm leading-tight w-20`}>
+                                            Quality Review Date</p>
+                                        <div>{actual.quality_review_date ? format(parseISO(actual.quality_review_date), "dd-MM-yyyy") : "-"}</div>
+                                    </TableHead>
+                                    <TableHead
+                                        className={`border border-gray-200 text-center align-middle p-2`}>
+                                        <p className={`whitespace-normal mx-auto text-sm leading-tight w-20`}>
+                                            Marks Display Document</p>
+                                        <div className="text-gray-500 hover:underline italic text-[12px]"><Link className="" href="">{"View" || "Not Uploaded"}</Link></div>
+                                    </TableHead>
+                                    <TableHead colSpan={2}
+                                        className={`border border-gray-200 text-center align-middle p-2`}>
+                                        <p className={`whitespace-normal mx-auto text-sm leading-tight w-20`}>
+                                            CIE Question Paper</p>
+                                        <div className="text-gray-500 hover:underline italic text-[12px]"><Link className="" href="">{"View" || "Not Uploaded"}</Link></div>
+                                    </TableHead>
+                                    <TableHead colSpan={2}
+                                        className={`border border-gray-200 text-center align-middle p-2`}>
+                                        <p className={`whitespace-normal mx-auto text-sm leading-tight w-20`}>
+                                            Evaluation Analysis Report</p>
+                                        <div className="text-gray-500 hover:underline italic text-[12px]"><Link className="" href="">{"View" || "Not Uploaded"}</Link></div>
+                                    </TableHead>
+                                    <TableHead colSpan={2}
+                                        className={`border border-gray-200 text-center align-middle p-2`}>
+                                        <p className={`whitespace-normal mx-auto text-sm leading-tight w-20`}>
+                                            Reason For Gap</p>
+                                        <div className="text-gray-500 pt-2 hover:underline italic text-[12px]">{actual.reason_for_change || "Not Uploaded"}</div>
+                                    </TableHead>
+
+                                </TableRow>
 
 
-            </Tabs>
+                            </TableFooter>
+                        </Table>
+                    </div>
+                );
+            })}
         </div>
     )
-
-
-
-
 }

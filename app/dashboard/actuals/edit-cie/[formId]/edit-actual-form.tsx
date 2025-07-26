@@ -1136,21 +1136,17 @@ export default function EditActualForm({
   // Optimized file upload with parallel operations and better progress tracking
   const handleFileUpload = async (file: File, fileType: string, cieId: string, existingFilePath?: string) => {
     if (!file) return null
-
     try {
       const fileExt = file.name?.split(".").pop() || "pdf"
       const bucketName = "actual-cies"
-
       // Get subject info from formsData for better organization
       const subjectId = formsData.subject_id || "unknown-subject"
       const formId = formsData.id
       const cieNumber = cieId.replace("cie", "")
-
       // Create organized folder structure: subject_id/form_id/cie_number/
       const folderPath = `${subjectId}/${formId}/cie${cieNumber}`
       const fileName = `${fileType}-${Date.now()}.${fileExt}`
       const filePath = `${folderPath}/${fileName}`
-
       setUploadProgress(`Uploading ${fileType} file...`)
 
       // Upload new file first (faster approach)
@@ -1158,7 +1154,6 @@ export default function EditActualForm({
         upsert: false,
         contentType: "application/pdf",
       })
-
       if (error) {
         console.error("File upload error:", error)
         setUploadProgress("")
@@ -1179,7 +1174,6 @@ export default function EditActualForm({
             }
           })
       }
-
       setUploadProgress("")
       console.log(`File uploaded successfully: ${filePath}`)
       return filePath
@@ -1195,7 +1189,6 @@ export default function EditActualForm({
     try {
       setIsDraftSaving(true)
       toast.info("Saving draft...")
-
       const cieNumber = Number.parseInt(cieData.id.replace("cie", ""))
       const existingActual = getExistingActual(cieData.id)
 
@@ -1253,7 +1246,6 @@ export default function EditActualForm({
   const handleSubmit = async (values: FormData, cieData: any) => {
     try {
       setIsSubmitting(true)
-
       const cieNumber = Number.parseInt(cieData.id.replace("cie", ""))
       const existingActual = getExistingActual(cieData.id)
 
@@ -1289,7 +1281,6 @@ export default function EditActualForm({
           ),
         )
       }
-
       if (values.evaluation_analysis_file && values.evaluation_analysis_file instanceof File) {
         uploadPromises.push(
           handleFileUpload(
@@ -1302,7 +1293,6 @@ export default function EditActualForm({
           }),
         )
       }
-
       if (values.marks_display_document && values.marks_display_document instanceof File) {
         uploadPromises.push(
           handleFileUpload(
@@ -1463,7 +1453,6 @@ export default function EditActualForm({
               </div>
             </div>
           )}
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Planned Details Card */}
             <Card className="shadow-sm">
@@ -1634,7 +1623,6 @@ export default function EditActualForm({
                             {pedagogy}
                           </SelectItem>
                         ))}
-
                         {/* Alternative Pedagogy Group */}
                         <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50 mt-2">
                           Alternative Pedagogy
@@ -1644,7 +1632,6 @@ export default function EditActualForm({
                             {pedagogy}
                           </SelectItem>
                         ))}
-
                         {/* Other Group */}
                         <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50 mt-2">
                           Other
@@ -2009,7 +1996,6 @@ export default function EditActualForm({
             const existingActual = getExistingActual(cie.id)
             const isSubmitted = existingActual?.is_submitted
             const isDraft = existingActual && !isSubmitted
-
             return (
               <TabsTrigger key={cie.id} value={`cie-${cie.id}`} disabled={!isActive} className="relative">
                 <div className="flex items-center gap-3">
