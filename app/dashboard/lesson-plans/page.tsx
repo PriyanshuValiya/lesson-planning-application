@@ -437,23 +437,31 @@ export default function LessonPlansPage() {
                             )}
                           </button>
                           {isUnitExpanded && (
-                            <div className="flex justify-between mt-2 space-y-2 px-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="w-[49%]"
-                              >
-                                <Edit className="h-4 w-4 mr-1" />
-                                Actual Unit Details
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="w-[49%]"
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                View Actual Unit
-                              </Button>
+                            <div className="flex justify-between mt-2 gap-2 px-2">
+                              <Link
+                              href={`/dashboard/actuals/edit-unit/${subject.id}`}
+                                className="w-[49%] flex items-center justify-center">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full"
+                                >
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Actual Unit Details
+                                </Button>
+                              </Link>
+                              <Link
+                              href={`/dashboard/actuals/view-unit/${subject.id}`}
+                                className="w-[49%] flex items-center justify-center">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full"
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View Actual Unit
+                                </Button>
+                              </Link>
                             </div>
                           )}
                         </div>
@@ -471,7 +479,7 @@ export default function LessonPlansPage() {
                             )}
                           </button>
                           {isCIEExpanded && (
-                            <div className="flex justify-between mt-2 space-y-2 px-2">
+                            <div className="flex justify-between mt-2 gap-2 px-2">
                               <Link
                                 href={`/dashboard/actuals/edit-cie/${subject.id}`}
                                 className="w-[49%] flex items-center justify-center"
