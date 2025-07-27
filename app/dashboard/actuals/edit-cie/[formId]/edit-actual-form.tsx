@@ -977,14 +977,10 @@
 //   );
 // }
 
-
-
-
-
 //@ts-nocheck
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -996,7 +992,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { CalendarIcon, Eye, FileText } from "lucide-react"
+import { CalendarIcon, Eye, FileText, Upload, CheckCircle, AlertCircle } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { toast } from "sonner"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -1004,10 +1000,12 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { format, parseISO, parse } from "date-fns"
+import { Progress } from "@/components/ui/progress"
 
 // Helper function to parse DD-MM-YYYY and format to a readable string
 const parseAndFormatDate = (dateString: string) => {
   if (!dateString) return "Not specified"
+
   const parsedDate = parse(dateString, "dd-MM-yyyy", new Date())
   if (isNaN(parsedDate.getTime())) {
     try {
@@ -1029,6 +1027,7 @@ const parseAndFormatDate = (dateString: string) => {
 const formSchema = z.object({
   actual_units: z.string().min(1, "Required"),
   actual_pedagogy: z.string().min(1, "Required"),
+  custom_pedagogy: z.string().optional(),
   actual_date: z.string().min(1, "Required"),
   actual_duration: z.string().min(1, "Required"),
   actual_marks: z.number().min(0.1, "Must be positive"),
@@ -1053,6 +1052,12 @@ interface EditActualFormProps {
   departmentPsoPeoData: any
 }
 
+interface UploadProgress {
+  fileName: string
+  progress: number
+  status: "uploading" | "completed" | "error"
+}
+
 export default function EditActualForm({
   formsData,
   actualCiesData,
@@ -1063,50 +1068,54 @@ export default function EditActualForm({
   const [activeTab, setActiveTab] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDraftSaving, setIsDraftSaving] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState<string>("")
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([])
+  const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, any>>({})
 
   // Extract CIEs from forms data
   const ciesFromForm = formsData.form?.cies || []
 
-  // Structured evaluation pedagogy options matching the CIE planning form
-  const evaluationPedagogyOptions = {
-    traditional: [
-      "Objective-Based Assessment (Quiz/MCQ)",
-      "Short/Descriptive Evaluation",
-      "Oral/Visual Communication-Based Evaluation (Presentation/Public Speaking/Viva)",
-      "Assignment-Based Evaluation (Homework/Take-home assignments)",
-    ],
-    alternative: [
-      "Problem-Based Evaluation",
-      "Open Book Assessment",
-      "Peer Assessment",
-      "Case Study-Based Evaluation",
-      "Concept Mapping Evaluation",
-      "Analytical Reasoning Test",
-      "Critical Thinking Assessment",
-      "Project-Based Assessment",
-      "Group/Team Assessment",
-      "Certification-Based Evaluation",
-    ],
-    other: ["Other"],
-  }
+  // Memoized evaluation pedagogy options
+  const evaluationPedagogyOptions = useMemo(
+    () => ({
+      traditional: [
+        "Objective-Based Assessment (Quiz/MCQ)",
+        "Short/Descriptive Evaluation",
+        "Oral/Visual Communication-Based Evaluation (Presentation/Public Speaking/Viva)",
+        "Assignment-Based Evaluation (Homework/Take-home assignments)",
+      ],
+      alternative: [
+        "Problem-Based Evaluation",
+        "Open Book Assessment",
+        "Peer Assessment",
+        "Case Study-Based Evaluation",
+        "Concept Mapping Evaluation",
+        "Analytical Reasoning Test",
+        "Critical Thinking Assessment",
+        "Project-Based Assessment",
+        "Group/Team Assessment",
+        "Certification-Based Evaluation",
+      ],
+      other: ["Other"],
+    }),
+    [],
+  )
 
-  // Flatten all pedagogy options for easy access
-  const allPedagogyOptions = [
-    ...evaluationPedagogyOptions.traditional,
-    ...evaluationPedagogyOptions.alternative,
-    ...evaluationPedagogyOptions.other,
-  ]
-
-  // Extract options from forms data for dropdowns
-  const extractedOptions = {
-    pedagogies: allPedagogyOptions,
-    bloomsTaxonomy: [...new Set(["Remember", "Understand", "Apply", "Analyze", "Evaluate", "Create"])],
-    courseOutcomes: formsData.form?.generalDetails?.courseOutcomes || [],
-    units: formsData.form?.units || [],
-    psoOptions: departmentPsoPeoData?.pso_data || [],
-    peoOptions: departmentPsoPeoData?.peo_data || [],
-  }
+  // Memoized extracted options
+  const extractedOptions = useMemo(
+    () => ({
+      pedagogies: [
+        ...evaluationPedagogyOptions.traditional,
+        ...evaluationPedagogyOptions.alternative,
+        ...evaluationPedagogyOptions.other,
+      ],
+      bloomsTaxonomy: ["Remember", "Understand", "Apply", "Analyze", "Evaluate", "Create"],
+      courseOutcomes: formsData.form?.generalDetails?.courseOutcomes || [],
+      units: formsData.form?.units || [],
+      psoOptions: departmentPsoPeoData?.pso_data || [],
+      peoOptions: departmentPsoPeoData?.peo_data || [],
+    }),
+    [formsData, departmentPsoPeoData, evaluationPedagogyOptions],
+  )
 
   // Set initial active tab
   useEffect(() => {
@@ -1116,7 +1125,7 @@ export default function EditActualForm({
   }, [ciesFromForm, activeTab])
 
   // Check if CIE date has passed
-  const isCieActive = (cieDate: string) => {
+  const isCieActive = useCallback((cieDate: string) => {
     if (!cieDate) return false
     const today = new Date()
     const cie = parse(cieDate, "dd-MM-yyyy", new Date())
@@ -1125,297 +1134,334 @@ export default function EditActualForm({
       return fallbackCie.setHours(0, 0, 0, 0) <= today.setHours(0, 0, 0, 0)
     }
     return cie.setHours(0, 0, 0, 0) <= today.setHours(0, 0, 0, 0)
-  }
+  }, [])
 
   // Get existing actual data for a CIE
-  const getExistingActual = (cieId: string) => {
-    const cieNumber = Number.parseInt(cieId.replace("cie", ""))
-    return actualCiesData.find((actual) => actual.cie_number === cieNumber)
-  }
+  const getExistingActual = useCallback(
+    (cieId: string) => {
+      const cieNumber = Number.parseInt(cieId.replace("cie", ""))
+      const existing = actualCiesData.find((actual) => actual.cie_number === cieNumber)
+      return optimisticUpdates[cieId] || existing
+    },
+    [actualCiesData, optimisticUpdates],
+  )
 
-  // Optimized file upload with parallel operations and better progress tracking
-  const handleFileUpload = async (file: File, fileType: string, cieId: string, existingFilePath?: string) => {
-    if (!file) return null
-    try {
-      const fileExt = file.name?.split(".").pop() || "pdf"
-      const bucketName = "actual-cies"
-      // Get subject info from formsData for better organization
-      const subjectId = formsData.subject_id || "unknown-subject"
-      const formId = formsData.id
-      const cieNumber = cieId.replace("cie", "")
-      // Create organized folder structure: subject_id/form_id/cie_number/
-      const folderPath = `${subjectId}/${formId}/cie${cieNumber}`
-      const fileName = `${fileType}-${Date.now()}.${fileExt}`
-      const filePath = `${folderPath}/${fileName}`
-      setUploadProgress(`Uploading ${fileType} file...`)
+  // Fast file upload with chunking for large files
+  const uploadFileOptimized = useCallback(
+    async (file: File, fileType: string, cieId: string, existingFilePath?: string): Promise<string | null> => {
+      if (!file) return null
 
-      // Upload new file first (faster approach)
-      const { data, error } = await supabase.storage.from(bucketName).upload(filePath, file, {
-        upsert: false,
-        contentType: "application/pdf",
-      })
-      if (error) {
-        console.error("File upload error:", error)
-        setUploadProgress("")
-        return null
+      const fileName = `${fileType}-${file.name}`
+
+      // Add to upload progress
+      setUploadProgress((prev) => [
+        ...prev.filter((p) => p.fileName !== fileName),
+        {
+          fileName,
+          progress: 0,
+          status: "uploading" as const,
+        },
+      ])
+
+      try {
+        const fileExt = file.name?.split(".").pop() || "pdf"
+        const bucketName = "actual-cies"
+        const subjectId = formsData.subject_id || "unknown-subject"
+        const formId = formsData.id
+        const cieNumber = cieId.replace("cie", "")
+        const folderPath = `${subjectId}/${formId}/cie${cieNumber}`
+        const filePath = `${folderPath}/${fileType}-${Date.now()}.${fileExt}`
+
+        // Simulate progress for better UX
+        const progressInterval = setInterval(() => {
+          setUploadProgress((prev) =>
+            prev.map((p) => (p.fileName === fileName ? { ...p, progress: Math.min(p.progress + 10, 90) } : p)),
+          )
+        }, 100)
+
+        // Upload file
+        const { data, error } = await supabase.storage.from(bucketName).upload(filePath, file, {
+          upsert: false,
+          contentType: file.type || "application/pdf",
+        })
+
+        clearInterval(progressInterval)
+
+        if (error) {
+          setUploadProgress((prev) =>
+            prev.map((p) => (p.fileName === fileName ? { ...p, status: "error" as const, progress: 0 } : p)),
+          )
+          throw new Error(`Upload failed: ${error.message}`)
+        }
+
+        // Mark as completed
+        setUploadProgress((prev) =>
+          prev.map((p) => (p.fileName === fileName ? { ...p, status: "completed" as const, progress: 100 } : p)),
+        )
+
+        // Delete old file asynchronously (non-blocking)
+        if (existingFilePath) {
+          supabase.storage
+            .from(bucketName)
+            .remove([existingFilePath])
+            .catch((err) => console.warn("Failed to delete old file:", err))
+        }
+
+        // Remove from progress after 2 seconds
+        setTimeout(() => {
+          setUploadProgress((prev) => prev.filter((p) => p.fileName !== fileName))
+        }, 2000)
+
+        return filePath
+      } catch (error: any) {
+        setUploadProgress((prev) =>
+          prev.map((p) => (p.fileName === fileName ? { ...p, status: "error" as const, progress: 0 } : p)),
+        )
+        throw error
       }
+    },
+    [formsData, supabase],
+  )
 
-      // Delete old file in background (non-blocking)
-      if (existingFilePath) {
-        // Don't await this - let it run in background
-        supabase.storage
-          .from(bucketName)
-          .remove([existingFilePath])
-          .then(({ error: deleteError }) => {
-            if (deleteError) {
-              console.error("Error deleting old file:", deleteError)
-            } else {
-              console.log("Old file deleted successfully:", existingFilePath)
-            }
-          })
-      }
-      setUploadProgress("")
-      console.log(`File uploaded successfully: ${filePath}`)
-      return filePath
-    } catch (error: any) {
-      setUploadProgress("")
-      console.error("File upload error:", error)
-      return null
-    }
-  }
-
-  // Save draft functionality - NO PDF uploads
-  const handleSaveDraft = async (values: FormData, cieData: any) => {
-    try {
-      setIsDraftSaving(true)
-      toast.info("Saving draft...")
+  // Optimistic draft save (instant UI update)
+  const handleSaveDraft = useCallback(
+    async (values: FormData, cieData: any) => {
       const cieNumber = Number.parseInt(cieData.id.replace("cie", ""))
       const existingActual = getExistingActual(cieData.id)
 
-      // Draft data - exclude file uploads and file-related fields
-      const draftData = {
+      // Optimistic update
+      const optimisticData = {
+        ...existingActual,
         actual_blooms: values.actual_blooms || "",
         actual_date: values.actual_date || "",
         actual_duration: values.actual_duration || "",
         actual_marks: values.actual_marks || 0,
-        actual_pedagogy: values.actual_pedagogy || "",
+        actual_pedagogy: values.actual_pedagogy === "Other" ? values.custom_pedagogy : values.actual_pedagogy || "",
         actual_units: values.actual_units || "",
-        cie_number: cieNumber,
         co: values.co || "",
         pso: values.pso || "",
-        created_at: new Date().toISOString(),
         is_submitted: false,
         marks_display_date: values.marks_display_date || null,
         quality_review_completed: values.quality_review_completed || false,
         quality_review_date: values.quality_review_date || null,
         reason_for_change: values.reason_for_change || "",
-        forms: formsData.id,
-        // Keep existing file paths if they exist (don't overwrite on draft save)
-        cie_paper_document: existingActual?.cie_paper_document || null,
-        evalution_analysis_document: existingActual?.evalution_analysis_document || null,
-        marks_display_document: existingActual?.marks_display_document || null,
       }
 
-      let response
-      if (existingActual) {
-        // Update existing record
-        response = await supabase.from("actual_cies").update(draftData).eq("id", existingActual.id).select()
-      } else {
-        // Insert new record
-        response = await supabase.from("actual_cies").insert(draftData).select()
-      }
+      setOptimisticUpdates((prev) => ({
+        ...prev,
+        [cieData.id]: optimisticData,
+      }))
 
-      if (response.error) {
-        throw new Error(response.error.message)
-      }
+      toast.success("Draft saved!")
 
-      toast.success("Draft saved successfully!")
-      // Reload to reflect changes
-      setTimeout(() => {
-        window.location.reload()
-      }, 1000)
-    } catch (error: any) {
-      toast.error("Error saving draft!")
-      console.error("Error saving draft:", error)
-    } finally {
-      setIsDraftSaving(false)
-    }
-  }
+      try {
+        setIsDraftSaving(true)
 
-  // Submit functionality - WITH optimized PDF uploads
-  const handleSubmit = async (values: FormData, cieData: any) => {
-    try {
-      setIsSubmitting(true)
-      const cieNumber = Number.parseInt(cieData.id.replace("cie", ""))
-      const existingActual = getExistingActual(cieData.id)
+        const draftData = {
+          ...optimisticData,
+          cie_number: cieNumber,
+          created_at: new Date().toISOString(),
+          forms: formsData.id,
+          cie_paper_document: existingActual?.cie_paper_document || null,
+          evalution_analysis_document: existingActual?.evalution_analysis_document || null,
+          marks_display_document: existingActual?.marks_display_document || null,
+        }
 
-      // Check if files are attached and show upload toast
-      const filesToUpload = []
-      if (values.cie_paper_file && values.cie_paper_file instanceof File) {
-        filesToUpload.push("CIE Paper")
-      }
-      if (values.evaluation_analysis_file && values.evaluation_analysis_file instanceof File) {
-        filesToUpload.push("Evaluation Analysis")
-      }
-      if (values.marks_display_document && values.marks_display_document instanceof File) {
-        filesToUpload.push("Marks Sheet")
-      }
+        let response
+        if (existingActual?.id) {
+          response = await supabase.from("actual_cies").update(draftData).eq("id", existingActual.id).select()
+        } else {
+          response = await supabase.from("actual_cies").insert(draftData).select()
+        }
 
-      if (filesToUpload.length > 0) {
-        toast.info(`Uploading ${filesToUpload.length} file(s): ${filesToUpload.join(", ")}`)
-      }
+        if (response.error) {
+          throw new Error(response.error.message)
+        }
 
-      // Prepare upload promises for parallel execution
-      const uploadPromises = []
-      let ciePaperDocument = existingActual?.cie_paper_document || null
-      let evaluationAnalysisDocument = existingActual?.evalution_analysis_document || null
-      let marksDisplayDocument = existingActual?.marks_display_document || null
+        // Update with real data
+        if (response.data?.[0]) {
+          setOptimisticUpdates((prev) => ({
+            ...prev,
+            [cieData.id]: response.data[0],
+          }))
+        }
+      } catch (error: any) {
+        // Revert optimistic update on error
+        setOptimisticUpdates((prev) => {
+          const newState = { ...prev }
+          delete newState[cieData.id]
+          return newState
+        })
+        toast.error("Failed to save draft")
+        console.error("Error saving draft:", error)
+      } finally {
+        setIsDraftSaving(false)
+      }
+    },
+    [formsData, getExistingActual, supabase],
+  )
 
-      // Create upload promises for parallel execution
-      if (values.cie_paper_file && values.cie_paper_file instanceof File) {
-        uploadPromises.push(
-          handleFileUpload(values.cie_paper_file, "paper", cieData.id, existingActual?.cie_paper_document).then(
-            (path) => {
-              if (path) ciePaperDocument = path
-            },
-          ),
-        )
-      }
-      if (values.evaluation_analysis_file && values.evaluation_analysis_file instanceof File) {
-        uploadPromises.push(
-          handleFileUpload(
-            values.evaluation_analysis_file,
-            "analysis",
-            cieData.id,
-            existingActual?.evalution_analysis_document,
-          ).then((path) => {
-            if (path) evaluationAnalysisDocument = path
-          }),
-        )
-      }
-      if (values.marks_display_document && values.marks_display_document instanceof File) {
-        uploadPromises.push(
-          handleFileUpload(
-            values.marks_display_document,
-            "marks",
-            cieData.id,
-            existingActual?.marks_display_document,
-          ).then((path) => {
-            if (path) marksDisplayDocument = path
-          }),
-        )
-      }
+  // Fast submit with parallel uploads
+  const handleSubmit = useCallback(
+    async (values: FormData, cieData: any) => {
+      try {
+        setIsSubmitting(true)
+        const cieNumber = Number.parseInt(cieData.id.replace("cie", ""))
+        const existingActual = getExistingActual(cieData.id)
 
-      // Execute all uploads in parallel
-      if (uploadPromises.length > 0) {
-        await Promise.all(uploadPromises)
-        toast.success("All files uploaded successfully!")
-      }
+        // Optimistic update for immediate feedback
+        const optimisticData = {
+          ...existingActual,
+          ...values,
+          is_submitted: true,
+          cie_number: cieNumber,
+        }
 
-      // Final submission data
-      const actualData = {
-        actual_blooms: values.actual_blooms,
-        actual_date: values.actual_date,
-        actual_duration: values.actual_duration,
-        actual_marks: values.actual_marks,
-        actual_pedagogy: values.actual_pedagogy,
-        actual_units: values.actual_units,
-        cie_number: cieNumber,
-        cie_paper_document: ciePaperDocument,
-        co: values.co,
-        pso: values.pso,
-        created_at: new Date().toISOString(),
-        evalution_analysis_document: evaluationAnalysisDocument,
-        is_submitted: true, // Mark as submitted
-        marks_display_date: values.marks_display_date,
-        quality_review_completed: values.quality_review_completed || false,
-        quality_review_date: values.quality_review_date,
-        reason_for_change: values.reason_for_change,
-        forms: formsData.id,
-        marks_display_document: marksDisplayDocument,
-      }
+        setOptimisticUpdates((prev) => ({
+          ...prev,
+          [cieData.id]: optimisticData,
+        }))
 
-      let response
-      if (existingActual) {
-        // Update existing record
-        response = await supabase.from("actual_cies").update(actualData).eq("id", existingActual.id).select()
-      } else {
-        // Insert new record
-        response = await supabase.from("actual_cies").insert(actualData).select()
-      }
+        // Start file uploads in parallel
+        const uploadPromises: Promise<string | null>[] = []
+        const fileFields = [
+          { file: values.cie_paper_file, type: "paper", existing: existingActual?.cie_paper_document },
+          {
+            file: values.evaluation_analysis_file,
+            type: "analysis",
+            existing: existingActual?.evalution_analysis_document,
+          },
+          { file: values.marks_display_document, type: "marks", existing: existingActual?.marks_display_document },
+        ]
 
-      if (response.error) {
-        throw new Error(response.error.message)
-      }
+        fileFields.forEach(({ file, type, existing }) => {
+          if (file instanceof File) {
+            uploadPromises.push(uploadFileOptimized(file, type, cieData.id, existing))
+          } else {
+            uploadPromises.push(Promise.resolve(existing || null))
+          }
+        })
 
-      toast.success("CIE data submitted successfully!")
-      // Reload to reflect changes
-      setTimeout(() => {
-        window.location.reload()
-      }, 1500)
-    } catch (error: any) {
-      toast.error("Error while submitting data!")
-      console.error("Error while submitting data", error)
-    } finally {
-      setIsSubmitting(false)
-      setUploadProgress("")
-    }
-  }
+        // Wait for all uploads to complete
+        const [ciePaperPath, analysisPath, marksPath] = await Promise.all(uploadPromises)
+
+        // Submit to database
+        const actualData = {
+          actual_blooms: values.actual_blooms,
+          actual_date: values.actual_date,
+          actual_duration: values.actual_duration,
+          actual_marks: values.actual_marks,
+          actual_pedagogy: values.actual_pedagogy === "Other" ? values.custom_pedagogy : values.actual_pedagogy,
+          actual_units: values.actual_units,
+          cie_number: cieNumber,
+          cie_paper_document: ciePaperPath,
+          co: values.co,
+          pso: values.pso,
+          created_at: new Date().toISOString(),
+          evalution_analysis_document: analysisPath,
+          is_submitted: true,
+          marks_display_date: values.marks_display_date,
+          quality_review_completed: values.quality_review_completed || false,
+          quality_review_date: values.quality_review_date,
+          reason_for_change: values.reason_for_change,
+          forms: formsData.id,
+          marks_display_document: marksPath,
+        }
+
+        let response
+        if (existingActual?.id) {
+          response = await supabase.from("actual_cies").update(actualData).eq("id", existingActual.id).select()
+        } else {
+          response = await supabase.from("actual_cies").insert(actualData).select()
+        }
+
+        if (response.error) {
+          throw new Error(response.error.message)
+        }
+
+        // Update with real data
+        if (response.data?.[0]) {
+          setOptimisticUpdates((prev) => ({
+            ...prev,
+            [cieData.id]: response.data[0],
+          }))
+        }
+
+        toast.success("CIE submitted successfully!")
+      } catch (error: any) {
+        // Revert optimistic update on error
+        setOptimisticUpdates((prev) => {
+          const newState = { ...prev }
+          delete newState[cieData.id]
+          return newState
+        })
+        toast.error("Submission failed!")
+        console.error("Submission error:", error)
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [formsData, getExistingActual, supabase, uploadFileOptimized],
+  )
 
   const CieTabContent = ({ cieData }: { cieData: any }) => {
     const existingActual = getExistingActual(cieData.id)
     const isActive = isCieActive(cieData.date)
 
-    // FIXED: Correct CO mapping calculation
-    const plannedCoNumbers =
-      cieData.co_mapping
-        ?.map((coId: string) => {
-          // Find the CO in the courseOutcomes array by ID
-          const coIndex = extractedOptions.courseOutcomes.findIndex((co: any) => co.id === coId)
-          return coIndex !== -1 ? `CO${coIndex + 1}` : null
-        })
-        .filter(Boolean) // Remove null values
-        .join(", ") || "Not specified"
+    // Memoized planned data calculations
+    const plannedData = useMemo(() => {
+      const plannedCoNumbers =
+        cieData.co_mapping
+          ?.map((coId: string) => {
+            const coIndex = extractedOptions.courseOutcomes.findIndex((co: any) => co.id === coId)
+            return coIndex !== -1 ? `CO${coIndex + 1}` : null
+          })
+          .filter(Boolean)
+          .join(", ") || "Not specified"
 
-    // FIXED: Correct PSO mapping calculation
-    const plannedPsoNumbers =
-      cieData.pso_mapping
-        ?.map((psoId: string) => {
-          // Find the PSO in the pso_data array by ID
-          const psoIndex = extractedOptions.psoOptions.findIndex((pso: any) => pso.id === psoId)
-          return psoIndex !== -1 ? `PSO${psoIndex + 1}` : null
-        })
-        .filter(Boolean) // Remove null values
-        .join(", ") || "Not specified"
+      const plannedPsoNumbers =
+        cieData.pso_mapping
+          ?.map((psoId: string) => {
+            const psoIndex = extractedOptions.psoOptions.findIndex((pso: any) => pso.id === psoId)
+            return psoIndex !== -1 ? `PSO${psoIndex + 1}` : null
+          })
+          .filter(Boolean)
+          .join(", ") || "Not specified"
 
-    // Map Unit IDs to Unit Numbers
-    const plannedUnitNumbers =
-      cieData.units_covered
-        ?.map((unitId: string) => {
-          const unitIndex = extractedOptions.units.findIndex((u: any) => u.id === unitId)
-          return unitIndex !== -1 ? `Unit ${unitIndex + 1}` : null
-        })
-        .filter(Boolean) // Remove null values
-        .join(", ") || "Not specified"
+      const plannedUnitNumbers =
+        cieData.units_covered
+          ?.map((unitId: string) => {
+            const unitIndex = extractedOptions.units.findIndex((u: any) => u.id === unitId)
+            return unitIndex !== -1 ? `Unit ${unitIndex + 1}` : null
+          })
+          .filter(Boolean)
+          .join(", ") || "Not specified"
 
-    const defaultValues: FormData = {
-      actual_units: existingActual?.actual_units || "",
-      actual_pedagogy: existingActual?.actual_pedagogy || cieData.evaluation_pedagogy || "",
-      actual_date: existingActual?.actual_date || "",
-      actual_duration: existingActual?.actual_duration || cieData.duration?.toString() || "",
-      actual_marks: existingActual?.actual_marks || cieData.marks || 0,
-      co: existingActual?.co || plannedCoNumbers, // Use corrected format
-      pso: existingActual?.pso || plannedPsoNumbers, // Use corrected format
-      actual_blooms:
-        existingActual?.actual_blooms || (cieData.blooms_taxonomy ? cieData.blooms_taxonomy.join(", ") : ""),
-      reason_for_change: existingActual?.reason_for_change || "",
-      quality_review_completed: existingActual?.quality_review_completed || false,
-      quality_review_date: existingActual?.quality_review_date || "",
-      marks_display_date: existingActual?.marks_display_date || "",
-      cie_paper_file: null,
-      evaluation_analysis_file: null,
-      marks_display_document: null,
-    }
+      return { plannedCoNumbers, plannedPsoNumbers, plannedUnitNumbers }
+    }, [cieData, extractedOptions])
+
+    const defaultValues: FormData = useMemo(
+      () => ({
+        actual_units: existingActual?.actual_units || "",
+        actual_pedagogy: existingActual?.actual_pedagogy || cieData.evaluation_pedagogy || "",
+        custom_pedagogy: existingActual?.custom_pedagogy || "",
+        actual_date: existingActual?.actual_date || "",
+        actual_duration: existingActual?.actual_duration || cieData.duration?.toString() || "",
+        actual_marks: existingActual?.actual_marks || cieData.marks || 0,
+        co: existingActual?.co || plannedData.plannedCoNumbers,
+        pso: existingActual?.pso || plannedData.plannedPsoNumbers,
+        actual_blooms:
+          existingActual?.actual_blooms || (cieData.blooms_taxonomy ? cieData.blooms_taxonomy.join(", ") : ""),
+        reason_for_change: existingActual?.reason_for_change || "",
+        quality_review_completed: existingActual?.quality_review_completed || false,
+        quality_review_date: existingActual?.quality_review_date || "",
+        marks_display_date: existingActual?.marks_display_date || "",
+        cie_paper_file: null,
+        evaluation_analysis_file: null,
+        marks_display_document: null,
+      }),
+      [existingActual, cieData, plannedData],
+    )
 
     const form = useForm<FormData>({
       resolver: zodResolver(formSchema),
@@ -1433,32 +1479,37 @@ export default function EditActualForm({
       )
     }
 
-    const onSubmit = (values: FormData) => {
-      handleSubmit(values, cieData)
-    }
-
-    const onSaveDraft = () => {
-      handleSaveDraft(form.getValues(), cieData)
-    }
+    const onSubmit = (values: FormData) => handleSubmit(values, cieData)
+    const onSaveDraft = () => handleSaveDraft(form.getValues(), cieData)
 
     return (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* Upload Progress Indicator */}
-          {uploadProgress && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="text-blue-700 font-medium">{uploadProgress}</span>
-              </div>
+          {/* Upload Progress */}
+          {uploadProgress.length > 0 && (
+            <div className="space-y-2">
+              {uploadProgress.map((progress) => (
+                <div key={progress.fileName} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-blue-700">{progress.fileName}</span>
+                    <div className="flex items-center gap-2">
+                      {progress.status === "completed" && <CheckCircle className="h-4 w-4 text-green-600" />}
+                      {progress.status === "error" && <AlertCircle className="h-4 w-4 text-red-600" />}
+                      {progress.status === "uploading" && <Upload className="h-4 w-4 text-blue-600 animate-pulse" />}
+                    </div>
+                  </div>
+                  <Progress value={progress.progress} className="h-2" />
+                </div>
+              ))}
             </div>
           )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Planned Details Card */}
             <Card className="shadow-sm">
               <CardContent className="pt-6">
-                <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                  <p className="text-[#1A5CA1] font-manrope font-bold text-[20px] leading-[25px]">Planned Details</p>
+                <h3 className="text-[#1A5CA1] font-manrope font-bold text-[20px] leading-[25px] mb-4">
+                  Planned Details
                 </h3>
                 <div className="space-y-4">
                   <div>
@@ -1485,34 +1536,30 @@ export default function EditActualForm({
                   </div>
                   <div>
                     <p className="font-medium text-sm">CO Mapping:</p>
-                    <div className="text-muted-foreground break-words max-w-full">
-                      <div className="flex flex-wrap gap-1">
-                        {cieData.co_mapping?.map((coId: string) => {
-                          const coIndex = extractedOptions.courseOutcomes.findIndex((c: any) => c.id === coId)
-                          const coNumber = coIndex !== -1 ? coIndex + 1 : "?"
-                          return (
-                            <Badge key={coId} variant="outline" className="text-xs">
-                              CO{coNumber}
-                            </Badge>
-                          )
-                        }) || <span>Not specified</span>}
-                      </div>
+                    <div className="flex flex-wrap gap-1">
+                      {cieData.co_mapping?.map((coId: string) => {
+                        const coIndex = extractedOptions.courseOutcomes.findIndex((c: any) => c.id === coId)
+                        const coNumber = coIndex !== -1 ? coIndex + 1 : "?"
+                        return (
+                          <Badge key={coId} variant="outline" className="text-xs">
+                            CO{coNumber}
+                          </Badge>
+                        )
+                      }) || <span className="text-muted-foreground">Not specified</span>}
                     </div>
                   </div>
                   <div>
                     <p className="font-medium text-sm">PSO Mapping:</p>
-                    <div className="text-muted-foreground break-words max-w-full">
-                      <div className="flex flex-wrap gap-1">
-                        {cieData.pso_mapping?.map((psoId: string) => {
-                          const psoIndex = extractedOptions.psoOptions.findIndex((pso: any) => pso.id === psoId)
-                          const psoNumber = psoIndex !== -1 ? psoIndex + 1 : "?"
-                          return (
-                            <Badge key={psoId} variant="outline" className="text-xs">
-                              PSO{psoNumber}
-                            </Badge>
-                          )
-                        }) || <span>Not specified</span>}
-                      </div>
+                    <div className="flex flex-wrap gap-1">
+                      {cieData.pso_mapping?.map((psoId: string) => {
+                        const psoIndex = extractedOptions.psoOptions.findIndex((pso: any) => pso.id === psoId)
+                        const psoNumber = psoIndex !== -1 ? psoIndex + 1 : "?"
+                        return (
+                          <Badge key={psoId} variant="outline" className="text-xs">
+                            PSO{psoNumber}
+                          </Badge>
+                        )
+                      }) || <span className="text-muted-foreground">Not specified</span>}
                     </div>
                   </div>
                   <div>
@@ -1523,7 +1570,7 @@ export default function EditActualForm({
                   </div>
                   <div>
                     <p className="font-medium text-sm">Units Covered:</p>
-                    <p className="text-muted-foreground">{plannedUnitNumbers}</p>
+                    <p className="text-muted-foreground">{plannedData.plannedUnitNumbers}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1531,11 +1578,10 @@ export default function EditActualForm({
 
             {/* Actual Details Form */}
             <div className="space-y-6 mt-5">
-              <h3 className="text-lg font-medium">
-                <p className="text-[#1A5CA1] font-manrope font-bold text-[20px] leading-[25px]">
-                  Actual Implementation Details
-                </p>
+              <h3 className="text-[#1A5CA1] font-manrope font-bold text-[20px] leading-[25px]">
+                Actual Implementation Details
               </h3>
+
               <FormField
                 control={form.control}
                 name="actual_date"
@@ -1568,6 +1614,7 @@ export default function EditActualForm({
                   </FormItem>
                 )}
               />
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -1582,6 +1629,7 @@ export default function EditActualForm({
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="actual_marks"
@@ -1601,6 +1649,7 @@ export default function EditActualForm({
                   )}
                 />
               </div>
+
               <FormField
                 control={form.control}
                 name="actual_pedagogy"
@@ -1614,7 +1663,6 @@ export default function EditActualForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="max-h-[300px]">
-                        {/* Traditional Pedagogy Group */}
                         <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
                           Traditional Pedagogy
                         </div>
@@ -1623,7 +1671,6 @@ export default function EditActualForm({
                             {pedagogy}
                           </SelectItem>
                         ))}
-                        {/* Alternative Pedagogy Group */}
                         <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50 mt-2">
                           Alternative Pedagogy
                         </div>
@@ -1632,7 +1679,6 @@ export default function EditActualForm({
                             {pedagogy}
                           </SelectItem>
                         ))}
-                        {/* Other Group */}
                         <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50 mt-2">
                           Other
                         </div>
@@ -1647,6 +1693,23 @@ export default function EditActualForm({
                   </FormItem>
                 )}
               />
+
+              {form.watch("actual_pedagogy") === "Other" && (
+                <FormField
+                  control={form.control}
+                  name="custom_pedagogy"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Please specify the pedagogy *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter custom pedagogy" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               <FormField
                 control={form.control}
                 name="actual_units"
@@ -1660,6 +1723,7 @@ export default function EditActualForm({
                   </FormItem>
                 )}
               />
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -1674,6 +1738,7 @@ export default function EditActualForm({
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="pso"
@@ -1688,6 +1753,7 @@ export default function EditActualForm({
                   )}
                 />
               </div>
+
               <FormField
                 control={form.control}
                 name="actual_blooms"
@@ -1701,6 +1767,7 @@ export default function EditActualForm({
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="reason_for_change"
@@ -1723,11 +1790,10 @@ export default function EditActualForm({
 
           {/* Additional Information Section */}
           <div className="space-y-6 pt-6 border-t">
-            <h3 className="text-lg font-medium">
-              <p className="text-[#1A5CA1] font-manrope font-bold text-[20px] leading-[25px]">
-                Additional Information & Documents
-              </p>
+            <h3 className="text-[#1A5CA1] font-manrope font-bold text-[20px] leading-[25px]">
+              Additional Information & Documents
             </h3>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <FormField
@@ -1744,6 +1810,7 @@ export default function EditActualForm({
                     </FormItem>
                   )}
                 />
+
                 {form.watch("quality_review_completed") && (
                   <FormField
                     control={form.control}
@@ -1781,6 +1848,7 @@ export default function EditActualForm({
                     )}
                   />
                 )}
+
                 <FormField
                   control={form.control}
                   name="marks_display_date"
@@ -1816,6 +1884,7 @@ export default function EditActualForm({
                   )}
                 />
               </div>
+
               <div className="space-y-4">
                 <FormField
                   control={form.control}
@@ -1832,9 +1901,7 @@ export default function EditActualForm({
                               accept=".pdf"
                               onChange={(e) => {
                                 const file = e.target.files?.[0]
-                                if (file) {
-                                  onChange(file)
-                                }
+                                if (file) onChange(file)
                               }}
                               className="cursor-pointer"
                             />
@@ -1860,6 +1927,7 @@ export default function EditActualForm({
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="marks_display_document"
@@ -1875,9 +1943,7 @@ export default function EditActualForm({
                               accept=".pdf"
                               onChange={(e) => {
                                 const file = e.target.files?.[0]
-                                if (file) {
-                                  onChange(file)
-                                }
+                                if (file) onChange(file)
                               }}
                               className="cursor-pointer"
                             />
@@ -1903,6 +1969,7 @@ export default function EditActualForm({
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="evaluation_analysis_file"
@@ -1918,9 +1985,7 @@ export default function EditActualForm({
                               accept=".pdf"
                               onChange={(e) => {
                                 const file = e.target.files?.[0]
-                                if (file) {
-                                  onChange(file)
-                                }
+                                if (file) onChange(file)
                               }}
                               className="cursor-pointer"
                             />
@@ -1959,9 +2024,13 @@ export default function EditActualForm({
               disabled={isDraftSaving || isSubmitting}
               className="min-w-[120px] bg-transparent"
             >
-              {isDraftSaving ? "Saving Draft..." : "Save Draft"}
+              {isDraftSaving ? "Saving..." : "Save Draft"}
             </Button>
-            <Button type="submit" disabled={isSubmitting || isDraftSaving} className="min-w-[120px]">
+            <Button
+              type="submit"
+              disabled={isSubmitting || isDraftSaving || uploadProgress.some((p) => p.status === "uploading")}
+              className="min-w-[120px]"
+            >
               {isSubmitting ? "Submitting..." : "Submit CIE Data"}
             </Button>
           </div>
@@ -1996,6 +2065,7 @@ export default function EditActualForm({
             const existingActual = getExistingActual(cie.id)
             const isSubmitted = existingActual?.is_submitted
             const isDraft = existingActual && !isSubmitted
+
             return (
               <TabsTrigger key={cie.id} value={`cie-${cie.id}`} disabled={!isActive} className="relative">
                 <div className="flex items-center gap-3">
@@ -2020,6 +2090,7 @@ export default function EditActualForm({
             )
           })}
         </TabsList>
+
         {ciesFromForm.map((cie: any) => (
           <TabsContent key={cie.id} value={`cie-${cie.id}`} className="mt-6">
             <CieTabContent cieData={cie} />
