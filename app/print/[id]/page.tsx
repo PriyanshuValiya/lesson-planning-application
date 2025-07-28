@@ -823,15 +823,13 @@ export default function PrintLessonPlanPage() {
           }
 
           if (section.type === "cie") {
-            // Define the order of evaluation types
             const evaluationTypeOrder = [
               "Course Prerequisites CIE",
               "Lecture CIE",
-              "Practical CIE", // This will now include Internal Practical
+              "Practical CIE",
               "Mid-term/Internal Exam",
             ];
 
-            // Group CIE by evaluation type in the specified order
             const cieGroups: {
               type: string;
               cies: any[];
@@ -847,10 +845,8 @@ export default function PrintLessonPlanPage() {
               { type: "Mid-term/Internal Exam", cies: [], showTotal: false },
             ];
 
-            // Populate the groups
             lessonPlan.form.cies?.forEach((cie: any) => {
               const type = cie.type || "Other";
-              // Combine Practical CIE and Internal Practical
               if (type === "Internal Practical") {
                 cieGroups[2].cies.push({ ...cie, originalType: type });
               } else {
@@ -861,7 +857,6 @@ export default function PrintLessonPlanPage() {
               }
             });
 
-            // Calculate overall totals
             const totalMarks =
               lessonPlan.form.cies?.reduce(
                 (sum: number, cie: any) => sum + (cie.marks || 0),
@@ -874,7 +869,6 @@ export default function PrintLessonPlanPage() {
                 0
               ) || 0;
 
-            // Format duration for totals (x hours xx minutes)
             const formatDurationTotal = (minutes: number) => {
               if (minutes >= 60) {
                 const hours = Math.floor(minutes / 60);
@@ -891,15 +885,12 @@ export default function PrintLessonPlanPage() {
               return `${minutes} minutes`;
             };
 
-            // Format duration for individual rows (just minutes)
             const formatDurationIndividual = (minutes: number) => {
               return `${minutes || 0}`;
             };
 
-            // Track global index for numbering across all tables
             let globalIndex = 0;
 
-            // Column width classes for consistent sizing
             const colClasses = {
               no: "w-[5%] min-w-[30px]",
               unit: "w-[12%] min-w-[100px]",
@@ -931,7 +922,10 @@ export default function PrintLessonPlanPage() {
                         <th
                           className={`border border-black p-2 font-bold text-center break-words ${colClasses.unit}`}
                         >
-                          Unit Covered
+                          <div className="flex flex-col">
+                            <p>Unit / Practical</p>
+                            <p>Covered</p>
+                          </div>
                         </th>
                         <th
                           className={`border border-black p-2 font-bold text-center break-words ${colClasses.date}`}
@@ -1007,7 +1001,34 @@ export default function PrintLessonPlanPage() {
                                   className={`border border-black p-2 text-center break-words ${colClasses.unit}`}
                                 >
                                   {(() => {
-                                    if (typeof cie.units_covered === "string") {
+                                    // Handle practical CIE cases first
+                                    if (
+                                      cie?.type === "Practical CIE" ||
+                                      cie?.type === "Internal Practical"
+                                    ) {
+                                      if (
+                                        cie?.practicals_covered &&
+                                        cie.practicals_covered.length > 0
+                                      ) {
+                                        // Extract practical numbers (assuming format is "practical1", "practical2", etc.)
+                                        const practicalNumbers =
+                                          cie.practicals_covered
+                                            .map((p: any) => {
+                                              const match = p.match(/\d+$/);
+                                              return match ? match[0] : null;
+                                            })
+                                            .filter((num: any) => num !== null);
+                                        return practicalNumbers.length > 0
+                                          ? practicalNumbers.join(", ")
+                                          : "-";
+                                      }
+                                      return "-";
+                                    }
+
+                                    // Handle regular unit cases
+                                    if (
+                                      typeof cie?.units_covered === "string"
+                                    ) {
                                       if (
                                         !cie.units_covered ||
                                         cie.units_covered.trim() === ""
@@ -1025,7 +1046,7 @@ export default function PrintLessonPlanPage() {
                                         const mappedUnits = unitIds
                                           .map((unitId: any) => {
                                             const unitIndex =
-                                              lessonPlan.form.units?.findIndex(
+                                              lessonPlan.form?.units?.findIndex(
                                                 (u: any) => u.id === unitId
                                               );
                                             return unitIndex !== -1
@@ -1039,13 +1060,13 @@ export default function PrintLessonPlanPage() {
                                       }
                                       return cie.units_covered;
                                     }
-                                    if (Array.isArray(cie.units_covered)) {
+                                    if (Array.isArray(cie?.units_covered)) {
                                       if (cie.units_covered.length === 0)
                                         return "-";
                                       const unitNumbers = cie.units_covered
                                         .map((unitId: any) => {
                                           const unitIndex =
-                                            lessonPlan.form.units?.findIndex(
+                                            lessonPlan.form?.units?.findIndex(
                                               (u: any) => u.id === unitId
                                             );
                                           return unitIndex !== -1
@@ -1151,11 +1172,15 @@ export default function PrintLessonPlanPage() {
                                   {cie.skill_mapping &&
                                   cie.skill_mapping.length > 0
                                     ? cie.skill_mapping
-                                        .map((skill: any) =>
-                                          typeof skill === "object"
-                                            ? skill.skill
-                                            : skill
-                                        )
+                                        .map((skill: any) => {
+                                          if (typeof skill === "object") {
+                                            // If skill is "Other", show the otherSkill value
+                                            return skill.skill === "Other"
+                                              ? skill.otherSkill || "Other"
+                                              : skill.skill;
+                                          }
+                                          return skill;
+                                        })
                                         .join(", ")
                                     : "-"}
                                 </td>

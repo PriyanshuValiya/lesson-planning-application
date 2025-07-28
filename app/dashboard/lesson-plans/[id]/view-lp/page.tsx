@@ -117,6 +117,8 @@ function ViewLessonPlanPage() {
 
   const sections = getSectionNumber();
 
+  console.log(lessonPlan.form);
+
   return (
     <div className="w-full p-5 bg-white text-black font-sans overflow-hidden">
       <style jsx>{`
@@ -794,7 +796,10 @@ function ViewLessonPlanPage() {
                           <th
                             className={`border border-black p-2 font-bold text-center break-words ${colClasses.unit}`}
                           >
-                            Unit Covered
+                            <div className="flex flex-col">
+                              <p>Unit/Practical</p>
+                              <p>Covered</p>
+                            </div>
                           </th>
                           <th
                             className={`border border-black p-2 font-bold text-center break-words ${colClasses.date}`}
@@ -809,7 +814,10 @@ function ViewLessonPlanPage() {
                           <th
                             className={`border border-black p-2 font-bold text-center break-words ${colClasses.duration}`}
                           >
-                            Duration (mins)
+                            <div className="flex flex-col">
+                              <p>Duration</p>
+                              <p>(mins)</p>
+                            </div>
                           </th>
                           <th
                             className={`border border-black p-2 font-bold text-center break-words ${colClasses.evalType}`}
@@ -869,6 +877,28 @@ function ViewLessonPlanPage() {
                                     className={`border border-black p-2 text-center break-words ${colClasses.unit}`}
                                   >
                                     {(() => {
+                                      if (
+                                        cie?.type === "Practical CIE" ||
+                                        cie?.type === "Internal Practical"
+                                      ) {
+                                        if (
+                                          cie?.practicals_covered &&
+                                          cie.practicals_covered.length > 0
+                                        ) {
+                                          const practicalNumbers =
+                                            cie.practicals_covered
+                                              .map((p) => {
+                                                const match = p.match(/\d+$/);
+                                                return match ? match[0] : null;
+                                              })
+                                              .filter((num) => num !== null);
+                                          return practicalNumbers.length > 0
+                                            ? practicalNumbers.join(", ")
+                                            : "-";
+                                        }
+                                        return "-";
+                                      }
+
                                       if (
                                         typeof cie?.units_covered === "string"
                                       ) {
@@ -954,7 +984,9 @@ function ViewLessonPlanPage() {
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.evalType}`}
                                   >
-                                    {cie?.type == "Lecture CIE" ? "Theory CIE" : cie?.type || "-"}
+                                    {cie?.type == "Lecture CIE"
+                                      ? "Theory CIE"
+                                      : cie?.type || "-"}
                                   </td>
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.blooms}`}
@@ -1015,11 +1047,15 @@ function ViewLessonPlanPage() {
                                     {cie?.skill_mapping &&
                                     cie.skill_mapping.length > 0
                                       ? cie.skill_mapping
-                                          .map((skill: any) =>
-                                            typeof skill === "object"
-                                              ? skill.skill
-                                              : skill
-                                          )
+                                          .map((skill: any) => {
+                                            if (typeof skill === "object") {
+                                              // If skill is "Other", show the otherSkill value
+                                              return skill.skill === "Other"
+                                                ? skill.otherSkill || "Other"
+                                                : skill.skill;
+                                            }
+                                            return skill;
+                                          })
                                           .join(", ")
                                       : "-"}
                                   </td>
