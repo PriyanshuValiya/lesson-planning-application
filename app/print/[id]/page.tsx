@@ -1138,12 +1138,17 @@ export default function PrintLessonPlanPage() {
                                       cie.co_mapping.length > 0
                                     ) {
                                       // Fixed CO mapping - find actual CO number by matching with courseOutcomes
-                                      const coNumbers = cie.co_mapping.map((coId: any) => {
-                                        const outcomeIndex = lessonPlan.form?.generalDetails?.courseOutcomes?.findIndex(
-                                          (co: any) => co.id === coId
-                                        );
-                                        return outcomeIndex !== -1 ? `CO${outcomeIndex + 1}` : coId;
-                                      });
+                                      const coNumbers = cie.co_mapping.map(
+                                        (coId: any) => {
+                                          const outcomeIndex =
+                                            lessonPlan.form?.generalDetails?.courseOutcomes?.findIndex(
+                                              (co: any) => co.id === coId
+                                            );
+                                          return outcomeIndex !== -1
+                                            ? `CO${outcomeIndex + 1}`
+                                            : coId;
+                                        }
+                                      );
                                       mappings.push(...coNumbers);
                                     }
                                     if (
