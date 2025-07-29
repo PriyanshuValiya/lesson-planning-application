@@ -1012,9 +1012,17 @@ function ViewLessonPlanPage() {
                                         cie?.co_mapping &&
                                         cie.co_mapping.length > 0
                                       ) {
+                                        // Fixed CO mapping - find actual CO number by matching with courseOutcomes
                                         const coNumbers = cie.co_mapping.map(
-                                          (coId: any, idx: number) =>
-                                            `CO${idx + 1}`
+                                          (coId: any) => {
+                                            const outcomeIndex =
+                                              lessonPlan.form?.generalDetails?.courseOutcomes?.findIndex(
+                                                (co) => co.id === coId
+                                              );
+                                            return outcomeIndex !== -1
+                                              ? `CO${outcomeIndex + 1}`
+                                              : coId;
+                                          }
                                         );
                                         mappings.push(...coNumbers);
                                       }
