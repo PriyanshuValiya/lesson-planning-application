@@ -123,8 +123,12 @@ export default function PrintLessonPlanPage() {
 
   if (!lessonPlan || !userDataPlan) {
     return (
-      <div className="text-center text-red-500">
-        Lesson plan not found or you don&apos;t have permission to view it.
+      <div className="container mx-auto py-6">
+        <div className="text-center py-12">
+          <p className="text-lg text-red-500">
+            The lesson plan hasn't started to be filled in yet !!
+          </p>
+        </div>
       </div>
     );
   }
