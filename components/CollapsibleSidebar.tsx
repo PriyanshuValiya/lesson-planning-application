@@ -11,7 +11,8 @@ import {
   Upload,
   FileLock2,
   UserCheck,
-  List
+  List,
+  ScrollText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -164,6 +165,17 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
                   </button>
                 </Link>
               )}
+              
+              {currentRole?.role_name === "HOD" && (
+                <Link href="/dashboard/list-cie-forms">
+                  <button
+                    className={`cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50`}
+                  >
+                    <ScrollText className="h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]" />
+                    {!isCollapsed && <span>View CIE Forms</span>}
+                  </button>
+                </Link>
+              )}
 
               {currentRole?.role_name === "Principal" && (
                 <Link href="/dashboard/list-forms">
@@ -172,6 +184,17 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
                   >
                     <List className="h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]" />
                     {!isCollapsed && <span>View LP Forms</span>}
+                  </button>
+                </Link>
+              )}
+              
+              {currentRole?.role_name === "Principal" && (
+                <Link href="/dashboard/list-cie-forms">
+                  <button
+                    className={`cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50`}
+                  >
+                    <ScrollText className="h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]" />
+                    {!isCollapsed && <span>View CIE Forms</span>}
                   </button>
                 </Link>
               )}

@@ -64,7 +64,7 @@ function ViewLessonPlanPage() {
       <div className="container mx-auto py-6">
         <div className="text-center py-12">
           <p className="text-lg text-red-500">
-            Lesson plan data is incomplete or corrupted.
+            The lesson plan hasn't started to be filled in yet !!
           </p>
         </div>
       </div>
