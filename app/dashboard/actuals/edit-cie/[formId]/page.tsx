@@ -68,7 +68,7 @@ async function EditActualCIE(props: { params: paramsType }) {
     <div className="mx-4 my-3">
       <Card>
         <CardHeader>
-          <CardTitle className="text-[#1A5CA1] font-manrope font-bold text-[25px] leading-[25px]">
+          <CardTitle className="text-[#1A5CA1] font-manrope font-bold text-[25px] leading-[25px] ">
             Actual CIEs Forms
           </CardTitle>
         </CardHeader>
