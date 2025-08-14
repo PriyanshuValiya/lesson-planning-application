@@ -1,4 +1,3 @@
-
 //@ts-nocheck
 "use client"
 
@@ -6,7 +5,7 @@ import { useEffect, useState, useCallback, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -14,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Eye, FileText, X, ChevronDown, CheckCircle } from "lucide-react"
+import { Eye, FileText, X, ChevronDown, CheckCircle, Calendar } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
 import { toast } from "sonner"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -297,9 +296,6 @@ export default function EditActualForm({
         setIsSubmitting(true)
         const cieNumber = Number.parseInt(cieData.id.replace("cie", ""))
 
-        // Show immediate feedback
-        toast.success("Submitting CIE data...")
-
         // FIXED: Prepare data with proper date formatting
         const actualData = {
           faculty_id: userRoleData.users.id,
@@ -346,7 +342,7 @@ export default function EditActualForm({
           [cieData.id]: result.data[0],
         }))
 
-        toast.success("CIE data submitted successfully!")
+        toast.success("CIE data submitted successfully...")
 
         // Handle file uploads in background (non-blocking)
         const files = [
@@ -384,9 +380,7 @@ export default function EditActualForm({
             const failed = results.filter((r) => !r.success)
             if (failed.length > 0) {
               toast.warning("Some files failed to upload, but CIE data was saved")
-            } else {
-              toast.success("All files uploaded successfully!")
-            }
+            } 
           })
         }
       } catch (error: any) {
@@ -430,7 +424,7 @@ export default function EditActualForm({
         [cieData.id]: optimisticData,
       }))
 
-      toast.success("Draft saved!")
+      toast.success("Draft saved..")
 
       try {
         setIsDraftSaving(true)
@@ -477,6 +471,8 @@ export default function EditActualForm({
     const existingActual = getExistingActual(cieData.id)
     const isActive = isCieActive(cieData.date)
     const isUploading = uploadingFiles[cieData.id]
+
+    const isPracticalCie = cieData.type?.toLowerCase().includes("practical")
 
     // Memoized planned data calculations
     const plannedData = useMemo(() => {
@@ -600,580 +596,627 @@ export default function EditActualForm({
     const onSaveDraft = () => handleSaveDraft(form.getValues(), cieData)
 
     return (
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Planned Details Card */}
-            <Card className="shadow-sm">
-              <CardContent>
-                <h3 className="text-[#1A5CA1] font-manrope font-bold text-[20px] leading-[25px] mb-4">
-                  Planned Details
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <p className="font-medium text-sm">CIE Type:</p>
-                    <p className="text-muted-foreground">{cieData.type || "Not specified"}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">Planned Date:</p>
-                    <p className="text-muted-foreground">
-                      {cieData.date ? parseAndFormatDate(cieData.date) : "Not specified"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">Planned Duration:</p>
-                    <p className="text-muted-foreground">{cieData.duration || 0} minutes</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">Planned Marks:</p>
-                    <p className="text-muted-foreground">{cieData.marks || 0} marks</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">Planned Pedagogy:</p>
-                    <p className="text-muted-foreground">{cieData.evaluation_pedagogy || "Not specified"}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">Units Covered:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {cieData.units_covered?.map((unitId: string) => {
-                        const unitIndex = extractedOptions.units.findIndex((u: any) => u.id === unitId)
-                        const unitNumber = unitIndex !== -1 ? unitIndex + 1 : "?"
-                        const unitName = unitIndex !== -1 ? extractedOptions.units[unitIndex].unit_name : "Unknown"
-                        return (
-                          <Badge key={unitId} variant="outline" className="text-xs" title={unitName}>
-                            Unit {unitNumber}
-                          </Badge>
-                        )
-                      }) || <span className="text-muted-foreground">Not specified</span>}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">CO Mapping:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {cieData.co_mapping?.map((coId: string) => {
-                        const coIndex = extractedOptions.courseOutcomes.findIndex((c: any) => c.id === coId)
-                        const coNumber = coIndex !== -1 ? coIndex + 1 : "?"
-                        const coText = coIndex !== -1 ? extractedOptions.courseOutcomes[coIndex].text : "Unknown"
-                        return (
-                          <Badge key={coId} variant="outline" className="text-xs" title={coText}>
-                            CO{coNumber}
-                          </Badge>
-                        )
-                      }) || <span className="text-muted-foreground">Not specified</span>}
-                    </div>
-                  </div>
-                  {plannedData.plannedSkills.length > 0 && (
-                    <div>
-                      <p className="font-medium text-sm">Skills:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {plannedData.plannedSkills.map((skill, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {skill}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  <div>
-                    <p className="font-medium text-sm">PSO Mapping:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {cieData.pso_mapping?.map((psoId: string) => {
-                        const psoIndex = extractedOptions.psoOptions.findIndex((pso: any) => pso.id === psoId)
-                        const psoNumber = psoIndex !== -1 ? psoIndex + 1 : "?"
-                        const psoDescription =
-                          psoIndex !== -1 ? extractedOptions.psoOptions[psoIndex].description : "Unknown"
-                        return (
-                          <Badge key={psoId} variant="outline" className="text-xs" title={psoDescription}>
-                            PSO{psoNumber}
-                          </Badge>
-                        )
-                      }) || <span className="text-muted-foreground">Not specified</span>}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">Blooms Taxonomy:</p>
-                    <p className="text-muted-foreground">
-                      {cieData.blooms_taxonomy ? cieData.blooms_taxonomy.join(", ") : "Not specified"}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Actual Details Form */}
-            <div className="space-y-6 mt-6">
-              <h3 className="text-[#1A5CA1] font-manrope font-bold text-[20px] leading-[25px]">
-                Actual Implementation Details
-              </h3>
-
-              <FormField
-                control={form.control}
-                name="actual_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Actual CIE Date *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
-                        max={format(new Date(), "yyyy-MM-dd")} // Prevent future dates
-                        className="w-full"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="actual_duration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Actual Duration (minutes) *</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="Enter duration" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="actual_marks"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Actual Marks *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Enter marks"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="actual_pedagogy"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Actual Pedagogy *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select evaluation pedagogy" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="max-h-[300px]">
-                        <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
-                          Traditional Pedagogy
-                        </div>
-                        {evaluationPedagogyOptions.traditional.map((pedagogy) => (
-                          <SelectItem key={pedagogy} value={pedagogy} className="pl-4">
-                            {pedagogy}
-                          </SelectItem>
-                        ))}
-                        <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50 mt-2">
-                          Alternative Pedagogy
-                        </div>
-                        {evaluationPedagogyOptions.alternative.map((pedagogy) => (
-                          <SelectItem key={pedagogy} value={pedagogy} className="pl-4">
-                            {pedagogy}
-                          </SelectItem>
-                        ))}
-                        <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50 mt-2">
-                          Other
-                        </div>
-                        {evaluationPedagogyOptions.other.map((pedagogy) => (
-                          <SelectItem key={pedagogy} value={pedagogy} className="pl-4">
-                            {pedagogy}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {form.watch("actual_pedagogy") === "Other" && (
-                <FormField
-                  control={form.control}
-                  name="custom_pedagogy"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Please specify the pedagogy *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter custom pedagogy" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              <FormField
-                control={form.control}
-                name="actual_units"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Actual Units Covered *</FormLabel>
-                    <FormControl>
-                      <MultiSelect
-                        options={extractedOptions.units}
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="Select units covered"
-                        getLabel={(unit) =>
-                          `Unit ${extractedOptions.units.findIndex((u) => u.id === unit.id) + 1}: ${unit.unit_name}`
-                        }
-                        getValue={(unit) => unit.id}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="actual_skills"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Actual Skills Covered</FormLabel>
-                    <FormControl>
-                      <MultiSelect
-                        options={extractedOptions.skillsOptions}
-                        value={field.value || []}
-                        onChange={field.onChange}
-                        placeholder="Select skills covered"
-                        getLabel={(skill) => skill.name}
-                        getValue={(skill) => skill.id}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="co"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CO Mapping *</FormLabel>
-                      <FormControl>
-                        <MultiSelect
-                          options={extractedOptions.courseOutcomes}
-                          value={field.value}
-                          onChange={field.onChange}
-                          placeholder="Select course outcomes"
-                          getLabel={(co) => `CO${extractedOptions.courseOutcomes.findIndex((c) => c.id === co.id) + 1}`}
-                          getValue={(co) => co.id}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="pso"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>PSO Mapping *</FormLabel>
-                      <FormControl>
-                        <MultiSelect
-                          options={extractedOptions.psoOptions}
-                          value={field.value}
-                          onChange={field.onChange}
-                          placeholder="Select PSO mapping"
-                          getLabel={(pso) => `PSO${extractedOptions.psoOptions.findIndex((p) => p.id === pso.id) + 1}`}
-                          getValue={(pso) => pso.id}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="actual_blooms"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Actual Blooms Taxonomy *</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="e.g., Remember, Understand, Apply" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="reason_for_change"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reason for Change (if any)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Explain any deviations from planned implementation"
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+      <TabsContent value={`cie-${cieData.id}`} className="space-y-6">
+        {!isActive ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">CIE Not Yet Conducted</h3>
+            <p className="text-muted-foreground mb-4">This CIE is scheduled for {parseAndFormatDate(cieData.date)}</p>
+            <Badge variant="secondary">Scheduled</Badge>
           </div>
-
-          {/* Additional Information Section */}
-          <div className="space-y-6 pt-6 border-t">
-            <h3 className="text-[#1A5CA1] font-manrope font-bold text-[20px] leading-[25px]">
-              Additional Information & Documents
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="quality_review_completed"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Moderation Process Completed</FormLabel>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Planned Details - 50% width */}
+              <div className="w-full lg:w-1/2">
+                <Card>
+                  <CardHeader>
+                    <h3 className="text-lg font-semibold text-[#1A5CA1] flex items-center gap-2">
+                      <Calendar className="h-6 w-6" />
+                      <p className="text-xl">Planned Details</p>
+                    </h3>
+                    <div className="space-y-4 mt-3">
+                      <div>
+                        <p className="font-medium text-sm">CIE Type:</p>
+                        <p className="text-muted-foreground">{cieData.type || "Not specified"}</p>
                       </div>
-                    </FormItem>
-                  )}
-                />
+                      <div>
+                        <p className="font-medium text-sm">Planned Date:</p>
+                        <p className="text-muted-foreground">{parseAndFormatDate(cieData.date)}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Duration:</p>
+                        <p className="text-muted-foreground">{cieData.duration} minutes</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Marks:</p>
+                        <p className="text-muted-foreground">{cieData.marks}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Evaluation Pedagogy:</p>
+                        <p className="text-muted-foreground">{cieData.evaluation_pedagogy}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Bloom's Taxonomy:</p>
+                        <p className="text-muted-foreground">{cieData.blooms_taxonomy?.join(", ")}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Skills:</p>
+                        <p className="text-muted-foreground">
+                          {cieData.skill_mapping
+                            ?.map((skill: any) =>
+                              typeof skill === "string" ? skill : `${skill.skill}: ${skill.details}`,
+                            )
+                            .join(", ")}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">
+                          {isPracticalCie ? "Practicals Covered:" : "Units Covered:"}
+                        </p>
+                        <div className="text-muted-foreground">
+                          {isPracticalCie ? (
+                            cieData.practicals_covered?.length > 0 ? (
+                              <ul className="list-disc list-inside space-y-1">
+                                {cieData.practicals_covered.map((practicalId: string, index: number) => {
+                                  return (
+                                    <li key={practicalId} className="text-sm">
+                                      Practical {index + 1}
+                                    </li>
+                                  )
+                                })}
+                              </ul>
+                            ) : (
+                              <p>No practicals specified</p>
+                            )
+                          ) : cieData.units_covered?.length > 0 ? (
+                            <ul className="list-disc list-inside space-y-1">
+                              {cieData.units_covered.map((unitId: string, index: number) => {
+                                return (
+                                  <li key={unitId} className="text-sm">
+                                    Unit {index + 1}
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          ) : (
+                            <p>No units specified</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+              </div>
 
-                {form.watch("quality_review_completed") && (
-                  <div className="space-y-4 ml-6">
-                    <FormField
-                      control={form.control}
-                      name="moderation_start_date"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Moderation Process Start Date</FormLabel>
-                          <p className="text-xs text-muted-foreground">When teacher submits paper to course owner</p>
-                          <FormControl>
-                            <Input type="date" {...field} max={format(new Date(), "yyyy-MM-dd")} className="w-full" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+              {/* Actual Details - 50% width */}
+              <div className="w-full lg:w-1/2">
+                <Card>
+                  <CardHeader>
+                    <h3 className="text-lg font-semibold text-[#1A5CA1] flex items-center gap-2">
+                      <FileText className="h-6 w-6" />
+                      <p className="text-xl">Actual Details</p>
+                    </h3>
+                  </CardHeader>
+                  <CardContent>
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit((data) => onSubmit(data, cieData.id))} className="space-y-6">
+                        <div className="space-y-6">
+                          <FormField
+                            control={form.control}
+                            name="actual_date"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-col">
+                                <FormLabel>Actual CIE Date *</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="date"
+                                    {...field}
+                                    max={format(new Date(), "yyyy-MM-dd")} // Prevent future dates
+                                    className="w-full"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="actual_duration"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Actual Duration (minutes) *</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" placeholder="Enter duration" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="actual_marks"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Actual Marks *</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      placeholder="Enter marks"
+                                      {...field}
+                                      onChange={(e) => field.onChange(Number(e.target.value))}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="actual_pedagogy"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Actual Pedagogy *</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select evaluation pedagogy" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent className="max-h-[300px]">
+                                    <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
+                                      Traditional Pedagogy
+                                    </div>
+                                    {evaluationPedagogyOptions.traditional.map((pedagogy) => (
+                                      <SelectItem key={pedagogy} value={pedagogy} className="pl-4">
+                                        {pedagogy}
+                                      </SelectItem>
+                                    ))}
+                                    <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50 mt-2">
+                                      Alternative Pedagogy
+                                    </div>
+                                    {evaluationPedagogyOptions.alternative.map((pedagogy) => (
+                                      <SelectItem key={pedagogy} value={pedagogy} className="pl-4">
+                                        {pedagogy}
+                                      </SelectItem>
+                                    ))}
+                                    <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50 mt-2">
+                                      Other
+                                    </div>
+                                    {evaluationPedagogyOptions.other.map((pedagogy) => (
+                                      <SelectItem key={pedagogy} value={pedagogy} className="pl-4">
+                                        {pedagogy}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
+                            )}
+                          />
+
+                          {form.watch("actual_pedagogy") === "Other" && (
+                            <FormField
+                              control={form.control}
+                              name="custom_pedagogy"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Please specify the pedagogy *</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Enter custom pedagogy" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          )}
+
+                          {/* Units/Practicals Covered Field */}
+                          <FormField
+                            control={form.control}
+                            name="actual_units"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  {isPracticalCie ? "Actual Practical Covered *" : "Actual Units Covered *"}
+                                </FormLabel>
+                                <FormControl>
+                                  <MultiSelect
+                                    options={isPracticalCie ? formsData.form.practicals || [] : extractedOptions.units}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder={isPracticalCie ? "Select practicals covered" : "Select units covered"}
+                                    getLabel={(item) => {
+                                      if (isPracticalCie) {
+                                        const index = (formsData.form.practicals || []).findIndex(
+                                          (p: any) => p.id === item.id,
+                                        )
+                                        return `PRACTICAL ${index + 1}`
+                                      } else {
+                                        const index = extractedOptions.units.findIndex((u) => u.id === item.id)
+                                        return `UNIT ${index + 1}`
+                                      }
+                                    }}
+                                    getValue={(item) => item.id}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="actual_skills"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Actual Skills Covered</FormLabel>
+                                <FormControl>
+                                  <MultiSelect
+                                    options={extractedOptions.skillsOptions}
+                                    value={field.value || []}
+                                    onChange={field.onChange}
+                                    placeholder="Select skills covered"
+                                    getLabel={(skill) => skill.name}
+                                    getValue={(skill) => skill.id}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="co"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>CO Mapping *</FormLabel>
+                                  <FormControl>
+                                    <MultiSelect
+                                      options={extractedOptions.courseOutcomes}
+                                      value={field.value}
+                                      onChange={field.onChange}
+                                      placeholder="Select course outcomes"
+                                      getLabel={(co) =>
+                                        `CO${extractedOptions.courseOutcomes.findIndex((c) => c.id === co.id) + 1}`
+                                      }
+                                      getValue={(co) => co.id}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="pso"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>PSO Mapping *</FormLabel>
+                                  <FormControl>
+                                    <MultiSelect
+                                      options={extractedOptions.psoOptions}
+                                      value={field.value}
+                                      onChange={field.onChange}
+                                      placeholder="Select PSO mapping"
+                                      getLabel={(pso) =>
+                                        `PSO${extractedOptions.psoOptions.findIndex((p) => p.id === pso.id) + 1}`
+                                      }
+                                      getValue={(pso) => pso.id}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="actual_blooms"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Actual Blooms Taxonomy *</FormLabel>
+                                <FormControl>
+                                  <Textarea placeholder="e.g., Remember, Understand, Apply" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="reason_for_change"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Reason for Change (if any)</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Explain any deviations from planned implementation"
+                                    className="min-h-[100px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </form>
+                    </Form>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            <div className="w-full">
+              <Card>
+                <CardHeader>
+                  <h3 className="text-[#1A5CA1] font-manrope font-bold text-[20px] leading-[25px]">
+                    Additional Information & Documents
+                  </h3>
+                </CardHeader>
+                <CardContent>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit((data) => onSubmit(data, cieData.id))}>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <FormField
+                            control={form.control}
+                            name="quality_review_completed"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Moderation Process Completed</FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+
+                          {form.watch("quality_review_completed") && (
+                            <div className="space-y-4 ml-6">
+                              <FormField
+                                control={form.control}
+                                name="moderation_start_date"
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-col">
+                                    <FormLabel>Moderation Process Start Date</FormLabel>
+                                    <p className="text-xs text-muted-foreground">
+                                      When teacher submits paper to course owner
+                                    </p>
+                                    <FormControl>
+                                      <Input
+                                        type="date"
+                                        {...field}
+                                        max={format(new Date(), "yyyy-MM-dd")}
+                                        className="w-full"
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name="moderation_end_date"
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-col">
+                                    <FormLabel>Moderation Process End Date</FormLabel>
+                                    <p className="text-xs text-muted-foreground">
+                                      When HoD signs the moderation report
+                                    </p>
+                                    <FormControl>
+                                      <Input
+                                        type="date"
+                                        {...field}
+                                        max={format(new Date(), "yyyy-MM-dd")}
+                                        className="w-full"
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          )}
+
+                          <FormField
+                            control={form.control}
+                            name="marks_display_date"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-col">
+                                <FormLabel>Marks Display Date</FormLabel>
+                                <FormControl>
+                                  <Input type="date" {...field} className="w-full" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="space-y-4">
+                          <FormField
+                            control={form.control}
+                            name="cie_paper_file"
+                            render={({ field: { value, onChange, ...fieldProps } }) => (
+                              <FormItem>
+                                <FormLabel>CIE Paper (PDF)</FormLabel>
+                                <div className="flex items-center gap-2">
+                                  <div className="relative flex-1">
+                                    <FormControl>
+                                      <Input
+                                        {...fieldProps}
+                                        type="file"
+                                        accept=".pdf"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0]
+                                          if (file) onChange(file)
+                                        }}
+                                        className="cursor-pointer"
+                                      />
+                                    </FormControl>
+                                  </div>
+                                  {existingActual?.cie_paper_document && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={async () => {
+                                        const { data } = await supabase.storage
+                                          .from("actual-cies")
+                                          .getPublicUrl(existingActual.cie_paper_document)
+                                        window.open(data.publicUrl, "_blank")
+                                      }}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="marks_display_document"
+                            render={({ field: { value, onChange, ...fieldProps } }) => (
+                              <FormItem>
+                                <FormLabel>Marks Sheet Submission (PDF)</FormLabel>
+                                <div className="flex items-center gap-2">
+                                  <div className="relative flex-1">
+                                    <FormControl>
+                                      <Input
+                                        {...fieldProps}
+                                        type="file"
+                                        accept=".pdf"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0]
+                                          if (file) onChange(file)
+                                        }}
+                                        className="cursor-pointer"
+                                      />
+                                    </FormControl>
+                                  </div>
+                                  {existingActual?.marks_display_document && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={async () => {
+                                        const { data } = await supabase.storage
+                                          .from("actual-cies")
+                                          .getPublicUrl(existingActual.marks_display_document)
+                                        window.open(data.publicUrl, "_blank")
+                                      }}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="evaluation_analysis_file"
+                            render={({ field: { value, onChange, ...fieldProps } }) => (
+                              <FormItem>
+                                <FormLabel>Evaluation Analysis (PDF)</FormLabel>
+                                <div className="flex items-center gap-2">
+                                  <div className="relative flex-1">
+                                    <FormControl>
+                                      <Input
+                                        {...fieldProps}
+                                        type="file"
+                                        accept=".pdf"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0]
+                                          if (file) onChange(file)
+                                        }}
+                                        className="cursor-pointer"
+                                      />
+                                    </FormControl>
+                                  </div>
+                                  {existingActual?.evalution_analysis_document && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={async () => {
+                                        const { data } = await supabase.storage
+                                          .from("actual-cies")
+                                          .getPublicUrl(existingActual.evalution_analysis_document)
+                                        window.open(data.publicUrl, "_blank")
+                                      }}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex justify-end gap-4 mt-6">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={onSaveDraft}
+                          disabled={isDraftSaving || isSubmitting}
+                          className="min-w-[120px] bg-transparent"
+                        >
+                          {isDraftSaving ? "Saving..." : "Save Draft"}
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={isSubmitting || isDraftSaving}
+                          className="min-w-[120px] relative"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-2 animate-spin" />
+                              Submitting...
+                            </>
+                          ) : (
+                            "Submit CIE Data"
+                          )}
+                        </Button>
+                      </div>
+
+                      {/* File Upload Status */}
+                      {isUploading && (
+                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-blue-600 animate-spin" />
+                            <span className="text-sm text-blue-700">Files are uploading in the background...</span>
+                          </div>
+                        </div>
                       )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="moderation_end_date"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Moderation Process End Date</FormLabel>
-                          <p className="text-xs text-muted-foreground">When HoD signs the moderation report</p>
-                          <FormControl>
-                            <Input type="date" {...field} max={format(new Date(), "yyyy-MM-dd")} className="w-full" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-
-                <FormField
-                  control={form.control}
-                  name="marks_display_date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Marks Display Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} className="w-full" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="cie_paper_file"
-                  render={({ field: { value, onChange, ...fieldProps } }) => (
-                    <FormItem>
-                      <FormLabel>CIE Paper (PDF)</FormLabel>
-                      <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                          <FormControl>
-                            <Input
-                              {...fieldProps}
-                              type="file"
-                              accept=".pdf"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0]
-                                if (file) onChange(file)
-                              }}
-                              className="cursor-pointer"
-                            />
-                          </FormControl>
-                        </div>
-                        {existingActual?.cie_paper_document && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              const { data } = await supabase.storage
-                                .from("actual-cies")
-                                .getPublicUrl(existingActual.cie_paper_document)
-                              window.open(data.publicUrl, "_blank")
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="marks_display_document"
-                  render={({ field: { value, onChange, ...fieldProps } }) => (
-                    <FormItem>
-                      <FormLabel>Marks Sheet Submission (PDF)</FormLabel>
-                      <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                          <FormControl>
-                            <Input
-                              {...fieldProps}
-                              type="file"
-                              accept=".pdf"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0]
-                                if (file) onChange(file)
-                              }}
-                              className="cursor-pointer"
-                            />
-                          </FormControl>
-                        </div>
-                        {existingActual?.marks_display_document && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              const { data } = await supabase.storage
-                                .from("actual-cies")
-                                .getPublicUrl(existingActual.marks_display_document)
-                              window.open(data.publicUrl, "_blank")
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="evaluation_analysis_file"
-                  render={({ field: { value, onChange, ...fieldProps } }) => (
-                    <FormItem>
-                      <FormLabel>Evaluation Analysis (PDF)</FormLabel>
-                      <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                          <FormControl>
-                            <Input
-                              {...fieldProps}
-                              type="file"
-                              accept=".pdf"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0]
-                                if (file) onChange(file)
-                              }}
-                              className="cursor-pointer"
-                            />
-                          </FormControl>
-                        </div>
-                        {existingActual?.evalution_analysis_document && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              const { data } = await supabase.storage
-                                .from("actual-cies")
-                                .getPublicUrl(existingActual.evalution_analysis_document)
-                              window.open(data.publicUrl, "_blank")
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
             </div>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onSaveDraft}
-              disabled={isDraftSaving || isSubmitting}
-              className="min-w-[120px] bg-transparent"
-            >
-              {isDraftSaving ? "Saving..." : "Save Draft"}
-            </Button>
-            <Button type="submit" disabled={isSubmitting || isDraftSaving} className="min-w-[120px] relative">
-              {isSubmitting ? (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                "Submit CIE Data"
-              )}
-            </Button>
-          </div>
-
-          {/* File Upload Status */}
-          {isUploading && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-blue-600 animate-spin" />
-                <span className="text-sm text-blue-700">Files are uploading in the background...</span>
-              </div>
-            </div>
-          )}
-        </form>
-      </Form>
+        )}
+      </TabsContent>
     )
   }
 

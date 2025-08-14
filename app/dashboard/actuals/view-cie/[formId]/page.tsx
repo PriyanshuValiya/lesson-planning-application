@@ -1,6 +1,4 @@
-
-
-///------
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from "@/utils/supabase/server"
 import ViewActualCie from "./view-actual-cie"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -310,8 +308,8 @@ export default async function ViewActualCiePage(props: { params: paramsType }) {
       <div className="mx-4 mt-3">
         <Card>
           <CardHeader>
-            <CardTitle className="text-[#1A5CA1] font-manrope font-bold text-[20px]">
-              Actual CIE Implementation
+            <CardTitle className="text-[#1A5CA1] font-manrope font-bold text-[25px] leading-[25px]">
+              View Actual CIEs
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -334,7 +332,7 @@ export default async function ViewActualCiePage(props: { params: paramsType }) {
   }
 
   return (
-    <div className="mx-4 mt-3">
+    <div className="m-4 mt-3">
       <Card>
         <CardHeader>
           <CardTitle className="text-[#1A5CA1] font-manrope font-bold text-[25px] leading-[25px]">
