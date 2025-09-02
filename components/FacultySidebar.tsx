@@ -258,7 +258,7 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
             //       />
             //       {!isCollapsed && <span>Attendance Module</span>}
             //     </Link>
-            //  )}
+              )}
             </div>
           </div>
           <div>
