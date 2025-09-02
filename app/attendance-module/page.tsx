@@ -1,6 +1,5 @@
 import { getTimetablesByFacultyId } from "@/app/actions/timtableApi";
 import ClientAttendanceModule from "@/app/attendance-module/ClientAttendanceModule";
-import FacultySidebar from "@/components/FacultySidebar";
 import { signOut } from "@/app/actions/auth";
 import { AuthProvider } from "@/lib/AuthContext";
 import { DashboardProvider } from "@/context/DashboardContext";
@@ -78,7 +77,6 @@ export default async function AttendanceModulePage() {
     <AuthProvider>
       <DashboardProvider value={{ userData, roleData: roleData || [] }}>
         <div className="flex h-screen bg-gray-100">
-          <FacultySidebar signOut={signOut} />
           <main className="flex-1 overflow-y-auto">
             <ClientAttendanceModule timetable={timeTableData} />
           </main>

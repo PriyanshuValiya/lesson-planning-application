@@ -1,7 +1,6 @@
 import ViewTimeTable from "@/components/ViewTimeTable";
 import { getTimetablesByFacultyId } from "../actions/timtableApi";
 import { Timetable } from "@/types/types";
-import FacultySidebar from "@/components/FacultySidebar";
 import { signOut } from "@/app/actions/auth";
 import { AuthProvider } from "@/lib/AuthContext";
 import { DashboardProvider } from "@/context/DashboardContext";
@@ -78,7 +77,6 @@ const TimeTablePage = async () => {
     <AuthProvider>
       <DashboardProvider value={{ userData, roleData: roleData || [] }}>
         <div className="flex h-screen bg-gray-100">
-          <FacultySidebar signOut={signOut} />
           <main className="flex-1 overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">

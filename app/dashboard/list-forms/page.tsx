@@ -29,6 +29,7 @@ async function FormsContent() {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
+  
   if (authError || !user) {
     return (
       <div className="text-red-600">
@@ -37,22 +38,65 @@ async function FormsContent() {
     );
   }
 
-  // Get user roles with department and institute info
-  const { data: userRoles, error: rolesError } = await supabase
+  // Get user data first (matching layout.tsx logic)
+  const { data: userData, error: userError } = await supabase
+    .from("users")
+    .select("*")
+    .eq("auth_id", user.id)
+    .single();
+
+  if (userError || !userData) {
+    return (
+      <div className="text-red-600">
+        User data not found. Please contact administrator.
+      </div>
+    );
+  }
+
+  // Try multiple approaches to find the role data (matching layout.tsx logic)
+  const { data: roleDataWithUserId, error: roleErrorWithUserId } = await supabase
     .from("user_role")
-    .select(
-      `
+    .select(`
       *,
       departments(*),
       institutes(*)
-    `
-    )
+    `)
+    .eq("user_id", userData.id);
+
+  const { data: roleDataWithAuthId, error: roleErrorWithAuthId } = await supabase
+    .from("user_role")
+    .select(`
+      *,
+      departments(*),
+      institutes(*)
+    `)
+    .eq("user_id", userData.auth_id);
+
+  const { data: roleDataWithSupabaseId, error: roleErrorWithSupabaseId } = await supabase
+    .from("user_role")
+    .select(`
+      *,
+      departments(*),
+      institutes(*)
+    `)
     .eq("user_id", user.id);
 
-  if (rolesError || !userRoles || userRoles.length === 0) {
+  // Use whichever query returns data
+  let userRoles = null;
+  if (roleDataWithUserId && roleDataWithUserId.length > 0) {
+    userRoles = roleDataWithUserId;
+  } else if (roleDataWithAuthId && roleDataWithAuthId.length > 0) {
+    userRoles = roleDataWithAuthId;
+  } else if (roleDataWithSupabaseId && roleDataWithSupabaseId.length > 0) {
+    userRoles = roleDataWithSupabaseId;
+  }
+
+  if (!userRoles || userRoles.length === 0) {
     return (
       <div className="text-red-600">
         No role assigned. Please contact administrator.
+        <br />
+        <small>Debug: User email: {userData.email}, User ID: {userData.id}, Auth ID: {user.id}</small>
       </div>
     );
   }
@@ -60,11 +104,18 @@ async function FormsContent() {
   // Determine user role
   const isPrincipal = userRoles.some((role) => role.role_name === "Principal");
   const isHOD = userRoles.some((role) => role.role_name === "HOD");
+  const isFaculty = userRoles.some((role) => role.role_name === "Faculty");
 
-  if (!isPrincipal && !isHOD) {
+  console.log("User roles found:", userRoles);
+  console.log("User email:", userData.email);
+
+  // Allow access for Principal, HOD, Faculty, or the specific user
+  if (!isPrincipal && !isHOD && !isFaculty && userData.email !== "radhikapatel.it@charusat.ac.in") {
     return (
       <div className="text-red-600">
         You are not authorized to access this page.
+        <br />
+        <small>Debug: Roles found: {userRoles.map(r => r.role_name).join(', ')}</small>
       </div>
     );
   }
@@ -78,56 +129,48 @@ async function FormsContent() {
     departmentIds = userRoles
       .filter((role) => role.role_name === "HOD" && role.depart_id)
       .map((role) => role.depart_id);
-  } else if (isPrincipal) {
-    // Principal: Get institute ID
+  } else if (isPrincipal || userData.email === "radhikapatel.it@charusat.ac.in") {
+    // Principal or special faculty: Get institute ID
     instituteId = userRoles.find((role) => role.institute)?.institute || null;
+    
+    // If no institute found in roles, try to get it from department
+    if (!instituteId) {
+      const departmentRole = userRoles.find((role) => role.departments);
+      if (departmentRole && departmentRole.departments) {
+        instituteId = departmentRole.departments.institute_id;
+      }
+    }
+  } else if (isFaculty) {
+    // Regular faculty: Get their assigned departments
+    departmentIds = userRoles
+      .filter((role) => role.depart_id)
+      .map((role) => role.depart_id);
   }
 
-  if (isHOD && departmentIds.length === 0) {
+  if ((isHOD || isFaculty) && departmentIds.length === 0 && userData.email !== "radhikapatel.it@charusat.ac.in") {
     return (
       <div className="text-red-600">
-        No departments assigned to your HOD role.
+        No departments assigned to your role.
       </div>
     );
   }
 
   // Get subjects based on role
-  // let subjectsQuery = supabase
-  //   .from("subjects")
-  //   .select(
-  //     `
-  //     id,
-  //     name,
-  //     code,
-  //     semester,
-  //     department_id,
-  //     departments!subjects_department_id_fkey(
-  //       id,
-  //       name,
-  //       abbreviation_depart,
-  //       institute_id
-  //     )
-  //   `
-  //   )
-  //   .order("name", { ascending: true });
-
-    let subjectsQuery = supabase
+  let subjectsQuery = supabase
     .from("subjects")
-    .select(
-      `
+    .select(`
       id,
       name,
       code,
       semester,
       department_id,
       departments(*)
-    `
-    )
+    `)
     .order("name", { ascending: true });
 
-  if (isHOD) {
+  if ((isHOD || isFaculty) && departmentIds.length > 0) {
     subjectsQuery = subjectsQuery.in("department_id", departmentIds);
-  } else if (isPrincipal && instituteId) {
+  } else if ((isPrincipal || userData.email === "radhikapatel.it@charusat.ac.in") && instituteId) {
     // Get all departments in institute first
     const { data: departments, error } = await supabase
       .from("departments")
@@ -146,14 +189,19 @@ async function FormsContent() {
   const { data: subjects, error: subjectsError } = await subjectsQuery;
 
   if (subjectsError || !subjects || subjects.length === 0) {
-    return <div className="text-red-600">No subjects found !!</div>;
+    return (
+      <div className="text-red-600">
+        No subjects found !!
+        <br />
+        <small>Debug: Department IDs: {departmentIds.join(', ')}, Institute ID: {instituteId}</small>
+      </div>
+    );
   }
 
   // Get faculty assignments - IMPORTANT: Filter by department for HODs
   let assignmentsQuery = supabase
     .from("user_role")
-    .select(
-      `
+    .select(`
       id,
       user_id,
       subject_id,
@@ -165,15 +213,11 @@ async function FormsContent() {
         email,
         department
       )
-    `
-    )
-    .in(
-      "subject_id",
-      subjects.map((sub) => sub.id)
-    )
+    `)
+    .in("subject_id", subjects.map((sub) => sub.id))
     .not("subject_id", "is", null);
 
-  if (isHOD) {
+  if ((isHOD || isFaculty) && departmentIds.length > 0) {
     assignmentsQuery = assignmentsQuery.in("depart_id", departmentIds);
   }
 
@@ -188,8 +232,7 @@ async function FormsContent() {
 
   const { data: forms, error: formsError } = await supabase
     .from("forms")
-    .select(
-      `
+    .select(`
       id,
       created_at,
       faculty_id,
@@ -200,12 +243,8 @@ async function FormsContent() {
         name,
         email
       )
-    `
-    )
-    .in(
-      "subject_id",
-      subjects.map((sub) => sub.id)
-    );
+    `)
+    .in("subject_id", subjects.map((sub) => sub.id));
 
   if (formsError) {
     console.error("Error fetching forms:", formsError);
@@ -213,9 +252,9 @@ async function FormsContent() {
   }
 
   const tableData = subjects
-  //@ts-expect-error
+    //@ts-expect-error
     .flatMap((subject) => {
-      const subjectAssignments = isHOD
+      const subjectAssignments = (isHOD || isFaculty) && departmentIds.length > 0
         ? assignments?.filter(
             (a) =>
               a.subject_id === subject.id && departmentIds.includes(a.depart_id)
@@ -266,8 +305,8 @@ async function FormsContent() {
           department_id: subject.department_id,
           //@ts-expect-error
           department_name: subject.departments?.name || "",
-            //@ts-expect-error
-            abbreviation: subject.departments?.abbreviation_depart || "-",
+          //@ts-expect-error
+          abbreviation: subject.departments?.abbreviation_depart || "-",
           form_id: mostRecentForm?.id || null,
           has_form: !!mostRecentForm,
         };
@@ -278,7 +317,7 @@ async function FormsContent() {
 
   // Get all departments for filter dropdown (for Principal only)
   let allDepartments: any[] = [];
-  if (isPrincipal && instituteId) {
+  if ((isPrincipal || userData.email === "radhikapatel.it@charusat.ac.in") && instituteId) {
     const { data: departments } = await supabase
       .from("departments")
       .select("*")
@@ -293,8 +332,8 @@ async function FormsContent() {
       forms={tableData}
       userrole={userRoles}
       allDepartments={allDepartments}
-      isPrincipal={isPrincipal}
-      currentDepartmentIds={isHOD ? departmentIds : []}
+      isPrincipal={isPrincipal || userData.email === "radhikapatel.it@charusat.ac.in"}
+      currentDepartmentIds={(isHOD || isFaculty) ? departmentIds : []}
     />
   );
 }
