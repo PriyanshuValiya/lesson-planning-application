@@ -3,7 +3,6 @@ import { AuthProvider } from "@/lib/AuthContext"
 import { DashboardProvider } from "@/context/DashboardContext"
 import { createClient } from "@/utils/supabase/server"
 import { signOut } from "../actions/auth"
-import FacultySidebar from "@/components/FacultySidebar"
 import CollapsibleSidebar from "@/components/CollapsibleSidebar"
 import { redirect } from "next/navigation"
 
@@ -97,24 +96,12 @@ export default async function DashboardLayout({
     )
   }
 
-  // Check user roles
-  const hasHODRole = roleData?.some((role) => role.role_name === "HOD")
-  const hasFacultyRole = roleData?.some((role) => role.role_name === "Faculty")
-  const hasPrincipalRole = roleData?.some((role) => role.role_name === "Principal")
-
-  // Determine which sidebar to show based on roles
-  const showFacultySidebar = hasFacultyRole
-  const showHODSidebar = hasHODRole && !hasFacultyRole
-  const showPrincipalSidebar = hasPrincipalRole
-
   return (
     <AuthProvider>
       <DashboardProvider value={{ userData, roleData: roleData || [] }}>
         <div className="flex h-screen bg-gray-100">
-          {showFacultySidebar && <FacultySidebar signOut={signOut} />}
-          {showHODSidebar && <CollapsibleSidebar signOut={signOut} />}
-          {showPrincipalSidebar && <CollapsibleSidebar signOut={signOut} />}
-          <main className={`flex-1 overflow-y-auto transition-all duration-300 ${showHODSidebar ? "p-5" : ""}`}>
+          <CollapsibleSidebar signOut={signOut} />
+          <main className="flex-1 overflow-y-auto transition-all duration-300">
             {children}
           </main>
         </div>

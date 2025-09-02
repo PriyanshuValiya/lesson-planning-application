@@ -23,17 +23,20 @@ import PsoPeoManagementModal from "@/components/modals/PsoPeoManagementModal";
 import ProfilePhotoUploadModal from "@/components/modals/ProfilePhotoUploadModal";
 import GuidelineModel from "@/components/modals/GuidelineModel";
 
-interface FacultySidebarProps {
+interface CollapsibleSidebarProps {
   signOut: () => void;
 }
 
-export default function FacultySidebar({ signOut }: FacultySidebarProps) {
+export default function CollapsibleSidebar({ signOut }: CollapsibleSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { userData, currentRole, updateUserData } = useDashboardContext();
   const pathname = usePathname();
   const [isPsoPeoModalOpen, setIsPsoPeoModalOpen] = useState(false);
   const [isPhotoUploadModalOpen, setIsPhotoUploadModalOpen] = useState(false);
   const [isGuidelineModalOpen, setIsGuidelineModalOpen] = useState(false);
+
+  // Special case: Faculty who can see Principal dashboard
+  const canAccessPrincipalDashboard = userData.email === "radhikapatel.it@charusat.ac.in";
 
   // Get initials for avatar fallback
   const getInitials = (name: string) => {
@@ -51,7 +54,6 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
 
   // Handle photo upload completion
   const handlePhotoUploaded = (photoUrl: string) => {
-    // Update the user data in context
     updateUserData({
       ...userData,
       profile_photo: photoUrl,
@@ -60,12 +62,30 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
 
   // Handle photo deletion completion
   const handlePhotoDeleted = () => {
-    // Update the user data in context to remove the photo
     updateUserData({
       ...userData,
       profile_photo: null,
     });
   };
+
+  // Determine user display role
+  const getDisplayRole = () => {
+    if (currentRole?.role_name === "Faculty") {
+      return "Subject Teacher";
+    }
+    return currentRole?.role_name || "User";
+  };
+
+  // Check if user should see HOD features
+  const shouldShowHODFeatures = currentRole?.role_name === "HOD";
+  
+  // Check if user should see Principal features
+  const shouldShowPrincipalFeatures = 
+    currentRole?.role_name === "Principal" || canAccessPrincipalDashboard;
+  
+  // Check if user should see Faculty features
+  const shouldShowFacultyFeatures = 
+    currentRole?.role_name === "Faculty";
 
   return (
     <>
@@ -115,9 +135,7 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
                 {userData.name}
               </p>
               <p className="text-gray-600">
-                {currentRole?.role_name === "Faculty"
-                  ? "Subject Teacher"
-                  : currentRole?.role_name || "User"}
+                {getDisplayRole()}
               </p>
             </div>
           )}
@@ -137,6 +155,7 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
         <nav className="mt-5 px-2 flex-grow">
           <div className="flex flex-col justify-between h-[87%]">
             <div>
+              {/* Home Link */}
               <Link
                 href="/dashboard"
                 className={`group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left ${
@@ -155,139 +174,93 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
                 {!isCollapsed && <span>Home</span>}
               </Link>
 
-              {currentRole?.role_name === "HOD" && (
-                <Link href="/dashboard/list-forms">
+              {/* HOD Features */}
+              {shouldShowHODFeatures && (
+                <>
+                  <Link href="/dashboard/list-forms">
+                    <button
+                      className={`cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50`}
+                    >
+                      <List className="h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]" />
+                      {!isCollapsed && <span>View LP Forms</span>}
+                    </button>
+                  </Link>
+                  
+                  <Link href="/dashboard/list-cie-forms">
+                    <button
+                      className={`cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50`}
+                    >
+                      <ScrollText className="h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]" />
+                      {!isCollapsed && <span>View CIE Forms</span>}
+                    </button>
+                  </Link>
+
                   <button
+                    onClick={() => setIsPsoPeoModalOpen(true)}
                     className={`cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50`}
                   >
-                    <List className="h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]" />
-                    {!isCollapsed && <span>View LP Forms</span>}
+                    <Target className="h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]" />
+                    {!isCollapsed && <span>PSO/PEO Management</span>}
                   </button>
-                </Link>
-              )}
-              
-              {currentRole?.role_name === "HOD" && (
-                <Link href="/dashboard/list-cie-forms">
-                  <button
-                    className={`cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50`}
-                  >
-                    <ScrollText className="h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]" />
-                    {!isCollapsed && <span>View CIE Forms</span>}
-                  </button>
-                </Link>
+                </>
               )}
 
-              {currentRole?.role_name === "Principal" && (
-                <Link href="/dashboard/list-forms">
-                  <button
-                    className={`cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50`}
-                  >
-                    <List className="h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]" />
-                    {!isCollapsed && <span>View LP Forms</span>}
-                  </button>
-                </Link>
-              )}
-              
-              {currentRole?.role_name === "Principal" && (
-                <Link href="/dashboard/list-cie-forms">
-                  <button
-                    className={`cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50`}
-                  >
-                    <ScrollText className="h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]" />
-                    {!isCollapsed && <span>View CIE Forms</span>}
-                  </button>
-                </Link>
+              {/* Principal Features */}
+              {shouldShowPrincipalFeatures && (
+                <>
+                  <Link href="/dashboard/list-forms">
+                    <button
+                      className={`cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50`}
+                    >
+                      <List className="h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]" />
+                      {!isCollapsed && <span>View LP Forms</span>}
+                    </button>
+                  </Link>
+                  
+                  <Link href="/dashboard/list-cie-forms">
+                    <button
+                      className={`cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50`}
+                    >
+                      <ScrollText className="h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]" />
+                      {!isCollapsed && <span>View CIE Forms</span>}
+                    </button>
+                  </Link>
+                </>
               )}
 
-              {/* Show PSO/PEO Management button only if currentRole is 'HOD' */}
-              {currentRole?.role_name === "HOD" && (
-                <button
-                  onClick={() => setIsPsoPeoModalOpen(true)}
-                  className={`cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50`}
-                >
-                  <Target className="h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]" />
-                  {!isCollapsed && <span>PSO/PEO Management</span>}
-                </button>
-              )}              {/* Show LP only if currentRole is 'Faculty' */}
-              {currentRole?.role_name === "Faculty" && (
-                <Link
-                  href="/dashboard/lesson-plans"
-                  className={`group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 ${
-                    pathname.startsWith("/dashboard/lesson-plans")
-                      ? "text-[#1A5CA1] bg-blue-50"
-                      : "text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50"
-                  }`}
-                >
-                  <FileText
-                    className={`h-5 w-5 mr-3 ${
+              {/* Faculty Features */}
+              {shouldShowFacultyFeatures && (
+                <>
+                  <Link
+                    href="/dashboard/lesson-plans"
+                    className={`group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 ${
                       pathname.startsWith("/dashboard/lesson-plans")
-                        ? "text-[#1A5CA1]"
-                        : "text-gray-500 group-hover:text-[#1A5CA1]"
+                        ? "text-[#1A5CA1] bg-blue-50"
+                        : "text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50"
                     }`}
-                  />
-                  {!isCollapsed && <span>Lesson Planning (LP)</span>}
-                </Link>
+                  >
+                    <FileText
+                      className={`h-5 w-5 mr-3 ${
+                        pathname.startsWith("/dashboard/lesson-plans")
+                          ? "text-[#1A5CA1]"
+                          : "text-gray-500 group-hover:text-[#1A5CA1]"
+                      }`}
+                    />
+                    {!isCollapsed && <span>Lesson Planning (LP)</span>}
+                  </Link>
+                </>
               )}
-
-              {/* Show Attendance Module only if currentRole is 'Faculty' */}
-              {currentRole?.role_name === "Faculty" && (
-                <Link
-                  href="/attendance-module"
-                  className={`group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 ${
-                    pathname.startsWith("/attendance-selection") || pathname.startsWith("/timetable") || pathname.startsWith("/attendance-module") || pathname.startsWith("/attendance-monitor")
-                      ? "text-[#1A5CA1] bg-blue-50"
-                      : "text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50"
-                  }`}
-                >
-                  <UserCheck
-                    className={`h-5 w-5 mr-3 ${
-                      pathname.startsWith("/attendance-selection") || pathname.startsWith("/timetable") || pathname.startsWith("/attendance-module") || pathname.startsWith("/attendance-monitor")
-                        ? "text-[#1A5CA1]"
-                        : "text-gray-500 group-hover:text-[#1A5CA1]"
-                    }`}
-                  />
-                  {!isCollapsed && <span>Attendance Module</span>}
-                </Link>
-              )}
-
-              {/* {(currentRole?.role_name !== "Faculty") && (
-                <Link
-                  href="/dashboard/list-forms"
-                  className={`group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 ${
-                    pathname.startsWith("/dashboard/lesson-plans")
-                      ? "text-[#1A5CA1] bg-blue-50"
-                      : "text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50"
-                  }`}
-                >
-                  <FileText
-                    className={`h-5 w-5 mr-3 ${
-                      pathname.startsWith("/dashboard/list-forms")
-                        ? "text-[#1A5CA1]"
-                        : "text-gray-500 group-hover:text-[#1A5CA1]"
-                    }`}
-                  />
-                  {!isCollapsed && <span>View LP</span>}
-                </Link>
-              )} */}
-
             </div>
           </div>
+          
+          {/* Guidelines Link */}
           <div>
-            {/* Guidelines Link */}
             <button
               onClick={() => setIsGuidelineModalOpen(true)}
-              className={`w-full cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 ${
-                pathname.startsWith("/dashboard/lesson-plans")
-                  ? "text-[#1A5CA1] bg-blue-50"
-                  : "text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50"
-              }`}
+              className={`w-full cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50`}
             >
               <FileLock2
-                className={`h-5 w-5 mr-3 ${
-                  pathname.startsWith("/dashboard/lesson-plans")
-                    ? "text-[#1A5CA1]"
-                    : "text-gray-500 group-hover:text-[#1A5CA1]"
-                }`}
+                className={`h-5 w-5 mr-3 text-gray-500 group-hover:text-[#1A5CA1]`}
               />
               {!isCollapsed && <span>Guidelines</span>}
             </button>
@@ -323,7 +296,9 @@ export default function FacultySidebar({ signOut }: FacultySidebarProps) {
         currentPhotoUrl={userData.profile_photo}
         onPhotoUploaded={handlePhotoUploaded}
         onPhotoDeleted={handlePhotoDeleted}
-      /> 
+      />
+      
+      {/* Guidelines Modal */}
       <GuidelineModel
         isOpen={isGuidelineModalOpen}
         onClose={() => setIsGuidelineModalOpen(false)}
