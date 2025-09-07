@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Eye, FileText, X, ChevronDown, CheckCircle, Calendar } from "lucide-react"
+import { Eye, FileText, X, ChevronDown, CheckCircle, Calendar, Loader2 } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
 import { toast } from "sonner"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -101,6 +101,7 @@ const formSchema = z.object({
   cie_paper_file: z.any().optional(),
   evaluation_analysis_file: z.any().optional(),
   marks_display_document: z.any().optional(),
+  moderation_report_document: z.any().optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -305,7 +306,7 @@ export default function EditActualForm({
           actual_duration: values.actual_duration,
           actual_marks: values.actual_marks,
           actual_pedagogy: values.actual_pedagogy === "Other" ? values.custom_pedagogy : values.actual_pedagogy,
-          actual_units: values.actual_units.join(", "),
+          actual_units: Array.isArray(values.actual_units) ? values.actual_units.join(", ") : values.actual_units,
           actual_skills: values.actual_skills?.join(", ") || "",
           cie_number: cieNumber,
           co: values.co.join(", "),
@@ -320,8 +321,12 @@ export default function EditActualForm({
           forms: formsData.id,
         }
 
+        console.log("Submitting actual data:", actualData)
+
         // Check if record exists
         const existingActual = getExistingActual(cieData.id)
+
+        console.log("Existing actual data:", existingActual)
 
         let result
         if (existingActual?.id) {
@@ -333,7 +338,10 @@ export default function EditActualForm({
         }
 
         if (result.error) {
+          console.error("Supabase error:", result.error)
           throw new Error(result.error.message)
+        } else {
+          console.log("Supabase result data:", result.data)
         }
 
         // Update optimistic state
@@ -349,6 +357,7 @@ export default function EditActualForm({
           { file: values.cie_paper_file, field: "cie_paper_document", type: "paper" },
           { file: values.marks_display_document, field: "marks_display_document", type: "marks" },
           { file: values.evaluation_analysis_file, field: "evalution_analysis_document", type: "analysis" },
+          { file: values.moderation_report_document, field: "moderation_report_document", type: "moderation" },
         ]
 
         const fileUploads = files
@@ -380,7 +389,7 @@ export default function EditActualForm({
             const failed = results.filter((r) => !r.success)
             if (failed.length > 0) {
               toast.warning("Some files failed to upload, but CIE data was saved")
-            } 
+            }
           })
         }
       } catch (error: any) {
@@ -572,6 +581,7 @@ export default function EditActualForm({
         cie_paper_file: null,
         evaluation_analysis_file: null,
         marks_display_document: null,
+        moderation_report_document: null,
       }),
       [existingActual, cieData, extractedOptions, plannedData],
     )
@@ -700,7 +710,7 @@ export default function EditActualForm({
                   </CardHeader>
                   <CardContent>
                     <Form {...form}>
-                      <form onSubmit={form.handleSubmit((data) => onSubmit(data, cieData.id))} className="space-y-6">
+                      <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-6">
                         <div className="space-y-6">
                           <FormField
                             control={form.control}
@@ -964,7 +974,9 @@ export default function EditActualForm({
                 </CardHeader>
                 <CardContent>
                   <Form {...form}>
-                    <form onSubmit={form.handleSubmit((data) => onSubmit(data, cieData.id))}>
+                    <form onSubmit={form.handleSubmit((data) => onSubmit(data))}>
+                      {" "}
+                      {/* Fixed second onSubmit call - removed cieData.id parameter */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <FormField
@@ -1170,11 +1182,52 @@ export default function EditActualForm({
                               </FormItem>
                             )}
                           />
+
+                          <FormField
+                            control={form.control}
+                            name="moderation_report_document"
+                            render={({ field: { value, onChange, ...fieldProps } }) => (
+                              <FormItem>
+                                <FormLabel>Moderation Report (PDF)</FormLabel>
+                                <div className="flex items-center gap-2">
+                                  <div className="relative flex-1">
+                                    <FormControl>
+                                      <Input
+                                        {...fieldProps}
+                                        type="file"
+                                        accept=".pdf"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0]
+                                          if (file) onChange(file)
+                                        }}
+                                        className="cursor-pointer"
+                                      />
+                                    </FormControl>
+                                  </div>
+                                  {existingActual?.moderation_report_document && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={async () => {
+                                        const { data = { publicUrl: "" } } = await supabase.storage
+                                          .from("actual-cies")
+                                          .getPublicUrl(existingActual.moderation_report_document)
+                                        window.open(data.publicUrl, "_blank")
+                                      }}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         </div>
                       </div>
-
                       {/* Action Buttons */}
-                      <div className="flex justify-end gap-4 mt-6">
+                      <div className="flex justify-between gap-4 mt-6">
                         <Button
                           type="button"
                           variant="outline"
@@ -1191,7 +1244,7 @@ export default function EditActualForm({
                         >
                           {isSubmitting ? (
                             <>
-                              <CheckCircle className="h-4 w-4 mr-2 animate-spin" />
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                               Submitting...
                             </>
                           ) : (
@@ -1199,7 +1252,6 @@ export default function EditActualForm({
                           )}
                         </Button>
                       </div>
-
                       {/* File Upload Status */}
                       {isUploading && (
                         <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
