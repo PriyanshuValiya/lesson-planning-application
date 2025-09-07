@@ -85,17 +85,6 @@ export async function fetchFaculty() {
       }
     })
 
-    console.log(
-      "📊 Faculty data with status:",
-      facultyWithStatus.map((f) => ({
-        name: f.subjects?.name,
-        code: f.subjects?.code,
-        status: f.status,
-        faculty_id: f.id,
-        subject_id: f.subject_id,
-      })),
-    )
-
     return facultyWithStatus
   } catch (error) {
     console.error("❌ Error in fetchFaculty:", error)

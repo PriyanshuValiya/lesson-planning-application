@@ -62,7 +62,6 @@ export async function fetchFacultyWithStatus() {
       }
     })
 
-    console.log("📊 Faculty data with status:", facultyWithStatus.length, "records")
     return facultyWithStatus
   } catch (error) {
     console.error("❌ Error in fetchFacultyWithStatus:", error)
