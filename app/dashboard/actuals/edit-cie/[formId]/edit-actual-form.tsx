@@ -13,12 +13,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Eye, FileText, X, ChevronDown, CheckCircle, Calendar, Loader2 } from "lucide-react"
+import { Eye, FileText, X, ChevronDown, CheckCircle, Calendar, Loader2, Upload } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
 import { toast } from "sonner"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 import { format, parseISO, parse } from "date-fns"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 // FIXED: Proper date handling functions
 const parseAndFormatDate = (dateString: string) => {
@@ -47,7 +49,7 @@ const parseAndFormatDate = (dateString: string) => {
     }
 
     return format(date, "PPPP") // "Tuesday, August 12th, 2025"
-  } catch (error) {
+    } catch (error) {
     console.error("Date parsing error:", error)
     return "Invalid Date"
   }
@@ -91,7 +93,7 @@ const formSchema = z.object({
   actual_marks: z.number().min(0.1, "Must be positive"),
   co: z.array(z.string()).min(1, "At least one CO is required"),
   pso: z.array(z.string()).min(1, "At least one PSO is required"),
-  actual_blooms: z.string().min(1, "Required"),
+  actual_blooms: z.array(z.string()).min(1, "At least one Bloom's level is required"), // CHANGED: Now array for checkboxes
   actual_skills: z.array(z.string()).optional(),
   reason_for_change: z.string().optional(),
   quality_review_completed: z.boolean().default(false),
@@ -208,6 +210,22 @@ export default function EditActualForm({
   const [isDraftSaving, setIsDraftSaving] = useState(false)
   const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, any>>({})
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({})
+  const [fileUploadStatus, setFileUploadStatus] = useState<Record<string, string>>({})
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, File>>({})
+
+  // Skill mapping options
+  const skillMappingOptions = [
+    "Technical Skills",
+    "Cognitive Skills",
+    "Professional Skills",
+    "Research and Innovation Skills",
+    "Entrepreneurial or Managerial Skills",
+    "Communication Skills",
+    "Leadership and Teamwork Skills",
+    "Creativity and Design Thinking Skills",
+    "Ethical, Social, and Environmental Awareness Skills",
+    "Other",
+  ]
 
   // Extract CIEs from forms data
   const ciesFromForm = formsData.form?.cies || []
@@ -251,14 +269,20 @@ export default function EditActualForm({
       units: formsData.form?.units || [],
       psoOptions: departmentPsoPeoData?.pso_data || [],
       peoOptions: departmentPsoPeoData?.peo_data || [],
+      // CHANGE 1: Skills now come from CIE Units instead of Units
       skillsOptions: Array.from(
-        new Set((formsData.form?.units || []).flatMap((unit: any) => unit.skill_mapping || []).filter(Boolean)),
+        new Set((ciesFromForm || []).flatMap((cie: any) => 
+          (cie.units_covered || []).flatMap((unitId: string) => {
+            const unit = (formsData.form?.units || []).find((u: any) => u.id === unitId)
+            return unit?.skill_mapping || []
+          })
+        ).filter(Boolean)),
       ).map((skill) => ({
         id: skill,
         name: skill.replace(/^Other:\s*/i, "").trim(),
       })),
     }),
-    [formsData, departmentPsoPeoData, evaluationPedagogyOptions],
+    [formsData, departmentPsoPeoData, evaluationPedagogyOptions, ciesFromForm],
   )
 
   // Set initial active tab
@@ -290,18 +314,45 @@ export default function EditActualForm({
     [actualCiesData, optimisticUpdates],
   )
 
-  // FIXED: Fast submit with proper date handling
+  // CHANGE 5: Enhanced validation for Submit button
+  const validateRequiredFields = (values: FormData) => {
+    const missingFields: string[] = []
+    
+    if (!values.actual_date) missingFields.push("Actual CIE Date")
+    if (!values.actual_duration) missingFields.push("Actual Duration")
+    if (!values.actual_marks || values.actual_marks <= 0) missingFields.push("Actual Marks")
+    if (!values.actual_pedagogy) missingFields.push("Actual Pedagogy")
+    if (values.actual_pedagogy === "Other" && !values.custom_pedagogy) missingFields.push("Custom Pedagogy")
+    if (!values.actual_units || values.actual_units.length === 0) missingFields.push("Units/Practicals Covered")
+    if (!values.co || values.co.length === 0) missingFields.push("CO Mapping")
+    if (!values.pso || values.pso.length === 0) missingFields.push("PSO Mapping")
+    if (!values.actual_blooms || values.actual_blooms.length === 0) missingFields.push("Actual Blooms Taxonomy")
+    
+    return missingFields
+  }
+
+  // FIXED: Fast submit with proper date handling and validation
   const handleSubmit = useCallback(
     async (values: FormData, cieData: any) => {
       try {
         setIsSubmitting(true)
+        
+        // CHANGE 5: Validate required fields before submission
+        const missingFields = validateRequiredFields(values)
+        if (missingFields.length > 0) {
+          toast.error(`Please fill the following required fields: ${missingFields.join(", ")}`, {
+            duration: 5000
+          })
+          return
+        }
+
         const cieNumber = Number.parseInt(cieData.id.replace("cie", ""))
 
         // FIXED: Prepare data with proper date formatting
         const actualData = {
           faculty_id: userRoleData.users.id,
           subject_id: userRoleData.subjects.id,
-          actual_blooms: values.actual_blooms,
+          actual_blooms: values.actual_blooms.join(", "), // CHANGED: Join array to string
           actual_date: values.actual_date, // Already in YYYY-MM-DD format from form
           actual_duration: values.actual_duration,
           actual_marks: values.actual_marks,
@@ -350,7 +401,7 @@ export default function EditActualForm({
           [cieData.id]: result.data[0],
         }))
 
-        toast.success("CIE data submitted successfully...")
+        toast.success(`CIE ${cieNumber} data submitted successfully...`)
 
         // Handle file uploads in background (non-blocking)
         const files = [
@@ -402,7 +453,7 @@ export default function EditActualForm({
     [formsData, getExistingActual, supabase, userRoleData],
   )
 
-  // Fast draft save (NOW WITH SKILLS)
+  // CHANGE 5: Fast draft save (no validation, just save)
   const handleSaveDraft = useCallback(
     async (values: FormData, cieData: any) => {
       const cieNumber = Number.parseInt(cieData.id.replace("cie", ""))
@@ -411,7 +462,7 @@ export default function EditActualForm({
       // Optimistic update
       const optimisticData = {
         ...existingActual,
-        actual_blooms: values.actual_blooms || "",
+        actual_blooms: values.actual_blooms?.join(", ") || "", // CHANGED: Join array to string
         actual_date: values.actual_date || "",
         actual_duration: values.actual_duration || "",
         actual_marks: values.actual_marks || 0,
@@ -440,6 +491,8 @@ export default function EditActualForm({
         const draftData = {
           ...optimisticData,
           cie_number: cieNumber,
+          faculty_id: userRoleData.users.id,
+          subject_id: userRoleData.subjects.id,
           created_at: new Date().toISOString(),
           forms: formsData.id,
         }
@@ -473,13 +526,14 @@ export default function EditActualForm({
         setIsDraftSaving(false)
       }
     },
-    [formsData, getExistingActual, supabase],
+    [formsData, getExistingActual, supabase, userRoleData],
   )
 
   const CieTabContent = ({ cieData }: { cieData: any }) => {
     const existingActual = getExistingActual(cieData.id)
     const isActive = isCieActive(cieData.date)
     const isUploading = uploadingFiles[cieData.id]
+    const cieNumber = Number.parseInt(cieData.id.replace("cie", ""))
 
     const isPracticalCie = cieData.type?.toLowerCase().includes("practical")
 
@@ -568,8 +622,10 @@ export default function EditActualForm({
               return pso
             })
           : cieData.pso_mapping || [],
-        actual_blooms:
-          existingActual?.actual_blooms || (cieData.blooms_taxonomy ? cieData.blooms_taxonomy.join(", ") : ""),
+        // CHANGE 2: Actual blooms now array from forms table data
+        actual_blooms: existingActual?.actual_blooms 
+          ? existingActual.actual_blooms.split(", ").map((bloom: string) => bloom.trim())
+          : cieData.blooms_taxonomy || [],
         actual_skills: existingActual?.actual_skills
           ? existingActual.actual_skills.split(", ")
           : plannedData.plannedSkills || [],
@@ -591,6 +647,31 @@ export default function EditActualForm({
       defaultValues,
     })
 
+    // State for custom skill input
+    const [customSkill, setCustomSkill] = useState("")
+    const [selectedSkills, setSelectedSkills] = useState<string[]>(defaultValues.actual_skills || [])
+
+    // Handle skill selection
+    const handleSkillChange = (skills: string[]) => {
+      setSelectedSkills(skills)
+      form.setValue("actual_skills", skills)
+    }
+
+    // Handle custom skill input
+    const handleCustomSkillChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setCustomSkill(e.target.value)
+    }
+
+    // Add custom skill to the list
+    const addCustomSkill = () => {
+      if (customSkill.trim() && !selectedSkills.includes(customSkill.trim())) {
+        const newSkills = [...selectedSkills, customSkill.trim()]
+        setSelectedSkills(newSkills)
+        form.setValue("actual_skills", newSkills)
+        setCustomSkill("")
+      }
+    }
+
     if (!isActive) {
       return (
         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -604,6 +685,21 @@ export default function EditActualForm({
 
     const onSubmit = (values: FormData) => handleSubmit(values, cieData)
     const onSaveDraft = () => handleSaveDraft(form.getValues(), cieData)
+
+    // File upload handler with real-time preview
+    const handleFileUpload = (file: File, fieldName: string, cieId: string) => {
+      // Store the uploaded file for real-time preview
+      setUploadedFiles(prev => ({
+        ...prev,
+        [`${cieId}-${fieldName}`]: file
+      }))
+      
+      // Clear the success message after upload
+      setFileUploadStatus(prev => ({
+        ...prev,
+        [`${cieId}-${fieldName}`]: ""
+      }))
+    }
 
     return (
       <TabsContent value={`cie-${cieData.id}`} className="space-y-6">
@@ -858,26 +954,34 @@ export default function EditActualForm({
                             )}
                           />
 
-                          <FormField
-                            control={form.control}
-                            name="actual_skills"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Actual Skills Covered</FormLabel>
-                                <FormControl>
-                                  <MultiSelect
-                                    options={extractedOptions.skillsOptions}
-                                    value={field.value || []}
-                                    onChange={field.onChange}
-                                    placeholder="Select skills covered"
-                                    getLabel={(skill) => skill.name}
-                                    getValue={(skill) => skill.id}
+                          {/* Updated Skills Field with Multi-select and Custom Input */}
+                          <FormItem>
+                            <FormLabel>Actual Skills Covered</FormLabel>
+                            <div className="space-y-2">
+                              <MultiSelect
+                                options={skillMappingOptions.map(skill => ({ id: skill, name: skill }))}
+                                value={selectedSkills}
+                                onChange={handleSkillChange}
+                                placeholder="Select skills covered"
+                                getLabel={(skill) => skill.name}
+                                getValue={(skill) => skill.id}
+                              />
+                              
+                              {selectedSkills.includes("Other") && (
+                                <div className="flex gap-2 mt-2">
+                                  <Input
+                                    placeholder="Enter custom skill"
+                                    value={customSkill}
+                                    onChange={handleCustomSkillChange}
                                   />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                                  <Button type="button" onClick={addCustomSkill}>
+                                    Add
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
 
                           <div className="grid grid-cols-2 gap-4">
                             <FormField
@@ -926,6 +1030,7 @@ export default function EditActualForm({
                             />
                           </div>
 
+                          {/* CHANGE 2: Actual Blooms as checkboxes */}
                           <FormField
                             control={form.control}
                             name="actual_blooms"
@@ -933,7 +1038,22 @@ export default function EditActualForm({
                               <FormItem>
                                 <FormLabel>Actual Blooms Taxonomy *</FormLabel>
                                 <FormControl>
-                                  <Textarea placeholder="e.g., Remember, Understand, Apply" {...field} />
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {extractedOptions.bloomsTaxonomy.map((bloom) => (
+                                      <div key={bloom} className="flex items-center space-x-2">
+                                        <Checkbox
+                                          checked={field.value?.includes(bloom) || false}
+                                          onCheckedChange={(checked) => {
+                                            const newValue = checked
+                                              ? [...(field.value || []), bloom]
+                                              : (field.value || []).filter((v) => v !== bloom)
+                                            field.onChange(newValue)
+                                          }}
+                                        />
+                                        <label className="text-sm">{bloom}</label>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -975,8 +1095,6 @@ export default function EditActualForm({
                 <CardContent>
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit((data) => onSubmit(data))}>
-                      {" "}
-                      {/* Fixed second onSubmit call - removed cieData.id parameter */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <FormField
@@ -1072,26 +1190,47 @@ export default function EditActualForm({
                                         accept=".pdf"
                                         onChange={(e) => {
                                           const file = e.target.files?.[0]
-                                          if (file) onChange(file)
+                                          if (file) {
+                                            onChange(file)
+                                            handleFileUpload(file, "cie_paper_file", cieData.id)
+                                          }
                                         }}
                                         className="cursor-pointer"
                                       />
                                     </FormControl>
                                   </div>
-                                  {existingActual?.cie_paper_document && (
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={async () => {
-                                        const { data } = await supabase.storage
-                                          .from("actual-cies")
-                                          .getPublicUrl(existingActual.cie_paper_document)
-                                        window.open(data.publicUrl, "_blank")
-                                      }}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
+                                  {/* Real-time preview for uploaded files */}
+                                  {(existingActual?.cie_paper_document || uploadedFiles[`${cieData.id}-cie_paper_file`]) && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="bg-blue-100 hover:bg-blue-200 border-blue-300"
+                                            onClick={async () => {
+                                              // If we have a newly uploaded file, create object URL for preview
+                                              if (uploadedFiles[`${cieData.id}-cie_paper_file`]) {
+                                                const url = URL.createObjectURL(uploadedFiles[`${cieData.id}-cie_paper_file`])
+                                                window.open(url, "_blank")
+                                              } else if (existingActual?.cie_paper_document) {
+                                                // If we have a stored file, get the URL from Supabase
+                                                const { data } = await supabase.storage
+                                                  .from("actual-cies")
+                                                  .getPublicUrl(existingActual.cie_paper_document)
+                                                window.open(data.publicUrl, "_blank")
+                                              }
+                                            }}
+                                          >
+                                            <Eye className="h-4 w-4 text-blue-600" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" align="center">
+                                          <p>Preview CIE Paper</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   )}
                                 </div>
                                 <FormMessage />
@@ -1114,26 +1253,47 @@ export default function EditActualForm({
                                         accept=".pdf"
                                         onChange={(e) => {
                                           const file = e.target.files?.[0]
-                                          if (file) onChange(file)
+                                          if (file) {
+                                            onChange(file)
+                                            handleFileUpload(file, "marks_display_document", cieData.id)
+                                          }
                                         }}
                                         className="cursor-pointer"
                                       />
                                     </FormControl>
                                   </div>
-                                  {existingActual?.marks_display_document && (
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={async () => {
-                                        const { data } = await supabase.storage
-                                          .from("actual-cies")
-                                          .getPublicUrl(existingActual.marks_display_document)
-                                        window.open(data.publicUrl, "_blank")
-                                      }}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
+                                  {/* Real-time preview for uploaded files */}
+                                  {(existingActual?.marks_display_document || uploadedFiles[`${cieData.id}-marks_display_document`]) && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="bg-blue-100 hover:bg-blue-200 border-blue-300"
+                                            onClick={async () => {
+                                              // If we have a newly uploaded file, create object URL for preview
+                                              if (uploadedFiles[`${cieData.id}-marks_display_document`]) {
+                                                const url = URL.createObjectURL(uploadedFiles[`${cieData.id}-marks_display_document`])
+                                                window.open(url, "_blank")
+                                              } else if (existingActual?.marks_display_document) {
+                                                // If we have a stored file, get the URL from Supabase
+                                                const { data } = await supabase.storage
+                                                  .from("actual-cies")
+                                                  .getPublicUrl(existingActual.marks_display_document)
+                                                window.open(data.publicUrl, "_blank")
+                                              }
+                                            }}
+                                          >
+                                            <Eye className="h-4 w-4 text-blue-600" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" align="center">
+                                          <p>Preview Marks Sheet</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   )}
                                 </div>
                                 <FormMessage />
@@ -1156,26 +1316,47 @@ export default function EditActualForm({
                                         accept=".pdf"
                                         onChange={(e) => {
                                           const file = e.target.files?.[0]
-                                          if (file) onChange(file)
+                                          if (file) {
+                                            onChange(file)
+                                            handleFileUpload(file, "evaluation_analysis_file", cieData.id)
+                                          }
                                         }}
                                         className="cursor-pointer"
                                       />
                                     </FormControl>
                                   </div>
-                                  {existingActual?.evalution_analysis_document && (
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={async () => {
-                                        const { data } = await supabase.storage
-                                          .from("actual-cies")
-                                          .getPublicUrl(existingActual.evalution_analysis_document)
-                                        window.open(data.publicUrl, "_blank")
-                                      }}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
+                                  {/* Real-time preview for uploaded files */}
+                                  {(existingActual?.evalution_analysis_document || uploadedFiles[`${cieData.id}-evaluation_analysis_file`]) && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="bg-blue-100 hover:bg-blue-200 border-blue-300"
+                                            onClick={async () => {
+                                              // If we have a newly uploaded file, create object URL for preview
+                                              if (uploadedFiles[`${cieData.id}-evaluation_analysis_file`]) {
+                                                const url = URL.createObjectURL(uploadedFiles[`${cieData.id}-evaluation_analysis_file`])
+                                                window.open(url, "_blank")
+                                              } else if (existingActual?.evalution_analysis_document) {
+                                                // If we have a stored file, get the URL from Supabase
+                                                const { data } = await supabase.storage
+                                                  .from("actual-cies")
+                                                  .getPublicUrl(existingActual.evalution_analysis_document)
+                                                window.open(data.publicUrl, "_blank")
+                                              }
+                                            }}
+                                          >
+                                            <Eye className="h-4 w-4 text-blue-600" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" align="center">
+                                          <p>Preview Evalution PDF</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   )}
                                 </div>
                                 <FormMessage />
@@ -1198,26 +1379,47 @@ export default function EditActualForm({
                                         accept=".pdf"
                                         onChange={(e) => {
                                           const file = e.target.files?.[0]
-                                          if (file) onChange(file)
+                                          if (file) {
+                                            onChange(file)
+                                            handleFileUpload(file, "moderation_report_document", cieData.id)
+                                          }
                                         }}
                                         className="cursor-pointer"
                                       />
                                     </FormControl>
                                   </div>
-                                  {existingActual?.moderation_report_document && (
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={async () => {
-                                        const { data = { publicUrl: "" } } = await supabase.storage
-                                          .from("actual-cies")
-                                          .getPublicUrl(existingActual.moderation_report_document)
-                                        window.open(data.publicUrl, "_blank")
-                                      }}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
+                                  {/* Real-time preview for uploaded files */}
+                                  {(existingActual?.moderation_report_document || uploadedFiles[`${cieData.id}-moderation_report_document`]) && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="bg-blue-100 hover:bg-blue-200 border-blue-300"
+                                            onClick={async () => {
+                                              // If we have a newly uploaded file, create object URL for preview
+                                              if (uploadedFiles[`${cieData.id}-moderation_report_document`]) {
+                                                const url = URL.createObjectURL(uploadedFiles[`${cieData.id}-moderation_report_document`])
+                                                window.open(url, "_blank")
+                                              } else if (existingActual?.moderation_report_document) {
+                                                // If we have a stored file, get the URL from Supabase
+                                                const { data = { publicUrl: "" } } = await supabase.storage
+                                                  .from("actual-cies")
+                                                  .getPublicUrl(existingActual.moderation_report_document)
+                                                window.open(data.publicUrl, "_blank")
+                                              }
+                                            }}
+                                          >
+                                            <Eye className="h-4 w-4 text-blue-600" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" align="center">
+                                          <p>Preview Moderation PDF</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   )}
                                 </div>
                                 <FormMessage />
@@ -1237,10 +1439,11 @@ export default function EditActualForm({
                         >
                           {isDraftSaving ? "Saving..." : "Save Draft"}
                         </Button>
+                        {/* CHANGE 6: Updated Submit button text */}
                         <Button
                           type="submit"
                           disabled={isSubmitting || isDraftSaving}
-                          className="min-w-[120px] relative"
+                          className="min-w-[160px] relative"
                         >
                           {isSubmitting ? (
                             <>
@@ -1248,7 +1451,7 @@ export default function EditActualForm({
                               Submitting...
                             </>
                           ) : (
-                            "Submit CIE Data"
+                            `Submit - CIE ${cieNumber}`
                           )}
                         </Button>
                       </div>
@@ -1301,7 +1504,7 @@ export default function EditActualForm({
             const isUploading = uploadingFiles[cie.id]
 
             return (
-              <TabsTrigger key={cie.id} value={`cie-${cie.id}`} disabled={!isActive} className="relative">
+              <TabsTrigger key={cie.id} value={`cie-${cie.id}`} disabled={!isActive} className="relative cursor-pointer">
                 <div className="flex items-center gap-3">
                   <span>CIE {cie.id.replace("cie", "")}</span>
                   {isSubmitted && (
@@ -1320,8 +1523,8 @@ export default function EditActualForm({
                     </Badge>
                   )}
                   {!isActive && (
-                    <Badge variant="secondary" className="text-xs">
-                      Not Taken
+                    <Badge variant="secondary" className="texto Take-xs">
+                      Yet To Take
                     </Badge>
                   )}
                 </div>
