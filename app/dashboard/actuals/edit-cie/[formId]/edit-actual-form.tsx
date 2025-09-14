@@ -363,6 +363,7 @@ export default function EditActualForm({
           co: values.co.join(", "),
           pso: values.pso.join(", "),
           created_at: new Date().toISOString(),
+          planned_date: cieData.date,
           is_submitted: true,
           marks_display_date: values.marks_display_date || null,
           quality_review_completed: values.quality_review_completed || false,
