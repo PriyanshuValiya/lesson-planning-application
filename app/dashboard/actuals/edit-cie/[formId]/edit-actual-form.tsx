@@ -347,7 +347,6 @@ export default function EditActualForm({
         }
 
         const cieNumber = Number.parseInt(cieData.id.replace("cie", ""))
-
         // FIXED: Prepare data with proper date formatting
         const actualData = {
           faculty_id: userRoleData.users.id,
@@ -391,6 +390,7 @@ export default function EditActualForm({
 
         if (result.error) {
           console.error("Supabase error:", result.error)
+          console.log("Insert Error");
           throw new Error(result.error.message)
         } else {
           console.log("Supabase result data:", result.data)
@@ -686,20 +686,22 @@ export default function EditActualForm({
 
     const onSubmit = (values: FormData) => handleSubmit(values, cieData)
     const onSaveDraft = () => handleSaveDraft(form.getValues(), cieData)
-
+    //Bookmark handle file
     // File upload handler with real-time preview
     const handleFileUpload = (file: File, fieldName: string, cieId: string) => {
+
+      form.setValue(fieldName, file)
       // Store the uploaded file for real-time preview
-      setUploadedFiles(prev => ({
-        ...prev,
-        [`${cieId}-${fieldName}`]: file
-      }))
+      // setUploadedFiles(prev => ({
+      //   ...prev,
+      //   [`${cieId}-${fieldName}`]: file
+      // }))
       
       // Clear the success message after upload
-      setFileUploadStatus(prev => ({
-        ...prev,
-        [`${cieId}-${fieldName}`]: ""
-      }))
+      // setFileUploadStatus(prev => ({
+      //   ...prev,
+      //   [`${cieId}-${fieldName}`]: ""
+      // }))
     }
 
     return (
@@ -1201,7 +1203,7 @@ export default function EditActualForm({
                                     </FormControl>
                                   </div>
                                   {/* Real-time preview for uploaded files */}
-                                  {(existingActual?.cie_paper_document || uploadedFiles[`${cieData.id}-cie_paper_file`]) && (
+                                  {(existingActual?.cie_paper_document || form.watch("cie_paper_file")) && (
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -1212,8 +1214,8 @@ export default function EditActualForm({
                                             className="bg-blue-100 hover:bg-blue-200 border-blue-300"
                                             onClick={async () => {
                                               // If we have a newly uploaded file, create object URL for preview
-                                              if (uploadedFiles[`${cieData.id}-cie_paper_file`]) {
-                                                const url = URL.createObjectURL(uploadedFiles[`${cieData.id}-cie_paper_file`])
+                                              if (form.watch("cie_paper_file")) {
+                                                const url = URL.createObjectURL(form.watch("cie_paper_file"))
                                                 window.open(url, "_blank")
                                               } else if (existingActual?.cie_paper_document) {
                                                 // If we have a stored file, get the URL from Supabase
@@ -1264,7 +1266,7 @@ export default function EditActualForm({
                                     </FormControl>
                                   </div>
                                   {/* Real-time preview for uploaded files */}
-                                  {(existingActual?.marks_display_document || uploadedFiles[`${cieData.id}-marks_display_document`]) && (
+                                  {(existingActual?.marks_display_document || form.watch("marks_display_document")) && (
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -1275,8 +1277,8 @@ export default function EditActualForm({
                                             className="bg-blue-100 hover:bg-blue-200 border-blue-300"
                                             onClick={async () => {
                                               // If we have a newly uploaded file, create object URL for preview
-                                              if (uploadedFiles[`${cieData.id}-marks_display_document`]) {
-                                                const url = URL.createObjectURL(uploadedFiles[`${cieData.id}-marks_display_document`])
+                                              if (form.watch("marks_display_document")) {
+                                                const url = URL.createObjectURL(form.watch("marks_display_document"))
                                                 window.open(url, "_blank")
                                               } else if (existingActual?.marks_display_document) {
                                                 // If we have a stored file, get the URL from Supabase
@@ -1327,7 +1329,7 @@ export default function EditActualForm({
                                     </FormControl>
                                   </div>
                                   {/* Real-time preview for uploaded files */}
-                                  {(existingActual?.evalution_analysis_document || uploadedFiles[`${cieData.id}-evaluation_analysis_file`]) && (
+                                  {(existingActual?.evalution_analysis_document || form.watch("evaluation_analysis_file")) && (
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -1338,8 +1340,8 @@ export default function EditActualForm({
                                             className="bg-blue-100 hover:bg-blue-200 border-blue-300"
                                             onClick={async () => {
                                               // If we have a newly uploaded file, create object URL for preview
-                                              if (uploadedFiles[`${cieData.id}-evaluation_analysis_file`]) {
-                                                const url = URL.createObjectURL(uploadedFiles[`${cieData.id}-evaluation_analysis_file`])
+                                              if (form.watch("evaluation_analysis_file")) {
+                                                const url = URL.createObjectURL(form.watch("evaluation_analysis_file"))
                                                 window.open(url, "_blank")
                                               } else if (existingActual?.evalution_analysis_document) {
                                                 // If we have a stored file, get the URL from Supabase
@@ -1390,7 +1392,7 @@ export default function EditActualForm({
                                     </FormControl>
                                   </div>
                                   {/* Real-time preview for uploaded files */}
-                                  {(existingActual?.moderation_report_document || uploadedFiles[`${cieData.id}-moderation_report_document`]) && (
+                                  {(existingActual?.moderation_report_document || form.watch("moderation_report_document")) && (
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -1401,8 +1403,8 @@ export default function EditActualForm({
                                             className="bg-blue-100 hover:bg-blue-200 border-blue-300"
                                             onClick={async () => {
                                               // If we have a newly uploaded file, create object URL for preview
-                                              if (uploadedFiles[`${cieData.id}-moderation_report_document`]) {
-                                                const url = URL.createObjectURL(uploadedFiles[`${cieData.id}-moderation_report_document`])
+                                              if (form.watch("moderation_report_document")) {
+                                                const url = URL.createObjectURL(form.watch("moderation_report_document"))
                                                 window.open(url, "_blank")
                                               } else if (existingActual?.moderation_report_document) {
                                                 // If we have a stored file, get the URL from Supabase
