@@ -1,5 +1,5 @@
 //@ts-nocheck
-"use client" 
+"use client"
 
 import { useEffect, useState, useCallback, useMemo } from "react"
 import { useForm } from "react-hook-form"
@@ -21,6 +21,17 @@ import { Badge } from "@/components/ui/badge"
 import { format, parseISO, parse } from "date-fns"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 // FIXED: Proper date handling functions
 const parseAndFormatDate = (dateString: string) => {
@@ -49,7 +60,7 @@ const parseAndFormatDate = (dateString: string) => {
     }
 
     return format(date, "PPPP") // "Tuesday, August 12th, 2025"
-    } catch (error) {
+  } catch (error) {
     console.error("Date parsing error:", error)
     return "Invalid Date"
   }
@@ -212,6 +223,8 @@ export default function EditActualForm({
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({})
   const [fileUploadStatus, setFileUploadStatus] = useState<Record<string, string>>({})
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, File>>({})
+  const [moderationError, setModerationError] = useState(false);
+  const [invalidModerationFields, setInvalidModerationFields] = useState<string[]>([]);
 
   // Skill mapping options
   const skillMappingOptions = [
@@ -271,7 +284,7 @@ export default function EditActualForm({
       peoOptions: departmentPsoPeoData?.peo_data || [],
       // CHANGE 1: Skills now come from CIE Units instead of Units
       skillsOptions: Array.from(
-        new Set((ciesFromForm || []).flatMap((cie: any) => 
+        new Set((ciesFromForm || []).flatMap((cie: any) =>
           (cie.units_covered || []).flatMap((unitId: string) => {
             const unit = (formsData.form?.units || []).find((u: any) => u.id === unitId)
             return unit?.skill_mapping || []
@@ -317,7 +330,7 @@ export default function EditActualForm({
   // CHANGE 5: Enhanced validation for Submit button
   const validateRequiredFields = (values: FormData) => {
     const missingFields: string[] = []
-    
+
     if (!values.actual_date) missingFields.push("Actual CIE Date")
     if (!values.actual_duration) missingFields.push("Actual Duration")
     if (!values.actual_marks || values.actual_marks <= 0) missingFields.push("Actual Marks")
@@ -327,16 +340,41 @@ export default function EditActualForm({
     if (!values.co || values.co.length === 0) missingFields.push("CO Mapping")
     if (!values.pso || values.pso.length === 0) missingFields.push("PSO Mapping")
     if (!values.actual_blooms || values.actual_blooms.length === 0) missingFields.push("Actual Blooms Taxonomy")
-    
+
     return missingFields
   }
+  const validateModerationFields = (values: FormData) => {
+    const invalidFieldErrors: string[] = [];
+
+    function parseDate(dateStr: string): Date {
+      const [year, month, day] = dateStr.split("-").map(Number);
+      return new Date(year, month - 1, day); // month is 0-based
+    }
+
+
+    const moderation_start_date = parseDate(values.moderation_start_date).getTime();
+    const moderation_end_date = parseDate(values.moderation_end_date).getTime();
+
+    if (moderation_end_date < moderation_start_date) {
+      invalidFieldErrors.push("Moderation end date is before start date.");
+    }
+
+    const marks_display_date = parseDate(values.marks_display_date).getTime();
+    const actual_cie_date = parseDate(values.actual_date).getTime();
+
+    if (marks_display_date < actual_cie_date) {
+      invalidFieldErrors.push("Marks display date is before actual CIE date.");
+    }
+
+    return invalidFieldErrors;
+  };
 
   // FIXED: Fast submit with proper date handling and validation
   const handleSubmit = useCallback(
     async (values: FormData, cieData: any) => {
       try {
         setIsSubmitting(true)
-        
+
         // CHANGE 5: Validate required fields before submission
         const missingFields = validateRequiredFields(values)
         if (missingFields.length > 0) {
@@ -345,6 +383,16 @@ export default function EditActualForm({
           })
           return
         }
+        if (values.quality_review_completed) {
+          const invalidModerationFields = validateModerationFields(values);
+
+          if (invalidModerationFields.length > 0) {
+            setInvalidModerationFields(invalidModerationFields);
+            setModerationError(true);
+            return
+          }
+        }
+
 
         const cieNumber = Number.parseInt(cieData.id.replace("cie", ""))
         // FIXED: Prepare data with proper date formatting
@@ -527,7 +575,7 @@ export default function EditActualForm({
         setIsDraftSaving(false)
       }
     },
-    [formsData, getExistingActual, supabase, userRoleData],
+    [formsData, getExistingActual, supabase, userRoleData, setInvalidModerationFields, setModerationError],
   )
 
   const CieTabContent = ({ cieData }: { cieData: any }) => {
@@ -590,13 +638,13 @@ export default function EditActualForm({
       () => ({
         actual_units: existingActual?.actual_units
           ? existingActual.actual_units.split(", ").map((unit: string) => {
-              const unitMatch = unit.match(/Unit (\d+)/)
-              if (unitMatch) {
-                const unitIndex = Number.parseInt(unitMatch[1]) - 1
-                return extractedOptions.units[unitIndex]?.id || unit
-              }
-              return unit
-            })
+            const unitMatch = unit.match(/Unit (\d+)/)
+            if (unitMatch) {
+              const unitIndex = Number.parseInt(unitMatch[1]) - 1
+              return extractedOptions.units[unitIndex]?.id || unit
+            }
+            return unit
+          })
           : cieData.units_covered || [],
         actual_pedagogy: existingActual?.actual_pedagogy || cieData.evaluation_pedagogy || "",
         custom_pedagogy: existingActual?.custom_pedagogy || "",
@@ -605,26 +653,26 @@ export default function EditActualForm({
         actual_marks: existingActual?.actual_marks || cieData.marks || 0,
         co: existingActual?.co
           ? existingActual.co.split(", ").map((co: string) => {
-              const coMatch = co.match(/CO(\d+)/)
-              if (coMatch) {
-                const coIndex = Number.parseInt(coMatch[1]) - 1
-                return extractedOptions.courseOutcomes[coIndex]?.id || co
-              }
-              return co
-            })
+            const coMatch = co.match(/CO(\d+)/)
+            if (coMatch) {
+              const coIndex = Number.parseInt(coMatch[1]) - 1
+              return extractedOptions.courseOutcomes[coIndex]?.id || co
+            }
+            return co
+          })
           : cieData.co_mapping || [],
         pso: existingActual?.pso
           ? existingActual.pso.split(", ").map((pso: string) => {
-              const psoMatch = pso.match(/PSO(\d+)/)
-              if (psoMatch) {
-                const psoIndex = Number.parseInt(psoMatch[1]) - 1
-                return extractedOptions.psoOptions[psoIndex]?.id || pso
-              }
-              return pso
-            })
+            const psoMatch = pso.match(/PSO(\d+)/)
+            if (psoMatch) {
+              const psoIndex = Number.parseInt(psoMatch[1]) - 1
+              return extractedOptions.psoOptions[psoIndex]?.id || pso
+            }
+            return pso
+          })
           : cieData.pso_mapping || [],
         // CHANGE 2: Actual blooms now array from forms table data
-        actual_blooms: existingActual?.actual_blooms 
+        actual_blooms: existingActual?.actual_blooms
           ? existingActual.actual_blooms.split(", ").map((bloom: string) => bloom.trim())
           : cieData.blooms_taxonomy || [],
         actual_skills: existingActual?.actual_skills
@@ -696,7 +744,7 @@ export default function EditActualForm({
       //   ...prev,
       //   [`${cieId}-${fieldName}`]: file
       // }))
-      
+
       // Clear the success message after upload
       // setFileUploadStatus(prev => ({
       //   ...prev,
@@ -969,7 +1017,7 @@ export default function EditActualForm({
                                 getLabel={(skill) => skill.name}
                                 getValue={(skill) => skill.id}
                               />
-                              
+
                               {selectedSkills.includes("Other") && (
                                 <div className="flex gap-2 mt-2">
                                   <Input
@@ -1458,6 +1506,26 @@ export default function EditActualForm({
                           )}
                         </Button>
                       </div>
+                      <AlertDialog open={moderationError} onOpenChange={setModerationError}>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Moderation Fields Invalid</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              The following moderation fields are invalid:
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+
+                          <ul className="list-disc pl-5 space-y-1">
+                            {invalidModerationFields.map((value, index) => (
+                              <li key={index}>{value}</li>
+                            ))}
+                          </ul>
+
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Close</AlertDialogCancel>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                       {/* File Upload Status */}
                       {isUploading && (
                         <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
