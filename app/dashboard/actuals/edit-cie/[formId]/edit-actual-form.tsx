@@ -354,17 +354,22 @@ export default function EditActualForm({
 
     const moderation_start_date = parseDate(values.moderation_start_date).getTime();
     const moderation_end_date = parseDate(values.moderation_end_date).getTime();
+    const marks_display_date = parseDate(values.marks_display_date).getTime();
+    const actual_cie_date = parseDate(values.actual_date).getTime();
 
     if (moderation_end_date < moderation_start_date) {
       invalidFieldErrors.push("Moderation end date is before start date.");
     }
 
-    const marks_display_date = parseDate(values.marks_display_date).getTime();
-    const actual_cie_date = parseDate(values.actual_date).getTime();
+    if(moderation_start_date > actual_cie_date){
+      invalidFieldErrors.push("Moderation start date should be before actual cie date.")
+    }
 
     if (marks_display_date < actual_cie_date) {
       invalidFieldErrors.push("Marks display date is before actual CIE date.");
     }
+
+
 
     return invalidFieldErrors;
   };
