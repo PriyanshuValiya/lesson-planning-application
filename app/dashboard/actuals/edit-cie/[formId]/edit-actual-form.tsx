@@ -66,15 +66,20 @@ const parseAndFormatDate = (dateString: string) => {
   if (!dateString) return "Not specified";
 
   try {
+    // Handle different date formats
     let date: Date;
 
     if (dateString.includes("T")) {
+      // ISO format: "2025-08-11T18:30:00.000Z"
       date = parseISO(dateString);
     } else if (dateString.match(/^\d{2}-\d{2}-\d{4}$/)) {
+      // DD-MM-YYYY format
       date = parse(dateString, "dd-MM-yyyy", new Date());
     } else if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // YYYY-MM-DD format
       date = parse(dateString, "yyyy-MM-dd", new Date());
     } else {
+      // Try generic parsing
       date = new Date(dateString);
     }
 
@@ -82,7 +87,7 @@ const parseAndFormatDate = (dateString: string) => {
       return "Invalid Date";
     }
 
-    return format(date, "PPPP");
+    return format(date, "PPPP"); // "Tuesday, August 12th, 2025"
   } catch (error) {
     console.error("Date parsing error:", error);
     return "Invalid Date";
@@ -101,7 +106,7 @@ const formatDateForInput = (dateString: string): string => {
     } else if (dateString.match(/^\d{2}-\d{2}-\d{4}$/)) {
       date = parse(dateString, "dd-MM-yyyy", new Date());
     } else if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      return dateString;
+      return dateString; // Already in correct format
     } else {
       date = new Date(dateString);
     }
@@ -110,6 +115,7 @@ const formatDateForInput = (dateString: string): string => {
       return "";
     }
 
+    // Return in YYYY-MM-DD format for HTML date input
     return format(date, "yyyy-MM-dd");
   } catch (error) {
     console.error("Date formatting error:", error);
@@ -128,7 +134,7 @@ const formSchema = z.object({
   pso: z.array(z.string()).min(1, "At least one PSO is required"),
   actual_blooms: z
     .array(z.string())
-    .min(1, "At least one Bloom's level is required"),
+    .min(1, "At least one Bloom's level is required"), // CHANGED: Now array for checkboxes
   actual_skills: z.array(z.string()).optional(),
   reason_for_change: z.string().optional(),
   quality_review_completed: z.boolean().default(false),
@@ -496,6 +502,25 @@ export default function EditActualForm({
             planned_date: cieData.date,
             is_submitted: false,
             forms: formsData.id,
+            reason_for_change: values.reason_for_change || "", // Save reason for change with initial data
+            actual_date: values.actual_date || "", // Save actual date with initial data
+            actual_duration: values.actual_duration || "", // Save actual duration with initial data
+            actual_marks: values.actual_marks || 0, // Save actual marks with initial data
+            actual_pedagogy:
+              values.actual_pedagogy === "Other"
+                ? values.custom_pedagogy
+                : values.actual_pedagogy || "", // Save actual pedagogy with initial data
+            actual_units: Array.isArray(values.actual_units)
+              ? values.actual_units.join(", ")
+              : values.actual_units || "", // Save actual units with initial data
+            actual_skills: values.actual_skills?.join(", ") || "", // Save actual skills with initial data
+            co: values.co?.join(", ") || "", // Save CO with initial data
+            pso: values.pso?.join(", ") || "", // Save PSO with initial data
+            actual_blooms: values.actual_blooms?.join(", ") || "", // Save actual blooms with initial data
+            marks_display_date: values.marks_display_date || null, // Save marks display date with initial data
+            quality_review_completed: values.quality_review_completed || false, // Save quality review with initial data
+            moderation_start_date: values.moderation_start_date || null, // Save moderation start date with initial data
+            moderation_end_date: values.moderation_end_date || null, // Save moderation end date with initial data
           };
 
           const createResult = await supabase
@@ -514,6 +539,33 @@ export default function EditActualForm({
             ...prev,
             [cieData.id]: createResult.data[0],
           }));
+        } else {
+          // Update all entered data in existing record before file uploads
+          await supabase
+            .from("actual_cies")
+            .update({
+              reason_for_change: values.reason_for_change || "",
+              actual_date: values.actual_date || "",
+              actual_duration: values.actual_duration || "",
+              actual_marks: values.actual_marks || 0,
+              actual_pedagogy:
+                values.actual_pedagogy === "Other"
+                  ? values.custom_pedagogy
+                  : values.actual_pedagogy || "",
+              actual_units: Array.isArray(values.actual_units)
+                ? values.actual_units.join(", ")
+                : values.actual_units || "",
+              actual_skills: values.actual_skills?.join(", ") || "",
+              co: values.co?.join(", ") || "",
+              pso: values.pso?.join(", ") || "",
+              actual_blooms: values.actual_blooms?.join(", ") || "",
+              marks_display_date: values.marks_display_date || null,
+              quality_review_completed:
+                values.quality_review_completed || false,
+              moderation_start_date: values.moderation_start_date || null,
+              moderation_end_date: values.moderation_end_date || null,
+            })
+            .eq("id", actualRecordId);
         }
 
         // Upload files first
@@ -624,7 +676,7 @@ export default function EditActualForm({
           quality_review_completed: values.quality_review_completed || false,
           moderation_start_date: values.moderation_start_date || null,
           moderation_end_date: values.moderation_end_date || null,
-          reason_for_change: values.reason_for_change,
+          reason_for_change: values.reason_for_change || "", // Reason for change is already saved but update again to be sure
           forms: formsData.id,
         };
 
@@ -798,7 +850,7 @@ export default function EditActualForm({
 
       const plannedUnitNumbers =
         cieData.units_covered
-          ?.map((unitId: string) => {
+          .map((unitId: string) => {
             const unitIndex = extractedOptions.units.findIndex(
               (u: any) => u.id === unitId
             );
@@ -973,7 +1025,7 @@ export default function EditActualForm({
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex lg:flexRow gap-6">
               {/* Planned Details - 50% width */}
               <div className="w-full lg:w-1/2">
                 <Card>
