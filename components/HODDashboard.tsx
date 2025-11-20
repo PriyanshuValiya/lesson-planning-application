@@ -996,11 +996,10 @@ export default function HODDashboard() {
                                   <Edit />
                                 </Button>
                                 <Button
-                                  className="bg-red-600 hover:bg-red-700 cursor-not-allowed"
+                                  className="bg-red-600 hover:bg-red-700"
                                   onClick={() =>
                                     handleDeleteFaculty(facultyMember)
                                   }
-                                  disabled
                                 >
                                   <Trash />
                                 </Button>
