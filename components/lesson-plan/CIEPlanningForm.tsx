@@ -79,7 +79,7 @@ const getDaysDifferenceBetweenDates = getDaysDifference
 
 // CIE Type Options
 const cieTypeOptions = [
-  "Lecture CIE",
+  "Theory CIE",
   "Course Prerequisites CIE",
   "Mid-term/Internal Exam",
   "Practical CIE",
@@ -221,8 +221,8 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
     switch (type) {
       case "Course Prerequisites CIE":
         return "Course"
-      case "Lecture CIE":
-        return "Lecture"
+      case "Theory CIE":
+        return "Theory"
       case "Mid-term/Internal Exam":
         return "Mid-term/Internal"
       case "Practical CIE":
@@ -646,7 +646,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
 
       // VALIDATION 4: Check for Bloom's taxonomy warnings when selecting bloom's levels (THEORY CIEs ONLY)
-      const theoryCIETypes = ["Lecture CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
+      const theoryCIETypes = ["Theory CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
       if (theoryCIETypes.includes(updatedCIEs[index].type)) {
         const hasRememberOrUnderstand = value.some((level: string) => ["Remember", "Understand"].includes(level))
         const currentUnits = updatedCIEs[index].units_covered || []
@@ -690,7 +690,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
     // VALIDATION 4: Check for Bloom's taxonomy warnings when selecting units (THEORY CIEs ONLY)
     if (field === "units_covered" && value.length > 0) {
-      const theoryCIETypes = ["Lecture CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
+      const theoryCIETypes = ["Theory CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
       if (theoryCIETypes.includes(updatedCIEs[index].type)) {
         const currentBlooms = updatedCIEs[index].blooms_taxonomy || []
         const hasRememberOrUnderstand = currentBlooms.some((level: string) =>
@@ -941,7 +941,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
     // Group CIEs by type for 7-day validation
     const lectureCIEs = currentCIEs.filter((cie: any) =>
-      ["Lecture CIE"].includes(cie.type),
+      ["Theory CIE"].includes(cie.type),
     )
 
     const practicalCIEs = currentCIEs.filter((cie: any) => ["Practical CIE", "Internal Practical"].includes(cie.type))
@@ -981,7 +981,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
     // FIXED: Use subject flags first, then fall back to content detection
     if (isTheorySubject && isPracticalSubject) {
       // Theory + Practical subject - ALL 5 CIE types required
-      requiredTypes = ["Lecture CIE", "Mid-term/Internal Exam", "Practical CIE", "Internal Practical"]
+      requiredTypes = ["Theory CIE", "Mid-term/Internal Exam", "Practical CIE", "Internal Practical"]
       if (semester > 1) {
         requiredTypes.push("Course Prerequisites CIE")
       }
@@ -992,7 +992,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
       subjectTypeDescription = "Practical Only"
     } else if (isTheorySubject && !isPracticalSubject) {
       // Only Theory subject
-      requiredTypes = ["Lecture CIE", "Mid-term/Internal Exam"]
+      requiredTypes = ["Theory CIE", "Mid-term/Internal Exam"]
       if (semester > 1) {
         requiredTypes.push("Course Prerequisites CIE")
       }
@@ -1001,7 +1001,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
       // Fall back to content-based detection
       if (hasUnits && hasPracticals) {
         // Theory + Practical subject - ALL 5 CIE types required
-        requiredTypes = ["Lecture CIE", "Mid-term/Internal Exam", "Practical CIE", "Internal Practical"]
+        requiredTypes = ["Theory CIE", "Mid-term/Internal Exam", "Practical CIE", "Internal Practical"]
         if (semester > 1) {
           requiredTypes.push("Course Prerequisites CIE")
         }
@@ -1012,7 +1012,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         subjectTypeDescription = "Practical Only (detected from content)"
       } else {
         // Only Theory subject
-        requiredTypes = ["Lecture CIE", "Mid-term/Internal Exam"]
+        requiredTypes = ["Theory CIE", "Mid-term/Internal Exam"]
         if (semester > 1) {
           requiredTypes.push("Course Prerequisites CIE")
         }
@@ -1101,7 +1101,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
       const totalCredits = lessonPlan.subject?.credits || 0
       const requiredMinimumHours = Math.max(0, totalCredits - 1)
 
-      const theoryCIETypes = ["Lecture CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
+      const theoryCIETypes = ["Theory CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
       const theoryCIEs = currentCIEs.filter((cie: any) => theoryCIETypes.includes(cie.type))
       const totalTheoryDurationHours = theoryCIEs.reduce((sum, cie) => sum + (cie.duration || 0), 0) / 60
 
@@ -1114,23 +1114,23 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
       console.log("🔍 FRONTEND: Skipping theory CIE duration validation for practical-only subject")
     }
 
-    // VALIDATION 7 & 11: Traditional pedagogy usage validation (only for Lecture CIEs)
+    // VALIDATION 7 & 11: Traditional pedagogy usage validation (only for Theory CIEs)
     const traditionalPedagogies = evaluationPedagogyOptions.traditional
-    const onlylectureCIEs = currentCIEs.filter((cie: any) => cie.type === "Lecture CIE")
+    const onlylectureCIEs = currentCIEs.filter((cie: any) => cie.type === "Theory CIE")
     const lecturePedagogies = onlylectureCIEs.map((cie: any) => cie.evaluation_pedagogy).filter(Boolean)
     const usedTraditionalInLecture = lecturePedagogies.filter((pedagogy: string) =>
       traditionalPedagogies.includes(pedagogy),
     )
 
-    // At least one traditional pedagogy is required in Lecture CIEs
+    // At least one traditional pedagogy is required in Theory CIEs
     if (onlylectureCIEs.length > 0 && usedTraditionalInLecture.length === 0) {
-      errors.push("At least one traditional pedagogy method must be used in Lecture CIEs")
+      errors.push("At least one traditional pedagogy method must be used in Theory CIEs")
     }
 
-    // Traditional pedagogy should be unique across Lecture CIEs only
+    // Traditional pedagogy should be unique across Theory CIEs only
     const uniqueTraditionalInLecture = new Set(usedTraditionalInLecture)
     if (usedTraditionalInLecture.length !== uniqueTraditionalInLecture.size) {
-      errors.push("Each traditional pedagogy method must be used only once across Lecture CIEs")
+      errors.push("Each traditional pedagogy method must be used only once across Theory CIEs")
     }
 
     // VALIDATION 8: At least one alternative pedagogy is required
@@ -1143,15 +1143,15 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
     }
 
     // VALIDATION 9: CO coverage across relevant CIE types
-    const relevantCIETypes = ["Lecture CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
+    const relevantCIETypes = ["Theory CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
     const relevantCIEs = currentCIEs.filter((cie: any) => relevantCIETypes.includes(cie.type))
 
     // For 1st semester, Course Prerequisites CIE is optional
     if (semester === 1) {
       const hasPrereqCIE = currentCIEs.some((cie: any) => cie.type === "Course Prerequisites CIE")
       if (!hasPrereqCIE) {
-        // Only check Lecture CIEs + Mid-term for 1st semester without Prerequisites CIE
-        const firstSemRelevantTypes = ["Lecture CIE", "Mid-term/Internal Exam"]
+        // Only check Theory CIEs + Mid-term for 1st semester without Prerequisites CIE
+        const firstSemRelevantTypes = ["Theory CIE", "Mid-term/Internal Exam"]
         const firstSemRelevantCIEs = currentCIEs.filter((cie: any) => firstSemRelevantTypes.includes(cie.type))
 
         if (firstSemRelevantCIEs.length > 0) {
@@ -1164,7 +1164,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
           const totalCOs = lessonPlan.courseOutcomes?.length || 0
           if (totalCOs > 0 && allCOMappings.size < totalCOs) {
-            errors.push("All COs must be covered across Lecture CIEs + Mid-term/Internal Exams")
+            errors.push("All COs must be covered across Theory CIEs + Mid-term/Internal Exams")
           }
         }
       } else {
@@ -1180,7 +1180,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
           const totalCOs = lessonPlan.courseOutcomes?.length || 0
           if (totalCOs > 0 && allCOMappings.size < totalCOs) {
             errors.push(
-              "All COs must be covered across Lecture CIEs + Course Prerequisites CIEs + Mid-term/Internal Exams",
+              "All COs must be covered across Theory CIEs + Course Prerequisites CIEs + Mid-term/Internal Exams",
             )
           }
         }
@@ -1198,7 +1198,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         const totalCOs = lessonPlan.courseOutcomes?.length || 0
         if (totalCOs > 0 && allCOMappings.size < totalCOs) {
           errors.push(
-            "All COs must be covered across Lecture CIEs + Course Prerequisites CIEs + Mid-term/Internal Exams",
+            "All COs must be covered across Theory CIEs + Course Prerequisites CIEs + Mid-term/Internal Exams",
           )
         }
       }
@@ -1484,7 +1484,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
       allErrors.push(`CIE ${activeCIE + 1}: Please specify the custom pedagogy when selecting "Other"`)
     }
 
-    const requiresCOMapping = ["Lecture CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
+    const requiresCOMapping = ["Theory CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
     if (requiresCOMapping.includes(currentCIE.type) && (!currentCIE.co_mapping || currentCIE.co_mapping.length === 0)) {
       allErrors.push(`CIE ${activeCIE + 1}: CO mapping is required for ${currentCIE.type}`)
     }
@@ -1749,7 +1749,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
               <h4 className="font-semibold mb-1">First Semester Information</h4>
               <p className="text-sm">
                 For 1st semester subjects, <strong>Course Prerequisites CIE is optional</strong>. If you don't include
-                Prerequisites CIE, CO coverage will be validated across Lecture CIEs and Mid-term/Internal Exam only.
+                Prerequisites CIE, CO coverage will be validated across Theory CIEs and Mid-term/Internal Exam only.
               </p>
             </div>
           </div>
@@ -2215,7 +2215,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
           <div>
             <Label>
               CO Mapping{" "}
-              {["Lecture CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"].includes(currentCIE.type)
+              {["Theory CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"].includes(currentCIE.type)
                 ? "*"
                 : ""}
             </Label>
