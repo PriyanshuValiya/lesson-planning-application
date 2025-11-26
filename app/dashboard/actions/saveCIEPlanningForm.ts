@@ -72,7 +72,7 @@ const determineSubjectType = (form: any, subjectData: any): "theory" | "practica
   }
 }
 
-// FINAL: Function to check date conflicts ONLY for Lecture CIE type
+// FINAL: Function to check date conflicts ONLY for Theory CIE type
 const checkCIEDateConflicts = async (
   supabase: any,
   cies: CIEData[],
@@ -129,10 +129,10 @@ const checkCIEDateConflicts = async (
       console.error("Error fetching faculty details:", facultyError)
     }
 
-    // Check each CIE date for conflicts - ONLY FOR LECTURE CIE
+    // Check each CIE date for conflicts - ONLY FOR THEORY CIE
     cies.forEach((cie, cieIndex) => {
-      // SKIP: Only check date conflicts for Lecture CIE type
-      if (cie.type !== "Lecture CIE") {
+      // SKIP: Only check date conflicts for THEORY CIE type
+      if (cie.type !== "Theory CIE") {
         return // Skip all other CIE types
       }
 
@@ -153,8 +153,8 @@ const checkCIEDateConflicts = async (
                 continue
               }
 
-              // SKIP: Only check conflicts with other Lecture CIEs
-              if (existingCIE.type !== "Lecture CIE") {
+              // SKIP: Only check conflicts with other Theory CIEs
+              if (existingCIE.type !== "Theory CIE") {
                 continue // Skip all other CIE types
               }
 
@@ -242,14 +242,14 @@ const validateCriticalRequirements = async (
   let requiredTypes: string[] = []
 
   if (subjectType === "theory") {
-    requiredTypes = ["Lecture CIE", "Mid-term/Internal Exam"]
+    requiredTypes = ["Theory CIE", "Mid-term/Internal Exam"]
     if (semester > 1) {
       requiredTypes.push("Course Prerequisites CIE")
     }
   } else if (subjectType === "practical") {
     requiredTypes = ["Practical CIE", "Internal Practical"]
   } else if (subjectType === "theory_practical") {
-    requiredTypes = ["Lecture CIE", "Mid-term/Internal Exam", "Practical CIE", "Internal Practical"]
+    requiredTypes = ["Theory CIE", "Mid-term/Internal Exam", "Practical CIE", "Internal Practical"]
     if (semester > 1) {
       requiredTypes.push("Course Prerequisites CIE")
     }
@@ -299,7 +299,7 @@ const validateCriticalRequirements = async (
   if (subjectType === "theory" || subjectType === "theory_practical") {
     const requiredMinimumHours = Math.max(0, totalCredits - 1)
 
-    const theoryCIETypes = ["Lecture CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
+    const theoryCIETypes = ["Theory CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
     const theoryCIEs = cies.filter((cie: any) => theoryCIETypes.includes(cie.type))
     const totalTheoryDurationHours = theoryCIEs.reduce((sum, cie) => sum + (cie.duration || 0), 0) / 60
 
