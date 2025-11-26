@@ -829,7 +829,7 @@ export default function PrintLessonPlanPage() {
           if (section.type === "cie") {
             const evaluationTypeOrder = [
               "Course Prerequisites CIE",
-              "Lecture CIE",
+              "Theory CIE",
               "Practical CIE",
               "Mid-term/Internal Exam",
             ];
@@ -844,7 +844,7 @@ export default function PrintLessonPlanPage() {
                 cies: [],
                 showTotal: false,
               },
-              { type: "Lecture CIE", cies: [], showTotal: true },
+              { type: "Theory CIE", cies: [], showTotal: true },
               { type: "Practical CIE", cies: [], showTotal: true },
               { type: "Mid-term/Internal Exam", cies: [], showTotal: false },
             ];
@@ -1113,7 +1113,7 @@ export default function PrintLessonPlanPage() {
                                 <td
                                   className={`border border-black p-2 text-center break-words ${colClasses.evalType}`}
                                 >
-                                  {cie?.type == "Lecture CIE"
+                                  {cie?.type == "Theory CIE"
                                     ? "Theory CIE"
                                     : cie?.type || "-"}
                                 </td>
