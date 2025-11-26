@@ -109,7 +109,7 @@ export const ciePlanningSchema = z.object({
         id: z.string(),
         cie_number: z.coerce.number().min(1, "CIE number is required"),
         type: z.enum([
-          "Lecture CIE",
+          "Theory CIE",
           "Course Prerequisites CIE",
           "Mid-term/Internal Exam",
           "Practical CIE",
@@ -313,7 +313,7 @@ export const evaluationMethodOptions = [
 
 // CIE Type Options
 export const cieTypeOptions = [
-  "Lecture CIE",
+  "Theory CIE",
   "Course Prerequisites CIE",
   "Mid-term/Internal Exam",
   "Practical CIE",
