@@ -827,13 +827,7 @@ export default function PrintLessonPlanPage() {
           }
 
           if (section.type === "cie") {
-            const evaluationTypeOrder = [
-              "Course Prerequisites CIE",
-              "Theory CIE",
-              "Practical CIE",
-              "Mid-term/Internal Exam",
-            ];
-
+            // FIXED: Changed "Lacture CIE" to "Theory CIE" and corrected the array structure
             const cieGroups: {
               type: string;
               cies: any[];
@@ -844,7 +838,7 @@ export default function PrintLessonPlanPage() {
                 cies: [],
                 showTotal: false,
               },
-              { type: "Lacture CIE", cies: [], showTotal: true },
+              { type: "Theory CIE", cies: [], showTotal: true },
               { type: "Practical CIE", cies: [], showTotal: true },
               { type: "Mid-term/Internal Exam", cies: [], showTotal: false },
             ];
@@ -1008,7 +1002,8 @@ export default function PrintLessonPlanPage() {
                                     // Handle practical CIE cases first
                                     if (
                                       cie?.type === "Practical CIE" ||
-                                      cie?.type === "Internal Practical"
+                                      cie?.type === "Internal Practical" ||
+                                      cie?.originalType === "Internal Practical"
                                     ) {
                                       if (
                                         cie?.practicals_covered &&
@@ -1113,9 +1108,7 @@ export default function PrintLessonPlanPage() {
                                 <td
                                   className={`border border-black p-2 text-center break-words ${colClasses.evalType}`}
                                 >
-                                  {cie?.type == "Lacture CIE"
-                                    ? "Theory CIE"
-                                    : cie?.type || "-"}
+                                  {cie?.originalType || cie?.type || "-"}
                                 </td>
                                 <td
                                   className={`border border-black p-2 text-center break-words ${colClasses.blooms}`}
