@@ -1,20 +1,26 @@
 //@ts-nocheck
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect, useCallback } from "react"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Textarea } from "@/components/ui/textarea"
-import { Plus, Trash2, AlertTriangle, Info, Users, Save } from "lucide-react"
-import { toast } from "sonner"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
-import { supabase } from "@/utils/supabase/client"
-import { saveCIEPlanningForm } from "@/app/dashboard/actions/saveCIEPlanningForm"
+import type React from "react";
+import { useState, useEffect, useCallback } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Trash2, AlertTriangle, Info, Users, Save } from "lucide-react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { supabase } from "@/utils/supabase/client";
+import { saveCIEPlanningForm } from "@/app/dashboard/actions/saveCIEPlanningForm";
 import {
   Dialog,
   DialogContent,
@@ -22,60 +28,69 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { saveFormDraft, loadFormDraft, deleteFormDraft } from "@/app/dashboard/actions/saveFormDraft"
-import { parseDDMMYYYYToDate, getDaysDifference, isDateWithinDays, formatDateToDDMMYYYY } from "@/utils/dateUtils"
-import { useDashboardContext } from "@/context/DashboardContext"
+} from "@/components/ui/dialog";
+import {
+  saveFormDraft,
+  loadFormDraft,
+  deleteFormDraft,
+} from "@/app/dashboard/actions/saveFormDraft";
+import {
+  parseDDMMYYYYToDate,
+  getDaysDifference,
+  isDateWithinDays,
+  formatDateToDDMMYYYY,
+} from "@/utils/dateUtils";
+import { useDashboardContext } from "@/context/DashboardContext";
 
 interface PSOPEOItem {
-  id: string
-  label?: string
-  description: string
+  id: string;
+  label?: string;
+  description: string;
 }
 
 interface CIEPlanningFormProps {
-  lessonPlan: any
-  setLessonPlan: React.Dispatch<React.SetStateAction<any>>
+  lessonPlan: any;
+  setLessonPlan: React.Dispatch<React.SetStateAction<any>>;
 }
 
 // FIXED: Date utility functions specifically for this component
 const convertYYYYMMDDToDDMMYYYY = (dateStr: string): string => {
-  if (!dateStr) return ""
+  if (!dateStr) return "";
 
   // If already in DD-MM-YYYY format
   if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
-    return dateStr
+    return dateStr;
   }
 
   // If in YYYY-MM-DD format, convert to DD-MM-YYYY
   if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    const [year, month, day] = dateStr.split("-")
-    return `${day}-${month}-${year}`
+    const [year, month, day] = dateStr.split("-");
+    return `${day}-${month}-${year}`;
   }
 
-  return dateStr
-}
+  return dateStr;
+};
 
 const convertDDMMYYYYToYYYYMMDD = (dateStr: string): string => {
-  if (!dateStr) return ""
+  if (!dateStr) return "";
 
   // If already in YYYY-MM-DD format
   if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    return dateStr
+    return dateStr;
   }
 
   // If in DD-MM-YYYY format, convert to YYYY-MM-DD
   if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
-    const [day, month, year] = dateStr.split("-")
-    return `${year}-${month}-${day}`
+    const [day, month, year] = dateStr.split("-");
+    return `${year}-${month}-${day}`;
   }
 
-  return dateStr
-}
+  return dateStr;
+};
 
 // FIXED: Use the utility functions from dateUtils
-const parseDateToDDMMYYYY = parseDDMMYYYYToDate
-const getDaysDifferenceBetweenDates = getDaysDifference
+const parseDateToDDMMYYYY = parseDDMMYYYYToDate;
+const getDaysDifferenceBetweenDates = getDaysDifference;
 
 // CIE Type Options
 const cieTypeOptions = [
@@ -84,7 +99,7 @@ const cieTypeOptions = [
   "Mid-term/Internal Exam",
   "Practical CIE",
   "Internal Practical",
-]
+];
 
 // Evaluation Pedagogy Options
 const evaluationPedagogyOptions = {
@@ -107,10 +122,17 @@ const evaluationPedagogyOptions = {
     "Certification-Based Evaluation",
   ],
   other: ["Other"],
-}
+};
 
 // Bloom's Taxonomy Options
-const bloomsTaxonomyOptions = ["Remember", "Understand", "Apply", "Analyze", "Evaluate", "Create"]
+const bloomsTaxonomyOptions = [
+  "Remember",
+  "Understand",
+  "Apply",
+  "Analyze",
+  "Evaluate",
+  "Create",
+];
 
 // Skill Mapping Options
 const skillMappingOptions = [
@@ -124,7 +146,7 @@ const skillMappingOptions = [
   "Creativity and Design Thinking Skills",
   "Ethical, Social, and Environmental Awareness Skills",
   "Other",
-]
+];
 
 // Default PSO/PEO options if none are found
 const defaultPsoOptions = [
@@ -133,153 +155,187 @@ const defaultPsoOptions = [
   { id: "pso-3", label: "PSO3", description: "Program Specific Outcome 3" },
   { id: "pso-4", label: "PSO4", description: "Program Specific Outcome 4" },
   { id: "pso-5", label: "PSO5", description: "Program Specific Outcome 5" },
-]
+];
 
 const defaultPeoOptions = [
-  { id: "peo-1", label: "PEO1", description: "Program Educational Objective 1" },
-  { id: "peo-2", label: "PEO2", description: "Program Educational Objective 2" },
-  { id: "peo-3", label: "PEO3", description: "Program Educational Objective 3" },
-  { id: "peo-4", label: "PEO4", description: "Program Educational Objective 4" },
-  { id: "peo-5", label: "PEO5", description: "Program Educational Objective 5" },
-]
+  {
+    id: "peo-1",
+    label: "PEO1",
+    description: "Program Educational Objective 1",
+  },
+  {
+    id: "peo-2",
+    label: "PEO2",
+    description: "Program Educational Objective 2",
+  },
+  {
+    id: "peo-3",
+    label: "PEO3",
+    description: "Program Educational Objective 3",
+  },
+  {
+    id: "peo-4",
+    label: "PEO4",
+    description: "Program Educational Objective 4",
+  },
+  {
+    id: "peo-5",
+    label: "PEO5",
+    description: "Program Educational Objective 5",
+  },
+];
 
-export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanningFormProps) {
+export default function CIEPlanningForm({
+  lessonPlan,
+  setLessonPlan,
+}: CIEPlanningFormProps) {
   // FIXED: Get userData from context instead of props
-  const { userData } = useDashboardContext()
+  const { userData } = useDashboardContext();
 
-  const [activeCIE, setActiveCIE] = useState(0)
-  const [validationErrors, setValidationErrors] = useState<string[]>([])
-  const [validationWarnings, setValidationWarnings] = useState<string[]>([])
+  const [activeCIE, setActiveCIE] = useState(0);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
   const [departmentPsoPeo, setDepartmentPsoPeo] = useState<{
-    pso_data: PSOPEOItem[]
-    peo_data: PSOPEOItem[]
+    pso_data: PSOPEOItem[];
+    peo_data: PSOPEOItem[];
   }>({
     pso_data: [],
     peo_data: [],
-  })
-  const [loadingPsoPeo, setLoadingPsoPeo] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [warningDialogOpen, setWarningDialogOpen] = useState(false)
-  const [currentWarning, setCurrentWarning] = useState("")
-  const [isSavingDraft, setIsSavingDraft] = useState(false)
-  const [lastSaved, setLastSaved] = useState<Date | null>(null)
-  const [isLoadingDraft, setIsLoadingDraft] = useState(false)
+  });
+  const [loadingPsoPeo, setLoadingPsoPeo] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
+  const [currentWarning, setCurrentWarning] = useState("");
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(false);
 
   // Faculty Sharing States - ADDED
-  const [facultySharingData, setFacultySharingData] = useState<any>(null)
-  const [loadingFacultySharing, setLoadingFacultySharing] = useState(false)
-  const [facultySharingError, setFacultySharingError] = useState<string | null>(null)
+  const [facultySharingData, setFacultySharingData] = useState<any>(null);
+  const [loadingFacultySharing, setLoadingFacultySharing] = useState(false);
+  const [facultySharingError, setFacultySharingError] = useState<string | null>(
+    null
+  );
 
   // FIXED: Add proper loading state
-  const [draftLoaded, setDraftLoaded] = useState(false)
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   // FIXED: Field-specific error states
-  const [typeError, setTypeError] = useState("")
-  const [unitsCoveredError, setUnitsCoveredError] = useState("")
-  const [dateError, setDateError] = useState("")
-  const [marksError, setMarksError] = useState("")
-  const [durationError, setDurationError] = useState("")
-  const [bloomsError, setBloomsError] = useState("")
-  const [pedagogyError, setPedagogyError] = useState("")
-  const [coMappingError, setCoMappingError] = useState("")
-  const [skillMappingError, setSkillMappingError] = useState("")
+  const [typeError, setTypeError] = useState("");
+  const [unitsCoveredError, setUnitsCoveredError] = useState("");
+  const [dateError, setDateError] = useState("");
+  const [marksError, setMarksError] = useState("");
+  const [durationError, setDurationError] = useState("");
+  const [bloomsError, setBloomsError] = useState("");
+  const [pedagogyError, setPedagogyError] = useState("");
+  const [coMappingError, setCoMappingError] = useState("");
+  const [skillMappingError, setSkillMappingError] = useState("");
 
   // FIXED: Debug state for date comparison - now gets data from subjects table
   const [debugInfo, setDebugInfo] = useState<{
-    termStartDate: string
-    termEndDate: string
-    currentCIEDate: string
-    termStartParsed: string
-    currentCIEParsed: string
-    daysDifference: number
-    isWithin10Days: boolean
-  } | null>(null)
+    termStartDate: string;
+    termEndDate: string;
+    currentCIEDate: string;
+    termStartParsed: string;
+    currentCIEParsed: string;
+    daysDifference: number;
+    isWithin10Days: boolean;
+  } | null>(null);
 
   // Helper function to safely get faculty name - ADDED
   const getFacultyName = (faculty: any): string => {
-    if (typeof faculty === "string") return faculty
-    if (faculty?.name) return String(faculty.name)
+    if (typeof faculty === "string") return faculty;
+    if (faculty?.name) return String(faculty.name);
     if (faculty?.first_name || faculty?.last_name) {
-      return `${faculty.first_name || ""} ${faculty.last_name || ""}`.trim()
+      return `${faculty.first_name || ""} ${faculty.last_name || ""}`.trim();
     }
-    return "Unknown Faculty"
-  }
+    return "Unknown Faculty";
+  };
 
   // Helper function to get faculty initials for badges
   const getFacultyInitials = (faculty: any): string => {
-    const name = getFacultyName(faculty)
+    const name = getFacultyName(faculty);
     return name
       .split(" ")
       .map((word) => word.charAt(0))
       .join("")
       .toUpperCase()
-      .substring(0, 3)
-  }
+      .substring(0, 3);
+  };
 
   // Helper function to get CIE type tag
   const getCIETypeTag = (type: string): string => {
     switch (type) {
       case "Course Prerequisites CIE":
-        return "Course"
+        return "Course";
       case "Theory CIE":
-        return "Theory"
+        return "Theory";
       case "Mid-term/Internal Exam":
-        return "Mid-term/Internal"
+        return "Mid-term/Internal";
       case "Practical CIE":
-        return "Practical"
+        return "Practical";
       case "Internal Practical":
-        return "Internal"
+        return "Internal";
       default:
-        return "CIE"
+        return "CIE";
     }
-  }
+  };
 
   // Faculty Sharing API Call - ADDED
   const checkFacultySharing = useCallback(async () => {
-    if (!lessonPlan?.subject?.id) return
+    if (!lessonPlan?.subject?.id) return;
 
-    setLoadingFacultySharing(true)
-    setFacultySharingError(null)
+    setLoadingFacultySharing(true);
+    setFacultySharingError(null);
 
     try {
-      console.log("🔍 CIE: Checking faculty sharing for subject:", lessonPlan.subject.id)
+      console.log(
+        "🔍 CIE: Checking faculty sharing for subject:",
+        lessonPlan.subject.id
+      );
 
-      const response = await fetch(`/api/faculty-sharing?subjectId=${lessonPlan.subject.id}`)
-      const result = await response.json()
+      const response = await fetch(
+        `/api/faculty-sharing?subjectId=${lessonPlan.subject.id}`
+      );
+      const result = await response.json();
 
-      console.log("📡 CIE: Faculty sharing API response:", result)
+      console.log("📡 CIE: Faculty sharing API response:", result);
 
       if (result.success) {
         // Clean faculty data to ensure all names are strings
         const cleanedResult = {
           ...result,
-          primaryFaculty: result.primaryFaculty ? getFacultyName(result.primaryFaculty) : null,
+          primaryFaculty: result.primaryFaculty
+            ? getFacultyName(result.primaryFaculty)
+            : null,
           allFaculty: (result.allFaculty || []).map((faculty: any) => ({
             ...faculty,
             name: getFacultyName(faculty),
           })),
-        }
+        };
 
-        setFacultySharingData(cleanedResult)
-        console.log("✅ CIE: Faculty sharing data loaded:", cleanedResult)
+        setFacultySharingData(cleanedResult);
+        console.log("✅ CIE: Faculty sharing data loaded:", cleanedResult);
       } else {
-        setFacultySharingError(result.error || "Failed to load faculty sharing data")
-        console.error("❌ CIE: Faculty sharing error:", result.error)
+        setFacultySharingError(
+          result.error || "Failed to load faculty sharing data"
+        );
+        console.error("❌ CIE: Faculty sharing error:", result.error);
       }
     } catch (error) {
-      console.error("💥 CIE: Faculty sharing API error:", error)
-      setFacultySharingError("Failed to check faculty sharing")
+      console.error("💥 CIE: Faculty sharing API error:", error);
+      setFacultySharingError("Failed to check faculty sharing");
     } finally {
-      setLoadingFacultySharing(false)
+      setLoadingFacultySharing(false);
     }
-  }, [lessonPlan?.subject?.id])
+  }, [lessonPlan?.subject?.id]);
 
   // Load faculty sharing data when subject changes - ADDED
   useEffect(() => {
     if (lessonPlan?.subject?.id) {
-      checkFacultySharing()
+      checkFacultySharing();
     }
-  }, [lessonPlan?.subject?.id, checkFacultySharing])
+  }, [lessonPlan?.subject?.id, checkFacultySharing]);
 
   // Initialize CIEs if empty
   useEffect(() => {
@@ -300,14 +356,14 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         peo_mapping: [],
         skill_mapping: [{ skill: "", details: "" }],
         assigned_faculty_id: userData?.id || null, // ADDED: Assign current user by default
-      }
+      };
 
       setLessonPlan((prev: any) => ({
         ...prev,
         cies: [initialCIE],
-      }))
+      }));
     }
-  }, [lessonPlan?.cies, setLessonPlan, userData?.id])
+  }, [lessonPlan?.cies, setLessonPlan, userData?.id]);
 
   //for page refresh
   // Add this useEffect hook in both GeneralDetailsForm and CIEPlanningForm components
@@ -315,64 +371,73 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
     // Check if the user is a faculty member
     if (userData?.role === "faculty") {
       // Using sessionStorage to ensure refresh happens only once per session
-      const hasRefreshed = sessionStorage.getItem("hasRefreshedCIEPlanning")
+      const hasRefreshed = sessionStorage.getItem("hasRefreshedCIEPlanning");
       if (!hasRefreshed) {
         // Set the flag before refreshing to prevent infinite refresh loop
-        sessionStorage.setItem("hasRefreshedCIEPlanning", "true")
+        sessionStorage.setItem("hasRefreshedCIEPlanning", "true");
 
         // Use setTimeout to ensure the component is fully mounted before refreshing
         setTimeout(() => {
-          window.location.reload()
-        }, 500)
+          window.location.reload();
+        }, 500);
       }
     }
-  }, [userData?.role]) // Only re-run if the user role changes
+  }, [userData?.role]); // Only re-run if the user role changes
 
   // FIXED: Debug effect to get term dates directly from subjects table
   useEffect(() => {
     const updateDebugInfo = async () => {
-      const currentCIEs = lessonPlan.cies || []
-      const currentCIE = currentCIEs[activeCIE]
+      const currentCIEs = lessonPlan.cies || [];
+      const currentCIE = currentCIEs[activeCIE];
 
-      if (currentCIE && currentCIE.type === "Course Prerequisites CIE" && currentCIE.date && lessonPlan.subject?.id) {
+      if (
+        currentCIE &&
+        currentCIE.type === "Course Prerequisites CIE" &&
+        currentCIE.date &&
+        lessonPlan.subject?.id
+      ) {
         try {
           // Get term dates directly from subjects table
           const { data: subjectData, error } = await supabase
             .from("subjects")
             .select("metadata")
             .eq("id", lessonPlan.subject.id)
-            .single()
+            .single();
 
           if (!error && subjectData?.metadata) {
-            let termStartDate: Date | null = null
-            let rawTermStartDate = ""
-            let rawTermEndDate = ""
+            let termStartDate: Date | null = null;
+            let rawTermStartDate = "";
+            let rawTermEndDate = "";
 
             if (subjectData.metadata.term_start_date) {
-              rawTermStartDate = subjectData.metadata.term_start_date
+              rawTermStartDate = subjectData.metadata.term_start_date;
 
               // Handle different date formats from metadata
               if (typeof subjectData.metadata.term_start_date === "string") {
                 if (subjectData.metadata.term_start_date.includes("T")) {
                   // ISO format: "2025-10-04T18:30:00.000Z"
-                  termStartDate = new Date(subjectData.metadata.term_start_date)
+                  termStartDate = new Date(
+                    subjectData.metadata.term_start_date
+                  );
                 } else {
                   // DD-MM-YYYY format: "04-10-2025"
-                  termStartDate = parseDDMMYYYYToDate(subjectData.metadata.term_start_date)
+                  termStartDate = parseDDMMYYYYToDate(
+                    subjectData.metadata.term_start_date
+                  );
                 }
               }
             }
 
             if (subjectData.metadata.term_end_date) {
-              rawTermEndDate = subjectData.metadata.term_end_date
+              rawTermEndDate = subjectData.metadata.term_end_date;
             }
 
             if (termStartDate) {
-              const cieDate = parseDDMMYYYYToDate(currentCIE.date)
+              const cieDate = parseDDMMYYYYToDate(currentCIE.date);
 
               if (cieDate) {
-                const daysDiff = getDaysDifference(cieDate, termStartDate)
-                const isWithin = isDateWithinDays(cieDate, termStartDate, 10)
+                const daysDiff = getDaysDifference(cieDate, termStartDate);
+                const isWithin = isDateWithinDays(cieDate, termStartDate, 10);
 
                 setDebugInfo({
                   termStartDate: rawTermStartDate,
@@ -382,27 +447,27 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
                   currentCIEParsed: formatDateToDDMMYYYY(cieDate),
                   daysDifference: daysDiff,
                   isWithin10Days: isWithin,
-                })
+                });
               }
             }
           }
         } catch (error) {
-          console.error("Error fetching subject metadata for debug:", error)
+          console.error("Error fetching subject metadata for debug:", error);
         }
       } else {
-        setDebugInfo(null)
+        setDebugInfo(null);
       }
-    }
+    };
 
-    updateDebugInfo()
-  }, [lessonPlan, activeCIE])
+    updateDebugInfo();
+  }, [lessonPlan, activeCIE]);
 
   // FIXED: Improved auto-load draft with better logic
   useEffect(() => {
     const loadDraft = async () => {
       // Get available IDs
-      const facultyId = lessonPlan?.faculty?.id || userData?.id
-      const subjectId = lessonPlan?.subject?.id
+      const facultyId = lessonPlan?.faculty?.id || userData?.id;
+      const subjectId = lessonPlan?.subject?.id;
 
       console.log("🔍 CIE AUTO-LOAD: Checking for draft data with:", {
         facultyId,
@@ -410,38 +475,51 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         hasUserData: !!userData,
         hasFacultyId: !!lessonPlan?.faculty?.id,
         draftLoaded,
-      })
+      });
 
       // Check if we have the required data
       if (!facultyId || !subjectId || draftLoaded) {
-        console.log("🔍 CIE AUTO-LOAD: Missing required data or already loaded, skipping auto-load")
-        setIsLoadingDraft(false)
-        return
+        console.log(
+          "🔍 CIE AUTO-LOAD: Missing required data or already loaded, skipping auto-load"
+        );
+        setIsLoadingDraft(false);
+        return;
       }
 
       // Check if we already have meaningful data
-      const currentCIEs = lessonPlan?.cies || []
+      const currentCIEs = lessonPlan?.cies || [];
       const hasExistingData =
         currentCIEs.length > 0 &&
-        currentCIEs.some((cie: any) => cie.type && cie.type !== "" && cie.date && cie.date !== "")
+        currentCIEs.some(
+          (cie: any) =>
+            cie.type && cie.type !== "" && cie.date && cie.date !== ""
+        );
 
       if (hasExistingData) {
-        console.log("🔍 CIE AUTO-LOAD: Already has data, skipping")
-        setIsLoadingDraft(false)
-        setDraftLoaded(true)
-        return
+        console.log("🔍 CIE AUTO-LOAD: Already has data, skipping");
+        setIsLoadingDraft(false);
+        setDraftLoaded(true);
+        return;
       }
 
-      setIsLoadingDraft(true)
+      setIsLoadingDraft(true);
 
       try {
-        console.log("🔍 CIE AUTO-LOAD: Loading draft for:", facultyId, subjectId)
+        console.log(
+          "🔍 CIE AUTO-LOAD: Loading draft for:",
+          facultyId,
+          subjectId
+        );
 
-        const result = await loadFormDraft(facultyId, subjectId, "cie_planning")
+        const result = await loadFormDraft(
+          facultyId,
+          subjectId,
+          "cie_planning"
+        );
 
         if (result.success && result.data) {
-          const data = result.data
-          console.log("🔍 CIE AUTO-LOAD: Draft loaded successfully:", data)
+          const data = result.data;
+          console.log("🔍 CIE AUTO-LOAD: Draft loaded successfully:", data);
 
           // Check if we have valid CIE data
           if (data.cies && Array.isArray(data.cies) && data.cies.length > 0) {
@@ -449,60 +527,86 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
             const validCIEs = data.cies.map((cie: any, index: number) => ({
               id: cie.id || `cie${index + 1}`,
               type: cie.type || "",
-              units_covered: Array.isArray(cie.units_covered) ? cie.units_covered : [],
-              practicals_covered: Array.isArray(cie.practicals_covered) ? cie.practicals_covered : [],
+              units_covered: Array.isArray(cie.units_covered)
+                ? cie.units_covered
+                : [],
+              practicals_covered: Array.isArray(cie.practicals_covered)
+                ? cie.practicals_covered
+                : [],
               date: cie.date || "",
               marks: typeof cie.marks === "number" ? cie.marks : 50,
               duration: typeof cie.duration === "number" ? cie.duration : 50,
-              blooms_taxonomy: Array.isArray(cie.blooms_taxonomy) ? cie.blooms_taxonomy : [],
+              blooms_taxonomy: Array.isArray(cie.blooms_taxonomy)
+                ? cie.blooms_taxonomy
+                : [],
               evaluation_pedagogy: cie.evaluation_pedagogy || "",
               other_pedagogy: cie.other_pedagogy || "",
               co_mapping: Array.isArray(cie.co_mapping) ? cie.co_mapping : [],
-              pso_mapping: Array.isArray(cie.pso_mapping) ? cie.pso_mapping : [],
-              peo_mapping: Array.isArray(cie.peo_mapping) ? cie.peo_mapping : [],
+              pso_mapping: Array.isArray(cie.pso_mapping)
+                ? cie.pso_mapping
+                : [],
+              peo_mapping: Array.isArray(cie.peo_mapping)
+                ? cie.peo_mapping
+                : [],
               skill_mapping:
                 Array.isArray(cie.skill_mapping) && cie.skill_mapping.length > 0
                   ? cie.skill_mapping
                   : [{ skill: "", details: "" }],
-              assigned_faculty_id: cie.assigned_faculty_id || userData?.id || null, // ADDED: Load saved assignment or default to current user
-            }))
+              assigned_faculty_id:
+                cie.assigned_faculty_id || userData?.id || null, // ADDED: Load saved assignment or default to current user
+            }));
 
-            console.log("🔍 CIE AUTO-LOAD: Setting CIEs to lesson plan:", validCIEs)
+            console.log(
+              "🔍 CIE AUTO-LOAD: Setting CIEs to lesson plan:",
+              validCIEs
+            );
 
             setLessonPlan((prev: any) => ({
               ...prev,
               cies: validCIEs,
               cie_remarks: data.remarks || "",
-            }))
+            }));
 
-            setLastSaved(data.savedAt ? new Date(data.savedAt) : new Date())
-            toast.success(`Draft loaded successfully with ${validCIEs.length} CIE(s)`)
-            setDraftLoaded(true)
+            setLastSaved(data.savedAt ? new Date(data.savedAt) : new Date());
+            toast.success(
+              `Draft loaded successfully with ${validCIEs.length} CIE(s)`
+            );
+            setDraftLoaded(true);
           } else {
-            console.log("🔍 CIE AUTO-LOAD: No valid CIE data found in draft")
+            console.log("🔍 CIE AUTO-LOAD: No valid CIE data found in draft");
           }
         } else {
-          console.log("🔍 CIE AUTO-LOAD: No draft found or failed to load")
+          console.log("🔍 CIE AUTO-LOAD: No draft found or failed to load");
         }
       } catch (error) {
-        console.error("🔍 CIE AUTO-LOAD: Error loading draft:", error)
+        console.error("🔍 CIE AUTO-LOAD: Error loading draft:", error);
       } finally {
-        setIsLoadingDraft(false)
+        setIsLoadingDraft(false);
       }
-    }
+    };
 
     // Load draft when component mounts and we have the required data
-    if ((userData?.id || lessonPlan?.faculty?.id) && lessonPlan?.subject?.id && !draftLoaded) {
-      loadDraft()
+    if (
+      (userData?.id || lessonPlan?.faculty?.id) &&
+      lessonPlan?.subject?.id &&
+      !draftLoaded
+    ) {
+      loadDraft();
     }
-  }, [lessonPlan?.subject?.id, lessonPlan?.faculty?.id, userData, draftLoaded, lessonPlan?.cies])
+  }, [
+    lessonPlan?.subject?.id,
+    lessonPlan?.faculty?.id,
+    userData,
+    draftLoaded,
+    lessonPlan?.cies,
+  ]);
 
   // Updated PSO/PEO loading logic to fetch from department_pso_peo table
   useEffect(() => {
     const loadPsoPeoData = async () => {
-      if (!lessonPlan.subject?.id) return
+      if (!lessonPlan.subject?.id) return;
 
-      setLoadingPsoPeo(true)
+      setLoadingPsoPeo(true);
 
       try {
         // Step 1: Get the department_id from the subject
@@ -510,211 +614,237 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
           .from("subjects")
           .select("department_id")
           .eq("id", lessonPlan.subject.id)
-          .single()
+          .single();
 
         if (subjectError || !subjectData?.department_id) {
-          throw new Error("Failed to fetch subject's department.")
+          throw new Error("Failed to fetch subject's department.");
         }
 
-        const departmentId = subjectData.department_id
+        const departmentId = subjectData.department_id;
 
         // Step 2: Fetch PSO/PEO data from department_pso_peo table
         const { data: deptPsoPeo, error: deptError } = await supabase
           .from("department_pso_peo")
           .select("pso_data, peo_data")
           .eq("department_id", departmentId)
-          .single()
+          .single();
 
-        let psoData: PSOPEOItem[] = defaultPsoOptions
-        let peoData: PSOPEOItem[] = defaultPeoOptions
+        let psoData: PSOPEOItem[] = defaultPsoOptions;
+        let peoData: PSOPEOItem[] = defaultPeoOptions;
 
         if (!deptError && deptPsoPeo) {
           if (Array.isArray(deptPsoPeo.pso_data)) {
-            psoData = deptPsoPeo.pso_data
+            psoData = deptPsoPeo.pso_data;
           }
 
           if (Array.isArray(deptPsoPeo.peo_data)) {
-            peoData = deptPsoPeo.peo_data
+            peoData = deptPsoPeo.peo_data;
           }
         } else {
-          console.warn("Falling back to default PSO/PEO due to missing department data or error.")
+          console.warn(
+            "Falling back to default PSO/PEO due to missing department data or error."
+          );
         }
 
         // Step 3: Set data to state
         setDepartmentPsoPeo({
           pso_data: psoData,
           peo_data: peoData,
-        })
+        });
 
         console.log("Loaded PSO/PEO from department_pso_peo:", {
           pso_count: psoData.length,
           peo_count: peoData.length,
-        })
+        });
       } catch (error) {
-        console.error("Error loading PSO/PEO:", error)
+        console.error("Error loading PSO/PEO:", error);
 
         setDepartmentPsoPeo({
           pso_data: defaultPsoOptions,
           peo_data: defaultPeoOptions,
-        })
+        });
       } finally {
-        setLoadingPsoPeo(false)
+        setLoadingPsoPeo(false);
       }
-    }
+    };
 
-    loadPsoPeoData()
-  }, [lessonPlan.subject?.id])
+    loadPsoPeoData();
+  }, [lessonPlan.subject?.id]);
 
   const handleCIEChange = (index: number, field: string, value: any) => {
-    const updatedCIEs = [...(lessonPlan.cies || [])]
+    const updatedCIEs = [...(lessonPlan.cies || [])];
 
     // Handle date conversion from HTML5 input (YYYY-MM-DD) to our format (DD-MM-YYYY)
     if (field === "date" && value) {
-      value = convertYYYYMMDDToDDMMYYYY(value)
+      value = convertYYYYMMDDToDDMMYYYY(value);
     }
 
     updatedCIEs[index] = {
       ...updatedCIEs[index],
       [field]: value,
-    }
+    };
 
     // Auto-calculate duration based on marks and bloom's taxonomy - MORE RESPONSIVE
     if (field === "marks" || field === "blooms_taxonomy") {
-      const marks = field === "marks" ? value : updatedCIEs[index].marks
-      const blooms = field === "blooms_taxonomy" ? value : updatedCIEs[index].blooms_taxonomy
+      const marks = field === "marks" ? value : updatedCIEs[index].marks;
+      const blooms =
+        field === "blooms_taxonomy"
+          ? value
+          : updatedCIEs[index].blooms_taxonomy;
 
-      const calculatedDuration = calculateMinimumDuration(marks, blooms)
+      const calculatedDuration = calculateMinimumDuration(marks, blooms);
 
       // Always update duration when marks or blooms change
       // For 50 marks, set to 150 minutes regardless of bloom's taxonomy
       if (marks === 50) {
-        updatedCIEs[index].duration = 150
-        toast.info("Duration automatically set to 150 minutes for 50 marks")
+        updatedCIEs[index].duration = 150;
+        toast.info("Duration automatically set to 150 minutes for 50 marks");
       } else {
-        updatedCIEs[index].duration = Math.max(calculatedDuration, 30) // Ensure minimum 30 minutes
+        updatedCIEs[index].duration = Math.max(calculatedDuration, 30); // Ensure minimum 30 minutes
       }
 
       // Clear duration error when auto-calculating
-      setDurationError("")
+      setDurationError("");
     }
 
     // Real-time duration validation when manually changed
     if (field === "duration") {
-      const marks = updatedCIEs[index].marks || 0
-      const blooms = updatedCIEs[index].blooms_taxonomy || []
-      const minDuration = Math.max(calculateMinimumDuration(marks, blooms), 30)
-      const pedagogy = updatedCIEs[index].evaluation_pedagogy
+      const marks = updatedCIEs[index].marks || 0;
+      const blooms = updatedCIEs[index].blooms_taxonomy || [];
+      const minDuration = Math.max(calculateMinimumDuration(marks, blooms), 30);
+      const pedagogy = updatedCIEs[index].evaluation_pedagogy;
 
       if (value < 30) {
-        setDurationError("Duration must be at least 30 minutes")
+        setDurationError("Duration must be at least 30 minutes");
       } else if (value < minDuration) {
-        setDurationError(`Duration should be at least ${minDuration} minutes based on marks and Bloom's taxonomy`)
+        setDurationError(
+          `Duration should be at least ${minDuration} minutes based on marks and Bloom's taxonomy`
+        );
       } else {
-        setDurationError("")
+        setDurationError("");
       }
 
       // IMPORTANT: Force cap at 50 minutes for Quiz/MCQ regardless of marks
       if (pedagogy === "Objective-Based Assessment (Quiz/MCQ)" && value > 50) {
-        updatedCIEs[index].duration = 50
-        toast.info("Duration automatically adjusted to 50 minutes for Quiz/MCQ")
+        updatedCIEs[index].duration = 50;
+        toast.info(
+          "Duration automatically adjusted to 50 minutes for Quiz/MCQ"
+        );
       }
     }
 
     // Clear units/practicals based on CIE type
     if (field === "type") {
       if (value === "Course Prerequisites CIE") {
-        updatedCIEs[index].units_covered = []
-        updatedCIEs[index].practicals_covered = []
+        updatedCIEs[index].units_covered = [];
+        updatedCIEs[index].practicals_covered = [];
       } else if (value === "Practical CIE" || value === "Internal Practical") {
-        updatedCIEs[index].units_covered = []
+        updatedCIEs[index].units_covered = [];
       } else {
-        updatedCIEs[index].practicals_covered = []
+        updatedCIEs[index].practicals_covered = [];
       }
     }
 
     // Add this validation in the blooms_taxonomy handling section
     if (field === "blooms_taxonomy" && value.length > 0) {
-      const semester = lessonPlan.subject?.semester || 1
+      const semester = lessonPlan.subject?.semester || 1;
 
       // VALIDATION 13: Check semester restrictions
       if (semester > 2 && value.includes("Remember")) {
-        const filteredBlooms = value.filter((bloom: string) => bloom !== "Remember")
-        updatedCIEs[index].blooms_taxonomy = filteredBlooms
-        toast.warning(`'Remember' level is not allowed for semester ${semester}. It has been removed.`)
-        return
+        const filteredBlooms = value.filter(
+          (bloom: string) => bloom !== "Remember"
+        );
+        updatedCIEs[index].blooms_taxonomy = filteredBlooms;
+        toast.warning(
+          `'Remember' level is not allowed for semester ${semester}. It has been removed.`
+        );
+        return;
       }
 
-
       // VALIDATION 4: Check for Bloom's taxonomy warnings when selecting bloom's levels (THEORY CIEs ONLY)
-      const theoryCIETypes = ["Theory CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
+      const theoryCIETypes = [
+        "Theory CIE",
+        "Course Prerequisites CIE",
+        "Mid-term/Internal Exam",
+      ];
       if (theoryCIETypes.includes(updatedCIEs[index].type)) {
-        const hasRememberOrUnderstand = value.some((level: string) => ["Remember", "Understand"].includes(level))
-        const currentUnits = updatedCIEs[index].units_covered || []
+        const hasRememberOrUnderstand = value.some((level: string) =>
+          ["Remember", "Understand"].includes(level)
+        );
+        const currentUnits = updatedCIEs[index].units_covered || [];
 
         if (hasRememberOrUnderstand && currentUnits.length > 0) {
-          const units = lessonPlan.units || []
+          const units = lessonPlan.units || [];
           const selectedUnits = currentUnits.map((unitId: string) => {
-            const unitIndex = units.findIndex((u: any) => u.id === unitId)
-            return { id: unitId, index: unitIndex }
-          })
+            const unitIndex = units.findIndex((u: any) => u.id === unitId);
+            return { id: unitId, index: unitIndex };
+          });
 
           // Check if any selected unit is not first or last
           const hasMiddleChapter = selectedUnits.some((unit: any) => {
-            const unitIndex = unit.index
-            const totalUnits = units.length
-            return unitIndex > 0 && unitIndex < totalUnits - 1 // Not first or last unit
-          })
+            const unitIndex = unit.index;
+            const totalUnits = units.length;
+            return unitIndex > 0 && unitIndex < totalUnits - 1; // Not first or last unit
+          });
 
           if (hasMiddleChapter) {
-            const warning = "You should avoid Remember & Understand bloom's taxonomy except first and last chapter."
-            setCurrentWarning(warning)
-            setWarningDialogOpen(true)
+            const warning =
+              "You should avoid Remember & Understand bloom's taxonomy except first and last chapter.";
+            setCurrentWarning(warning);
+            setWarningDialogOpen(true);
           }
         }
       }
 
       // VALIDATION 5: Check for Open Book Assessment restrictions
       if (updatedCIEs[index].evaluation_pedagogy === "Open Book Assessment") {
-        const allowedBlooms = ["Analyze", "Evaluate", "Create"]
-        const filteredBlooms = value.filter((bloom: string) => allowedBlooms.includes(bloom))
+        const allowedBlooms = ["Analyze", "Evaluate", "Create"];
+        const filteredBlooms = value.filter((bloom: string) =>
+          allowedBlooms.includes(bloom)
+        );
 
         if (filteredBlooms.length !== value.length) {
-          updatedCIEs[index].blooms_taxonomy = filteredBlooms
+          updatedCIEs[index].blooms_taxonomy = filteredBlooms;
           toast.warning(
-            "For Open Book Assessment, only Analyze, Evaluate, and Create levels are allowed. Other levels have been removed.",
-          )
-          return
+            "For Open Book Assessment, only Analyze, Evaluate, and Create levels are allowed. Other levels have been removed."
+          );
+          return;
         }
       }
     }
 
     // VALIDATION 4: Check for Bloom's taxonomy warnings when selecting units (THEORY CIEs ONLY)
     if (field === "units_covered" && value.length > 0) {
-      const theoryCIETypes = ["Theory CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
+      const theoryCIETypes = [
+        "Theory CIE",
+        "Course Prerequisites CIE",
+        "Mid-term/Internal Exam",
+      ];
       if (theoryCIETypes.includes(updatedCIEs[index].type)) {
-        const currentBlooms = updatedCIEs[index].blooms_taxonomy || []
+        const currentBlooms = updatedCIEs[index].blooms_taxonomy || [];
         const hasRememberOrUnderstand = currentBlooms.some((level: string) =>
-          ["Remember", "Understand"].includes(level),
-        )
+          ["Remember", "Understand"].includes(level)
+        );
 
         if (hasRememberOrUnderstand) {
-          const units = lessonPlan.units || []
+          const units = lessonPlan.units || [];
           const selectedUnits = value.map((unitId: string) => {
-            const unitIndex = units.findIndex((u: any) => u.id === unitId)
-            return { id: unitId, index: unitIndex }
-          })
+            const unitIndex = units.findIndex((u: any) => u.id === unitId);
+            return { id: unitId, index: unitIndex };
+          });
 
           // Check if any selected unit is not first or last
           const hasMiddleChapter = selectedUnits.some((unit: any) => {
-            const unitIndex = unit.index
-            const totalUnits = units.length
-            return unitIndex > 0 && unitIndex < totalUnits - 1 // Not first or last unit
-          })
+            const unitIndex = unit.index;
+            const totalUnits = units.length;
+            return unitIndex > 0 && unitIndex < totalUnits - 1; // Not first or last unit
+          });
 
           if (hasMiddleChapter) {
-            const warning = "You should avoid Remember & Understand bloom's taxonomy except first and last chapter."
-            setCurrentWarning(warning)
-            setWarningDialogOpen(true)
+            const warning =
+              "You should avoid Remember & Understand bloom's taxonomy except first and last chapter.";
+            setCurrentWarning(warning);
+            setWarningDialogOpen(true);
           }
         }
       }
@@ -722,15 +852,17 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
 
     // VALIDATION 5: Check for Bloom's taxonomy restrictions when selecting Open Book Assessment
     if (field === "evaluation_pedagogy" && value === "Open Book Assessment") {
-      const currentBlooms = updatedCIEs[index].blooms_taxonomy || []
-      const allowedBlooms = ["Analyze", "Evaluate", "Create"]
-      const filteredBlooms = currentBlooms.filter((bloom: string) => allowedBlooms.includes(bloom))
+      const currentBlooms = updatedCIEs[index].blooms_taxonomy || [];
+      const allowedBlooms = ["Analyze", "Evaluate", "Create"];
+      const filteredBlooms = currentBlooms.filter((bloom: string) =>
+        allowedBlooms.includes(bloom)
+      );
 
       if (filteredBlooms.length !== currentBlooms.length) {
-        updatedCIEs[index].blooms_taxonomy = filteredBlooms
+        updatedCIEs[index].blooms_taxonomy = filteredBlooms;
         toast.warning(
-          "For Open Book Assessment, only Analyze, Evaluate, and Create levels are allowed. Other levels have been removed.",
-        )
+          "For Open Book Assessment, only Analyze, Evaluate, and Create levels are allowed. Other levels have been removed."
+        );
       }
     }
 
@@ -739,148 +871,200 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
       if (value === "Objective-Based Assessment (Quiz/MCQ)") {
         // Always cap duration at 50 minutes for Quiz/MCQ
         if (updatedCIEs[index].duration > 50) {
-          updatedCIEs[index].duration = 50
-          toast.info("Duration automatically adjusted to 50 minutes for Quiz/MCQ")
+          updatedCIEs[index].duration = 50;
+          toast.info(
+            "Duration automatically adjusted to 50 minutes for Quiz/MCQ"
+          );
         }
 
         // Auto-set marks to 50 if not already set
         if (!updatedCIEs[index].marks) {
-          updatedCIEs[index].marks = 50
-          toast.info("Marks automatically set to 50 for Quiz/MCQ")
+          updatedCIEs[index].marks = 50;
+          toast.info("Marks automatically set to 50 for Quiz/MCQ");
         }
       }
 
       // Add this new code to handle the "Other" pedagogy option
       if (value === "Other") {
         // Clear any existing other_pedagogy value when switching to "Other"
-        updatedCIEs[index].other_pedagogy = ""
+        updatedCIEs[index].other_pedagogy = "";
 
         // Set a reminder toast for the user
-        toast.info("Please specify the custom pedagogy in the field below")
+        toast.info("Please specify the custom pedagogy in the field below");
       }
     }
 
     setLessonPlan((prev: any) => ({
       ...prev,
       cies: updatedCIEs,
-    }))
+    }));
 
-    validateCIE(updatedCIEs[index], index)
-  }
+    validateCIE(updatedCIEs[index], index);
+  };
 
-  const calculateMinimumDuration = (marks: number, bloomsLevels: string[]): number => {
-    if (!marks || !bloomsLevels || bloomsLevels.length === 0) return 30
+  const calculateMinimumDuration = (
+    marks: number,
+    bloomsLevels: string[]
+  ): number => {
+    if (!marks || !bloomsLevels || bloomsLevels.length === 0) return 30;
 
     // Check if we have higher order thinking skills
-    const hasHigherOrder = bloomsLevels.some((level) => ["Analyze", "Evaluate", "Create"].includes(level))
-    const hasOnlyLowerOrder = bloomsLevels.every((level) => ["Remember", "Understand"].includes(level))
+    const hasHigherOrder = bloomsLevels.some((level) =>
+      ["Analyze", "Evaluate", "Create"].includes(level)
+    );
+    const hasOnlyLowerOrder = bloomsLevels.every((level) =>
+      ["Remember", "Understand"].includes(level)
+    );
 
-    let duration = 0
+    let duration = 0;
 
     if (hasOnlyLowerOrder) {
-      duration = marks * 2 // 1 mark = 2 minutes for lower order
+      duration = marks * 2; // 1 mark = 2 minutes for lower order
     } else if (hasHigherOrder) {
-      duration = marks * 2 // 1 mark = 3 minutes for higher order
+      duration = marks * 2; // 1 mark = 3 minutes for higher order
     } else {
-      duration = marks * 2.5 // Mixed levels
+      duration = marks * 2.5; // Mixed levels
     }
 
     // For 100 marks, cap at 100 minutes
     if (marks === 100) {
-      return Math.min(100, Math.max(duration, 30))
+      return Math.min(100, Math.max(duration, 30));
     }
 
     // For 50 marks, recommended duration is 150 minutes
     if (marks === 50) {
-      return 150
+      return 150;
     }
 
     // Ensure minimum 30 minutes
-    return Math.max(duration, 30)
-  }
+    return Math.max(duration, 30);
+  };
 
   const validateCIE = (cie: any, index: number) => {
-    const errors: string[] = []
-    const warnings: string[] = []
+    const errors: string[] = [];
+    const warnings: string[] = [];
 
     // VALIDATION 3: Validate Bloom's taxonomy based on semester
-    const semester = lessonPlan.subject?.semester || 1
+    const semester = lessonPlan.subject?.semester || 1;
     if (semester > 2 && cie.blooms_taxonomy?.includes("Remember")) {
-      errors.push(`CIE ${index + 1}: 'Remember' level not allowed for semester ${semester}`)
+      errors.push(
+        `CIE ${
+          index + 1
+        }: 'Remember' level not allowed for semester ${semester}`
+      );
     }
 
     // Validate duration for practical CIEs
-    if ((cie.type === "Practical CIE" || cie.type === "Internal Practical") && cie.duration < 120) {
-      errors.push(`CIE ${index + 1}: Practical CIE must be minimum 2 hours (120 minutes)`)
+    if (
+      (cie.type === "Practical CIE" || cie.type === "Internal Practical") &&
+      cie.duration < 120
+    ) {
+      errors.push(
+        `CIE ${index + 1}: Practical CIE must be minimum 2 hours (120 minutes)`
+      );
     }
 
     // Validate Mid-term duration
     if (cie.type === "Mid-term/Internal Exam" && cie.duration < 60) {
-      errors.push(`CIE ${index + 1}: Warning - Mid-term exam duration should be more than 60 minutes`)
+      errors.push(
+        `CIE ${
+          index + 1
+        }: Warning - Mid-term exam duration should be more than 60 minutes`
+      );
     }
 
     // VALIDATION 5: Validate Open Book Assessment
     if (cie.evaluation_pedagogy === "Open Book Assessment") {
-      const allowedBlooms = ["Analyze", "Evaluate", "Create"]
-      const hasInvalidBlooms = cie.blooms_taxonomy?.some((bloom: string) => !allowedBlooms.includes(bloom))
+      const allowedBlooms = ["Analyze", "Evaluate", "Create"];
+      const hasInvalidBlooms = cie.blooms_taxonomy?.some(
+        (bloom: string) => !allowedBlooms.includes(bloom)
+      );
       if (hasInvalidBlooms) {
-        errors.push(`CIE ${index + 1}: Open Book Assessment only allows Analyze, Evaluate, and Create levels`)
+        errors.push(
+          `CIE ${
+            index + 1
+          }: Open Book Assessment only allows Analyze, Evaluate, and Create levels`
+        );
       }
     }
 
     // Add validation for marks based on evaluation pedagogy
-    if (cie.evaluation_pedagogy === "Objective-Based Assessment (Quiz/MCQ)" && cie.duration > 50) {
-      errors.push(`CIE ${index + 1}: Quiz/MCQ duration cannot exceed 50 minutes`)
+    if (
+      cie.evaluation_pedagogy === "Objective-Based Assessment (Quiz/MCQ)" &&
+      cie.duration > 50
+    ) {
+      errors.push(
+        `CIE ${index + 1}: Quiz/MCQ duration cannot exceed 50 minutes`
+      );
     }
 
     // Add validation for marks based on evaluation pedagogy
-    if (cie.evaluation_pedagogy === "Objective-Based Assessment (Quiz/MCQ)" && cie.marks > 50 && cie.marks !== 100) {
-      errors.push(`CIE ${index + 1}: Quiz/MCQ marks should be 50 or 100`)
+    if (
+      cie.evaluation_pedagogy === "Objective-Based Assessment (Quiz/MCQ)" &&
+      cie.marks > 50 &&
+      cie.marks !== 100
+    ) {
+      errors.push(`CIE ${index + 1}: Quiz/MCQ marks should be 50 or 100`);
     }
 
     // Add validation for Other pedagogy
-    if (cie.evaluation_pedagogy === "Other" && (!cie.other_pedagogy || cie.other_pedagogy.trim() === "")) {
-      errors.push(`CIE ${index + 1}: Please specify the custom pedagogy when selecting "Other"`)
+    if (
+      cie.evaluation_pedagogy === "Other" &&
+      (!cie.other_pedagogy || cie.other_pedagogy.trim() === "")
+    ) {
+      errors.push(
+        `CIE ${
+          index + 1
+        }: Please specify the custom pedagogy when selecting "Other"`
+      );
     }
 
-    setValidationErrors(errors)
-    setValidationWarnings(warnings)
-  }
+    setValidationErrors(errors);
+    setValidationWarnings(warnings);
+  };
 
   // FIXED: Comprehensive validation function with correct subject type detection
   const validateAllCIEs = () => {
-    const errors: string[] = []
-    const warnings: string[] = []
-    const currentCIEs = lessonPlan.cies || []
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const currentCIEs = lessonPlan.cies || [];
+
+    // NEW VALIDATION: Check if number of theory CIEs is less than 3
+    const theoryCIEs = currentCIEs.filter(
+      (cie: any) => cie.type === "Theory CIE"
+    );
+    if (theoryCIEs.length < 3) {
+      errors.push("Theory CIEs should be planned at least 3 in a semester");
+    }
 
     // Helper function to format date for display
     const formatForDisplay = (dateStr: string): string => {
-      return convertYYYYMMDDToDDMMYYYY(dateStr)
-    }
+      return convertYYYYMMDDToDDMMYYYY(dateStr);
+    };
 
     // VALIDATION 1: Date gap validation (must not exceed Course Term End Date)
     const sortedCIEs = [...currentCIEs]
       .filter((cie) => cie.date)
       .sort((a, b) => {
-        const dateA = parseDateToDDMMYYYY(a.date)
-        const dateB = parseDateToDDMMYYYY(b.date)
-        if (!dateA || !dateB) return 0
-        return dateA.getTime() - dateB.getTime()
-      })
+        const dateA = parseDateToDDMMYYYY(a.date);
+        const dateB = parseDateToDDMMYYYY(b.date);
+        if (!dateA || !dateB) return 0;
+        return dateA.getTime() - dateB.getTime();
+      });
 
     // Check term end date constraint - FIXED
     const termEndDate = lessonPlan.subject?.metadata?.term_end_date
       ? parseDDMMYYYYToDate(lessonPlan.subject.metadata.term_end_date)
-      : null
+      : null;
     if (termEndDate) {
       sortedCIEs.forEach((cie, index) => {
-        const cieDateStr = convertYYYYMMDDToDDMMYYYY(cie.date)
-        const cieDate = parseDateToDDMMYYYY(cieDateStr)
+        const cieDateStr = convertYYYYMMDDToDDMMYYYY(cie.date);
+        const cieDate = parseDateToDDMMYYYY(cieDateStr);
 
         if (cieDate && termEndDate) {
           // FIXED: Use proper date comparison
-          const cieDateFormatted = formatDateToDDMMYYYY(cieDate)
-          const termEndFormatted = formatDateToDDMMYYYY(termEndDate)
+          const cieDateFormatted = formatDateToDDMMYYYY(cieDate);
+          const termEndFormatted = formatDateToDDMMYYYY(termEndDate);
 
           console.log(`🔍 Date comparison for CIE ${index + 1}:`, {
             cieDate: cieDateFormatted,
@@ -888,84 +1072,81 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
             cieDateTime: cieDate.getTime(),
             termEndDateTime: termEndDate.getTime(),
             isAfter: cieDate.getTime() > termEndDate.getTime(),
-          })
+          });
 
           if (cieDate.getTime() > termEndDate.getTime()) {
             errors.push(
-              `CIE ${index + 1} date (${formatForDisplay(cie.date)}) cannot exceed the Course Term End Date (${formatForDisplay(lessonPlan.term_end_date)})`,
-            )
+              `CIE ${index + 1} date (${formatForDisplay(
+                cie.date
+              )}) cannot exceed the Course Term End Date (${formatForDisplay(
+                lessonPlan.term_end_date
+              )})`
+            );
           }
         }
-      })
+      });
     }
 
-    // Minimum 7 days gap between consecutive CIEs
-    // for (let i = 1; i < sortedCIEs.length; i++) {
-    //   const prevDateStr = convertYYYYMMDDToDDMMYYYY(sortedCIEs[i - 1].date)
-    //   const currDateStr = convertYYYYMMDDToDDMMYYYY(sortedCIEs[i].date)
-
-    //   const daysDiff = getDaysDifferenceBetweenDates(prevDateStr, currDateStr)
-    //   if (daysDiff < 7) {
-    //     errors.push(`CIE dates must be at least 7 days apart`)
-    //   }
-    // }
     // UPDATED: Modified 7-day gap validation - only for specific CIE type groups
     const validateDateGaps = (cieList: any[], groupName: string) => {
-      if (cieList.length < 2) return // Need at least 2 CIEs to check gaps
+      if (cieList.length < 2) return; // Need at least 2 CIEs to check gaps
 
       const sortedCIEs = [...cieList]
         .filter((cie) => cie.date)
         .sort((a, b) => {
-          const dateA = parseDateToDDMMYYYY(a.date)
-          const dateB = parseDateToDDMMYYYY(b.date)
-          if (!dateA || !dateB) return 0
-          return dateA.getTime() - dateB.getTime()
-        })
+          const dateA = parseDateToDDMMYYYY(a.date);
+          const dateB = parseDateToDDMMYYYY(b.date);
+          if (!dateA || !dateB) return 0;
+          return dateA.getTime() - dateB.getTime();
+        });
 
       for (let i = 1; i < sortedCIEs.length; i++) {
-        const prevDate = parseDateToDDMMYYYY(sortedCIEs[i - 1].date)
-        const currDate = parseDateToDDMMYYYY(sortedCIEs[i].date)
+        const prevDate = parseDateToDDMMYYYY(sortedCIEs[i - 1].date);
+        const currDate = parseDateToDDMMYYYY(sortedCIEs[i].date);
 
         if (prevDate && currDate) {
           const daysDiff = getDaysDifferenceBetweenDates(
             convertYYYYMMDDToDDMMYYYY(sortedCIEs[i - 1].date),
-            convertYYYYMMDDToDDMMYYYY(sortedCIEs[i].date),
-          )
+            convertYYYYMMDDToDDMMYYYY(sortedCIEs[i].date)
+          );
           if (daysDiff < 7) {
-            errors.push(`${groupName} CIE dates must be at least 7 days apart`)
-            break // Only show this error once per group
+            errors.push(`${groupName} CIE dates must be at least 7 days apart`);
+            break; // Only show this error once per group
           }
         }
       }
-    }
+    };
 
     // Group CIEs by type for 7-day validation
     const lectureCIEs = currentCIEs.filter((cie: any) =>
-      ["Theory CIE"].includes(cie.type),
-    )
+      ["Theory CIE"].includes(cie.type)
+    );
 
-    const practicalCIEs = currentCIEs.filter((cie: any) => ["Practical CIE", "Internal Practical"].includes(cie.type))
+    const practicalCIEs = currentCIEs.filter((cie: any) =>
+      ["Practical CIE", "Internal Practical"].includes(cie.type)
+    );
 
     // Validate 7-day gaps within each group
     if (lectureCIEs.length > 1) {
-      validateDateGaps(lectureCIEs, "Lecture")
+      validateDateGaps(lectureCIEs, "Lecture");
     }
 
     if (practicalCIEs.length > 1) {
-      validateDateGaps(practicalCIEs, "Practical")
+      validateDateGaps(practicalCIEs, "Practical");
     }
 
     // VALIDATION 2: FIXED - Check that at least one of each required CIE type is present
-    const cieTypes = currentCIEs.map((cie: any) => cie.type).filter(Boolean)
-    const semester = lessonPlan.subject?.semester || 1
+    const cieTypes = currentCIEs.map((cie: any) => cie.type).filter(Boolean);
+    const semester = lessonPlan.subject?.semester || 1;
 
     // FIXED: Determine subject type more accurately
-    const hasUnits = lessonPlan.units && lessonPlan.units.length > 0
-    const hasPracticals = lessonPlan.practicals && lessonPlan.practicals.length > 0
+    const hasUnits = lessonPlan.units && lessonPlan.units.length > 0;
+    const hasPracticals =
+      lessonPlan.practicals && lessonPlan.practicals.length > 0;
 
     // Check if subject has both theory and practical flags
-    const isTheorySubject = lessonPlan.subject?.is_theory === true
-    const isPracticalSubject = lessonPlan.subject?.is_practical === true
+    const isTheorySubject = lessonPlan.subject?.is_theory === true;
+    const isPracticalSubject = lessonPlan.subject?.is_practical === true;
 
     console.log("🔍 FRONTEND Subject Type Detection:", {
       hasUnits,
@@ -973,50 +1154,60 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
       isTheorySubject,
       isPracticalSubject,
       subjectData: lessonPlan.subject,
-    })
+    });
 
-    let requiredTypes: string[] = []
-    let subjectTypeDescription = ""
+    let requiredTypes: string[] = [];
+    let subjectTypeDescription = "";
 
     // FIXED: Use subject flags first, then fall back to content detection
     if (isTheorySubject && isPracticalSubject) {
       // Theory + Practical subject - ALL 5 CIE types required
-      requiredTypes = ["Theory CIE", "Mid-term/Internal Exam", "Practical CIE", "Internal Practical"]
+      requiredTypes = [
+        "Theory CIE",
+        "Mid-term/Internal Exam",
+        "Practical CIE",
+        "Internal Practical",
+      ];
       if (semester > 1) {
-        requiredTypes.push("Course Prerequisites CIE")
+        requiredTypes.push("Course Prerequisites CIE");
       }
-      subjectTypeDescription = "Theory + Practical"
+      subjectTypeDescription = "Theory + Practical";
     } else if (isPracticalSubject && !isTheorySubject) {
       // Only Practical subject
-      requiredTypes = ["Practical CIE", "Internal Practical"]
-      subjectTypeDescription = "Practical Only"
+      requiredTypes = ["Practical CIE", "Internal Practical"];
+      subjectTypeDescription = "Practical Only";
     } else if (isTheorySubject && !isPracticalSubject) {
       // Only Theory subject
-      requiredTypes = ["Theory CIE", "Mid-term/Internal Exam"]
+      requiredTypes = ["Theory CIE", "Mid-term/Internal Exam"];
       if (semester > 1) {
-        requiredTypes.push("Course Prerequisites CIE")
+        requiredTypes.push("Course Prerequisites CIE");
       }
-      subjectTypeDescription = "Theory Only"
+      subjectTypeDescription = "Theory Only";
     } else {
       // Fall back to content-based detection
       if (hasUnits && hasPracticals) {
         // Theory + Practical subject - ALL 5 CIE types required
-        requiredTypes = ["Theory CIE", "Mid-term/Internal Exam", "Practical CIE", "Internal Practical"]
+        requiredTypes = [
+          "Theory CIE",
+          "Mid-term/Internal Exam",
+          "Practical CIE",
+          "Internal Practical",
+        ];
         if (semester > 1) {
-          requiredTypes.push("Course Prerequisites CIE")
+          requiredTypes.push("Course Prerequisites CIE");
         }
-        subjectTypeDescription = "Theory + Practical (detected from content)"
+        subjectTypeDescription = "Theory + Practical (detected from content)";
       } else if (hasPracticals) {
         // Only Practical subject
-        requiredTypes = ["Practical CIE", "Internal Practical"]
-        subjectTypeDescription = "Practical Only (detected from content)"
+        requiredTypes = ["Practical CIE", "Internal Practical"];
+        subjectTypeDescription = "Practical Only (detected from content)";
       } else {
         // Only Theory subject
-        requiredTypes = ["Theory CIE", "Mid-term/Internal Exam"]
+        requiredTypes = ["Theory CIE", "Mid-term/Internal Exam"];
         if (semester > 1) {
-          requiredTypes.push("Course Prerequisites CIE")
+          requiredTypes.push("Course Prerequisites CIE");
         }
-        subjectTypeDescription = "Theory Only (detected from content)"
+        subjectTypeDescription = "Theory Only (detected from content)";
       }
     }
 
@@ -1025,203 +1216,215 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
       semester,
       requiredTypes,
       currentCIETypes: cieTypes,
-    })
+    });
 
-    const missingTypes = requiredTypes.filter((type) => !cieTypes.includes(type))
+    const missingTypes = requiredTypes.filter(
+      (type) => !cieTypes.includes(type)
+    );
     if (missingTypes.length > 0) {
       const semesterNote =
         semester === 1 && subjectTypeDescription.includes("Theory + Practical")
           ? " (Note: Course Prerequisites CIE is optional for 1st semester Theory+Practical subjects)"
           : semester === 1 && subjectTypeDescription.includes("Theory Only")
-            ? " (Note: Course Prerequisites CIE is optional for 1st semester Theory subjects)"
-            : ""
+          ? " (Note: Course Prerequisites CIE is optional for 1st semester Theory subjects)"
+          : "";
       errors.push(
-        `Subject Type: ${subjectTypeDescription}. At least one CIE from each required type must be present. Missing: ${missingTypes.join(", ")}${semesterNote}`,
-      )
+        `Subject Type: ${subjectTypeDescription}. At least one CIE from each required type must be present. Missing: ${missingTypes.join(
+          ", "
+        )}${semesterNote}`
+      );
     }
 
-    // VALIDATION 3 & 12: FIXED - Check for duplicate Bloom's taxonomy combinations
-    // const allBloomsCombinations = currentCIEs
-    //   .map((cie: any) => (cie.blooms_taxonomy || []).sort().join(","))
-    //   .filter(Boolean)
-
-    // const uniqueBloomsCombinations = new Set(allBloomsCombinations)
-
-    // console.log("🔍 FRONTEND Bloom's validation:", {
-    //   allCombinations: allBloomsCombinations,
-    //   uniqueCombinations: Array.from(uniqueBloomsCombinations),
-    //   shouldError: allBloomsCombinations.length > 1 && uniqueBloomsCombinations.size === 1,
-    // })
-
-    // // FIXED: Check for ANY duplicate combinations, not just if ALL are the same
-    // const combinationCounts = new Map<string, number[]>()
-
-    // allBloomsCombinations.forEach((combination, index) => {
-    //   if (!combinationCounts.has(combination)) {
-    //     combinationCounts.set(combination, [])
-    //   }
-    //   combinationCounts.get(combination)!.push(index + 1) // Store 1-based CIE numbers
-    // })
-
-    // // Check for duplicates
-    // const duplicates: string[] = []
-    // combinationCounts.forEach((cieNumbers, combination) => {
-    //   if (cieNumbers.length > 1) {
-    //     duplicates.push(
-    //       `CIEs ${cieNumbers.join(", ")} have the same Bloom's Taxonomy combination: [${combination.split(",").join(", ")}]`,
-    //     )
-    //   }
-    // })
-
-    // if (duplicates.length > 0) {
-    //   errors.push(`Duplicate Bloom's Taxonomy combinations found: ${duplicates.join("; ")}`)
-    // }
-
-
-    
     // VALIDATION 13 & 14: Validate Bloom's taxonomy usage limits
-    const allBloomsUsage = currentCIEs.flatMap((cie: any) => cie.blooms_taxonomy || [])
-    const rememberCount = allBloomsUsage.filter((bloom: string) => bloom === "Remember").length
-    const understandCount = allBloomsUsage.filter((bloom: string) => bloom === "Understand").length
+    const allBloomsUsage = currentCIEs.flatMap(
+      (cie: any) => cie.blooms_taxonomy || []
+    );
+    const rememberCount = allBloomsUsage.filter(
+      (bloom: string) => bloom === "Remember"
+    ).length;
+    const understandCount = allBloomsUsage.filter(
+      (bloom: string) => bloom === "Understand"
+    ).length;
 
     if (rememberCount > 1) {
-      errors.push("'Remember' bloom's taxonomy can be used maximum once across all CIEs")
+      errors.push(
+        "'Remember' bloom's taxonomy can be used maximum once across all CIEs"
+      );
     }
 
     if (understandCount > 2) {
-      errors.push("'Understand' bloom's taxonomy can be used maximum twice across all CIEs")
+      errors.push(
+        "'Understand' bloom's taxonomy can be used maximum twice across all CIEs"
+      );
     }
 
     // VALIDATION 6: FIXED - Total duration validation (ONLY FOR THEORY AND THEORY_PRACTICAL SUBJECTS)
     // Skip this validation entirely for practical-only subjects
-    const isPracticalOnly = lessonPlan?.subject?.is_practical === true && lessonPlan?.subject?.is_theory === false
+    const isPracticalOnly =
+      lessonPlan?.subject?.is_practical === true &&
+      lessonPlan?.subject?.is_theory === false;
 
     if (!isPracticalOnly) {
       // Only run this validation for theory or theory+practical subjects
-      const totalCredits = lessonPlan.subject?.credits || 0
-      const requiredMinimumHours = Math.max(0, totalCredits - 1)
+      const totalCredits = lessonPlan.subject?.credits || 0;
+      const requiredMinimumHours = Math.max(0, totalCredits - 1);
 
-      const theoryCIETypes = ["Theory CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
-      const theoryCIEs = currentCIEs.filter((cie: any) => theoryCIETypes.includes(cie.type))
-      const totalTheoryDurationHours = theoryCIEs.reduce((sum, cie) => sum + (cie.duration || 0), 0) / 60
+      const theoryCIETypes = [
+        "Theory CIE",
+        "Course Prerequisites CIE",
+        "Mid-term/Internal Exam",
+      ];
+      const theoryCIEs = currentCIEs.filter((cie: any) =>
+        theoryCIETypes.includes(cie.type)
+      );
+      const totalTheoryDurationHours =
+        theoryCIEs.reduce((sum, cie) => sum + (cie.duration || 0), 0) / 60;
 
       if (totalTheoryDurationHours < requiredMinimumHours) {
         errors.push(
-          `Total Theory CIE duration must be at least ${requiredMinimumHours} hours (currently ${totalTheoryDurationHours.toFixed(1)} hours). Practical CIEs are not counted in this validation.`,
-        )
+          `Total Theory CIE duration must be at least ${requiredMinimumHours} hours (currently ${totalTheoryDurationHours.toFixed(
+            1
+          )} hours). Practical CIEs are not counted in this validation.`
+        );
       }
     } else {
-      console.log("🔍 FRONTEND: Skipping theory CIE duration validation for practical-only subject")
+      console.log(
+        "🔍 FRONTEND: Skipping theory CIE duration validation for practical-only subject"
+      );
     }
 
     // VALIDATION 7 & 11: Traditional pedagogy usage validation (only for Theory CIEs)
-    const traditionalPedagogies = evaluationPedagogyOptions.traditional
-    const onlylectureCIEs = currentCIEs.filter((cie: any) => cie.type === "Theory CIE")
-    const lecturePedagogies = onlylectureCIEs.map((cie: any) => cie.evaluation_pedagogy).filter(Boolean)
-    const usedTraditionalInLecture = lecturePedagogies.filter((pedagogy: string) =>
-      traditionalPedagogies.includes(pedagogy),
-    )
+    const traditionalPedagogies = evaluationPedagogyOptions.traditional;
+    const onlylectureCIEs = currentCIEs.filter(
+      (cie: any) => cie.type === "Theory CIE"
+    );
+    const lecturePedagogies = onlylectureCIEs
+      .map((cie: any) => cie.evaluation_pedagogy)
+      .filter(Boolean);
+    const usedTraditionalInLecture = lecturePedagogies.filter(
+      (pedagogy: string) => traditionalPedagogies.includes(pedagogy)
+    );
 
     // At least one traditional pedagogy is required in Theory CIEs
     if (onlylectureCIEs.length > 0 && usedTraditionalInLecture.length === 0) {
-      errors.push("At least one traditional pedagogy method must be used in Theory CIEs")
+      errors.push(
+        "At least one traditional pedagogy method must be used in Theory CIEs"
+      );
     }
 
     // Traditional pedagogy should be unique across Theory CIEs only
-    const uniqueTraditionalInLecture = new Set(usedTraditionalInLecture)
+    const uniqueTraditionalInLecture = new Set(usedTraditionalInLecture);
     if (usedTraditionalInLecture.length !== uniqueTraditionalInLecture.size) {
-      errors.push("Each traditional pedagogy method must be used only once across Theory CIEs")
+      errors.push(
+        "Each traditional pedagogy method must be used only once across Theory CIEs"
+      );
     }
 
     // VALIDATION 8: At least one alternative pedagogy is required
-    const alternativePedagogies = evaluationPedagogyOptions.alternative
-    const allPedagogies = currentCIEs.map((cie: any) => cie.evaluation_pedagogy).filter(Boolean)
-    const usedAlternative = allPedagogies.filter((pedagogy: string) => alternativePedagogies.includes(pedagogy))
+    const alternativePedagogies = evaluationPedagogyOptions.alternative;
+    const allPedagogies = currentCIEs
+      .map((cie: any) => cie.evaluation_pedagogy)
+      .filter(Boolean);
+    const usedAlternative = allPedagogies.filter((pedagogy: string) =>
+      alternativePedagogies.includes(pedagogy)
+    );
 
     if (usedAlternative.length === 0) {
-      errors.push("At least one innovative pedagogy is required")
+      errors.push("At least one innovative pedagogy is required");
     }
 
     // VALIDATION 9: CO coverage across relevant CIE types
-    const relevantCIETypes = ["Theory CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
-    const relevantCIEs = currentCIEs.filter((cie: any) => relevantCIETypes.includes(cie.type))
+    const relevantCIETypes = [
+      "Theory CIE",
+      "Course Prerequisites CIE",
+      "Mid-term/Internal Exam",
+    ];
+    const relevantCIEs = currentCIEs.filter((cie: any) =>
+      relevantCIETypes.includes(cie.type)
+    );
 
     // For 1st semester, Course Prerequisites CIE is optional
     if (semester === 1) {
-      const hasPrereqCIE = currentCIEs.some((cie: any) => cie.type === "Course Prerequisites CIE")
+      const hasPrereqCIE = currentCIEs.some(
+        (cie: any) => cie.type === "Course Prerequisites CIE"
+      );
       if (!hasPrereqCIE) {
         // Only check Theory CIEs + Mid-term for 1st semester without Prerequisites CIE
-        const firstSemRelevantTypes = ["Theory CIE", "Mid-term/Internal Exam"]
-        const firstSemRelevantCIEs = currentCIEs.filter((cie: any) => firstSemRelevantTypes.includes(cie.type))
+        const firstSemRelevantTypes = ["Theory CIE", "Mid-term/Internal Exam"];
+        const firstSemRelevantCIEs = currentCIEs.filter((cie: any) =>
+          firstSemRelevantTypes.includes(cie.type)
+        );
 
         if (firstSemRelevantCIEs.length > 0) {
-          const allCOMappings = new Set()
+          const allCOMappings = new Set();
           firstSemRelevantCIEs.forEach((cie: any) => {
             if (cie.co_mapping && Array.isArray(cie.co_mapping)) {
-              cie.co_mapping.forEach((coId: string) => allCOMappings.add(coId))
+              cie.co_mapping.forEach((coId: string) => allCOMappings.add(coId));
             }
-          })
+          });
 
-          const totalCOs = lessonPlan.courseOutcomes?.length || 0
+          const totalCOs = lessonPlan.courseOutcomes?.length || 0;
           if (totalCOs > 0 && allCOMappings.size < totalCOs) {
-            errors.push("All COs must be covered across Theory CIEs + Mid-term/Internal Exams")
+            errors.push(
+              "All COs must be covered across Theory CIEs + Mid-term/Internal Exams"
+            );
           }
         }
       } else {
         // If Prerequisites CIE is present in 1st semester, check all three types
         if (relevantCIEs.length > 0) {
-          const allCOMappings = new Set()
+          const allCOMappings = new Set();
           relevantCIEs.forEach((cie: any) => {
             if (cie.co_mapping && Array.isArray(cie.co_mapping)) {
-              cie.co_mapping.forEach((coId: string) => allCOMappings.add(coId))
+              cie.co_mapping.forEach((coId: string) => allCOMappings.add(coId));
             }
-          })
+          });
 
-          const totalCOs = lessonPlan.courseOutcomes?.length || 0
+          const totalCOs = lessonPlan.courseOutcomes?.length || 0;
           if (totalCOs > 0 && allCOMappings.size < totalCOs) {
             errors.push(
-              "All COs must be covered across Theory CIEs + Course Prerequisites CIEs + Mid-term/Internal Exams",
-            )
+              "All COs must be covered across Theory CIEs + Course Prerequisites CIEs + Mid-term/Internal Exams"
+            );
           }
         }
       }
     } else {
       // For other semesters, check all relevant CIE types
       if (relevantCIEs.length > 0) {
-        const allCOMappings = new Set()
+        const allCOMappings = new Set();
         relevantCIEs.forEach((cie: any) => {
           if (cie.co_mapping && Array.isArray(cie.co_mapping)) {
-            cie.co_mapping.forEach((coId: string) => allCOMappings.add(coId))
+            cie.co_mapping.forEach((coId: string) => allCOMappings.add(coId));
           }
-        })
+        });
 
-        const totalCOs = lessonPlan.courseOutcomes?.length || 0
+        const totalCOs = lessonPlan.courseOutcomes?.length || 0;
         if (totalCOs > 0 && allCOMappings.size < totalCOs) {
           errors.push(
-            "All COs must be covered across Theory CIEs + Course Prerequisites CIEs + Mid-term/Internal Exams",
-          )
+            "All COs must be covered across Theory CIEs + Course Prerequisites CIEs + Mid-term/Internal Exams"
+          );
         }
       }
     }
 
-    return { errors, warnings }
-  }
+    return { errors, warnings };
+  };
 
   const resetFieldErrors = () => {
-    setTypeError("")
-    setUnitsCoveredError("")
-    setDateError("")
-    setMarksError("")
-    setDurationError("")
-    setBloomsError("")
-    setPedagogyError("")
-    setCoMappingError("")
-    setSkillMappingError("")
-  }
+    setTypeError("");
+    setUnitsCoveredError("");
+    setDateError("");
+    setMarksError("");
+    setDurationError("");
+    setBloomsError("");
+    setPedagogyError("");
+    setCoMappingError("");
+    setSkillMappingError("");
+  };
 
   const addCIE = () => {
-    const currentCIEs = lessonPlan.cies || []
-    const newCIENumber = currentCIEs.length + 1
+    const currentCIEs = lessonPlan.cies || [];
+    const newCIENumber = currentCIEs.length + 1;
     const newCIE = {
       id: `cie${newCIENumber}`,
       type: "",
@@ -1238,83 +1441,91 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
       peo_mapping: [],
       skill_mapping: [{ skill: "", details: "" }],
       assigned_faculty_id: userData?.id || null, // ADDED: Assign current user by default
-    }
+    };
 
     setLessonPlan((prev: any) => ({
       ...prev,
       cies: [...currentCIEs, newCIE],
-    }))
+    }));
 
-    setActiveCIE(currentCIEs.length)
-  }
+    setActiveCIE(currentCIEs.length);
+  };
 
   const removeCIE = (index: number) => {
-    const currentCIEs = lessonPlan.cies || []
+    const currentCIEs = lessonPlan.cies || [];
     if (currentCIEs.length <= 1) {
-      toast.error("At least one CIE is required")
-      return
+      toast.error("At least one CIE is required");
+      return;
     }
 
-    const updatedCIEs = currentCIEs.filter((_: any, i: number) => i !== index)
+    const updatedCIEs = currentCIEs.filter((_: any, i: number) => i !== index);
     setLessonPlan((prev: any) => ({
       ...prev,
       cies: updatedCIEs,
-    }))
+    }));
 
     if (activeCIE >= index && activeCIE > 0) {
-      setActiveCIE(activeCIE - 1)
+      setActiveCIE(activeCIE - 1);
     }
-  }
+  };
 
   const addSkillMapping = (cieIndex: number) => {
-    const updatedCIEs = [...(lessonPlan.cies || [])]
+    const updatedCIEs = [...(lessonPlan.cies || [])];
     if (!updatedCIEs[cieIndex].skill_mapping) {
-      updatedCIEs[cieIndex].skill_mapping = []
+      updatedCIEs[cieIndex].skill_mapping = [];
     }
-    updatedCIEs[cieIndex].skill_mapping.push({ skill: "", details: "" })
+    updatedCIEs[cieIndex].skill_mapping.push({ skill: "", details: "" });
 
     setLessonPlan((prev: any) => ({
       ...prev,
       cies: updatedCIEs,
-    }))
-  }
+    }));
+  };
 
   const removeSkillMapping = (cieIndex: number, skillIndex: number) => {
-    const updatedCIEs = [...(lessonPlan.cies || [])]
-    if (updatedCIEs[cieIndex].skill_mapping && Array.isArray(updatedCIEs[cieIndex].skill_mapping)) {
-      updatedCIEs[cieIndex].skill_mapping = updatedCIEs[cieIndex].skill_mapping.filter(
-        (_: any, i: number) => i !== skillIndex,
-      )
+    const updatedCIEs = [...(lessonPlan.cies || [])];
+    if (
+      updatedCIEs[cieIndex].skill_mapping &&
+      Array.isArray(updatedCIEs[cieIndex].skill_mapping)
+    ) {
+      updatedCIEs[cieIndex].skill_mapping = updatedCIEs[
+        cieIndex
+      ].skill_mapping.filter((_: any, i: number) => i !== skillIndex);
     }
 
     setLessonPlan((prev: any) => ({
       ...prev,
       cies: updatedCIEs,
-    }))
-  }
+    }));
+  };
 
-  const handleSkillMappingChange = (cieIndex: number, skillIndex: number, field: string, value: string) => {
-    const updatedCIEs = [...(lessonPlan.cies || [])]
+  const handleSkillMappingChange = (
+    cieIndex: number,
+    skillIndex: number,
+    field: string,
+    value: string
+  ) => {
+    const updatedCIEs = [...(lessonPlan.cies || [])];
     if (!updatedCIEs[cieIndex].skill_mapping) {
-      updatedCIEs[cieIndex].skill_mapping = []
+      updatedCIEs[cieIndex].skill_mapping = [];
     }
     if (!updatedCIEs[cieIndex].skill_mapping[skillIndex]) {
       updatedCIEs[cieIndex].skill_mapping[skillIndex] = {
         skill: "",
         details: "",
         otherSkill: "",
-      }
+      };
     }
-    updatedCIEs[cieIndex].skill_mapping[skillIndex][field] = value
+    updatedCIEs[cieIndex].skill_mapping[skillIndex][field] = value;
 
     setLessonPlan((prev: any) => ({
       ...prev,
       cies: updatedCIEs,
-    }))
-  }
+    }));
+  };
 
   const handleSaveDraft = async () => {
-    setIsSavingDraft(true)
+    setIsSavingDraft(true);
 
     try {
       // Ensure we have valid CIE data structure
@@ -1336,242 +1547,303 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         peo_mapping: cie.peo_mapping || [],
         skill_mapping: cie.skill_mapping || [{ skill: "", details: "" }],
         assigned_faculty_id: cie.assigned_faculty_id || userData?.id || null, // ADDED: Include faculty assignment
-      }))
+      }));
 
       const formData = {
         cies: validCIEs,
         remarks: lessonPlan.cie_remarks || "",
         savedAt: new Date().toISOString(), // Add timestamp
-      }
+      };
 
-      console.log("Saving CIE draft data:", formData) // Debug log
+      console.log("Saving CIE draft data:", formData); // Debug log
 
       const result = await saveFormDraft(
         lessonPlan?.faculty?.id || userData?.id || "",
         lessonPlan?.subject?.id || "",
         "cie_planning",
-        formData,
-      )
+        formData
+      );
 
       if (result.success) {
-        setLastSaved(new Date())
-        toast.success("Draft saved successfully")
+        setLastSaved(new Date());
+        toast.success("Draft saved successfully");
       } else {
-        console.error("Draft save failed:", result.error)
-        toast.error(`Failed to save draft: ${result.error}`)
+        console.error("Draft save failed:", result.error);
+        toast.error(`Failed to save draft: ${result.error}`);
       }
     } catch (error) {
-      console.error("Error saving draft:", error)
-      toast.error("Failed to save draft")
+      console.error("Error saving draft:", error);
+      toast.error("Failed to save draft");
     } finally {
-      setIsSavingDraft(false)
+      setIsSavingDraft(false);
     }
-  }
+  };
 
   const clearDraft = async () => {
     try {
       const result = await deleteFormDraft(
         lessonPlan?.faculty?.id || userData?.id || "",
         lessonPlan?.subject?.id || "",
-        "cie_planning",
-      )
+        "cie_planning"
+      );
 
       if (result.success) {
-        console.log("CIE draft cleared after successful submission")
+        console.log("CIE draft cleared after successful submission");
       }
     } catch (error) {
-      console.error("Error clearing CIE draft:", error)
+      console.error("Error clearing CIE draft:", error);
     }
-  }
+  };
 
   // Add this function right before the handleSave function to enforce the 50-minute cap for Quiz/MCQ
 
   const enforceQuizMCQDurationLimit = () => {
-    const updatedCIEs = [...(lessonPlan.cies || [])]
-    let changed = false
+    const updatedCIEs = [...(lessonPlan.cies || [])];
+    let changed = false;
 
     updatedCIEs.forEach((cie, index) => {
       // Check for Quiz/MCQ duration limit
-      if (cie.evaluation_pedagogy === "Objective-Based Assessment (Quiz/MCQ)" && cie.duration > 50) {
-        updatedCIEs[index].duration = 50
-        changed = true
+      if (
+        cie.evaluation_pedagogy === "Objective-Based Assessment (Quiz/MCQ)" &&
+        cie.duration > 50
+      ) {
+        updatedCIEs[index].duration = 50;
+        changed = true;
       }
 
       // Check for Other pedagogy validation
-      if (cie.evaluation_pedagogy === "Other" && (!cie.other_pedagogy || cie.other_pedagogy.trim() === "")) {
+      if (
+        cie.evaluation_pedagogy === "Other" &&
+        (!cie.other_pedagogy || cie.other_pedagogy.trim() === "")
+      ) {
         // We'll handle this in the validation step, but mark it for notification
-        changed = true
+        changed = true;
       }
-    })
+    });
 
     if (changed) {
       setLessonPlan((prev: any) => ({
         ...prev,
         cies: updatedCIEs,
-      }))
-      toast.info("Some values were automatically adjusted to meet requirements")
+      }));
+      toast.info(
+        "Some values were automatically adjusted to meet requirements"
+      );
     }
 
-    return updatedCIEs
-  }
+    return updatedCIEs;
+  };
 
   // FIXED: Main save function with proper validation
   const handleSave = async () => {
-    console.log("🔍 FRONTEND: === HANDLE SAVE STARTED ===")
-    setSaving(true)
+    console.log("🔍 FRONTEND: === HANDLE SAVE STARTED ===");
+    setSaving(true);
 
     // Clear all previous errors
-    setValidationErrors([])
-    setValidationWarnings([])
-    resetFieldErrors()
+    setValidationErrors([]);
+    setValidationWarnings([]);
+    resetFieldErrors();
 
     // Enforce Quiz/MCQ duration limit before validation
-    const updatedCIEs = enforceQuizMCQDurationLimit()
+    const updatedCIEs = enforceQuizMCQDurationLimit();
 
     // Force UI update by setting the state directly
     setLessonPlan((prev: any) => ({
       ...prev,
       cies: updatedCIEs,
-    }))
+    }));
 
     // Small delay to ensure UI updates before continuing
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Collect all validation errors in one array
-    const allErrors: string[] = []
+    const allErrors: string[] = [];
 
     // Validate current CIE fields
     if (!currentCIE.type) {
-      allErrors.push(`CIE ${activeCIE + 1}: Type of evaluation is required`)
+      allErrors.push(`CIE ${activeCIE + 1}: Type of evaluation is required`);
     }
 
     if (currentCIE.type !== "Course Prerequisites CIE") {
-      if (currentCIE.type === "Practical CIE" || currentCIE.type === "Internal Practical") {
-        if (!currentCIE.practicals_covered || currentCIE.practicals_covered.length === 0) {
-          allErrors.push(`CIE ${activeCIE + 1}: Practicals covered is required`)
+      if (
+        currentCIE.type === "Practical CIE" ||
+        currentCIE.type === "Internal Practical"
+      ) {
+        if (
+          !currentCIE.practicals_covered ||
+          currentCIE.practicals_covered.length === 0
+        ) {
+          allErrors.push(
+            `CIE ${activeCIE + 1}: Practicals covered is required`
+          );
         }
       } else {
-        if (!currentCIE.units_covered || currentCIE.units_covered.length === 0) {
-          allErrors.push(`CIE ${activeCIE + 1}: Units covered is required`)
+        if (
+          !currentCIE.units_covered ||
+          currentCIE.units_covered.length === 0
+        ) {
+          allErrors.push(`CIE ${activeCIE + 1}: Units covered is required`);
         }
       }
     }
 
     if (!currentCIE.date) {
-      allErrors.push(`CIE ${activeCIE + 1}: Date is required`)
+      allErrors.push(`CIE ${activeCIE + 1}: Date is required`);
     }
 
     if (!currentCIE.marks || currentCIE.marks < 1) {
-      allErrors.push(`CIE ${activeCIE + 1}: Marks must be at least 1`)
+      allErrors.push(`CIE ${activeCIE + 1}: Marks must be at least 1`);
     }
 
     if (!currentCIE.duration || currentCIE.duration < 1) {
-      allErrors.push(`CIE ${activeCIE + 1}: Duration must be at least 1 minute`)
+      allErrors.push(
+        `CIE ${activeCIE + 1}: Duration must be at least 1 minute`
+      );
     }
 
-    if (!currentCIE.blooms_taxonomy || currentCIE.blooms_taxonomy.length === 0) {
-      allErrors.push(`CIE ${activeCIE + 1}: At least one Bloom's taxonomy level is required`)
+    if (
+      !currentCIE.blooms_taxonomy ||
+      currentCIE.blooms_taxonomy.length === 0
+    ) {
+      allErrors.push(
+        `CIE ${activeCIE + 1}: At least one Bloom's taxonomy level is required`
+      );
     }
 
     if (!currentCIE.evaluation_pedagogy) {
-      allErrors.push(`CIE ${activeCIE + 1}: Evaluation pedagogy is required`)
+      allErrors.push(`CIE ${activeCIE + 1}: Evaluation pedagogy is required`);
     }
 
     if (
       currentCIE.evaluation_pedagogy === "Other" &&
       (!currentCIE.other_pedagogy || currentCIE.other_pedagogy.trim() === "")
     ) {
-      allErrors.push(`CIE ${activeCIE + 1}: Please specify the custom pedagogy when selecting "Other"`)
+      allErrors.push(
+        `CIE ${
+          activeCIE + 1
+        }: Please specify the custom pedagogy when selecting "Other"`
+      );
     }
 
-    const requiresCOMapping = ["Theory CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"]
-    if (requiresCOMapping.includes(currentCIE.type) && (!currentCIE.co_mapping || currentCIE.co_mapping.length === 0)) {
-      allErrors.push(`CIE ${activeCIE + 1}: CO mapping is required for ${currentCIE.type}`)
+    const requiresCOMapping = [
+      "Theory CIE",
+      "Course Prerequisites CIE",
+      "Mid-term/Internal Exam",
+    ];
+    if (
+      requiresCOMapping.includes(currentCIE.type) &&
+      (!currentCIE.co_mapping || currentCIE.co_mapping.length === 0)
+    ) {
+      allErrors.push(
+        `CIE ${activeCIE + 1}: CO mapping is required for ${currentCIE.type}`
+      );
     }
 
     if (
       !currentCIE.skill_mapping ||
       currentCIE.skill_mapping.length === 0 ||
-      currentCIE.skill_mapping.some((skill: any) => !skill.skill || !skill.details)
+      currentCIE.skill_mapping.some(
+        (skill: any) => !skill.skill || !skill.details
+      )
     ) {
-      allErrors.push(`CIE ${activeCIE + 1}: All skill mappings must have both skill and details`)
+      allErrors.push(
+        `CIE ${
+          activeCIE + 1
+        }: All skill mappings must have both skill and details`
+      );
     }
 
     // ADDED: Validate faculty assignment if subject is shared
     if (facultySharingData?.isSharing && !currentCIE.assigned_faculty_id) {
-      allErrors.push(`CIE ${activeCIE + 1}: Please assign this CIE to a faculty member`)
+      allErrors.push(
+        `CIE ${activeCIE + 1}: Please assign this CIE to a faculty member`
+      );
     }
 
     // Add comprehensive validation errors from the backend validation
-    const { errors: backendErrors, warnings } = validateAllCIEs()
-    allErrors.push(...backendErrors)
+    const { errors: backendErrors, warnings } = validateAllCIEs();
+    allErrors.push(...backendErrors);
 
     // FIXED: Check for Course Prerequisites CIE date validation specifically using subjects table data
-    if (currentCIE.type === "Course Prerequisites CIE" && currentCIE.date && lessonPlan.subject?.id) {
+    if (
+      currentCIE.type === "Course Prerequisites CIE" &&
+      currentCIE.date &&
+      lessonPlan.subject?.id
+    ) {
       try {
         // Get term dates directly from subjects table
         const { data: subjectData, error } = await supabase
           .from("subjects")
           .select("metadata")
           .eq("id", lessonPlan.subject.id)
-          .single()
+          .single();
 
         if (!error && subjectData?.metadata?.term_start_date) {
-          let termStartDate: Date | null = null
+          let termStartDate: Date | null = null;
 
           // Handle different date formats from metadata
           if (typeof subjectData.metadata.term_start_date === "string") {
             if (subjectData.metadata.term_start_date.includes("T")) {
               // ISO format: "2025-10-04T18:30:00.000Z"
-              termStartDate = new Date(subjectData.metadata.term_start_date)
+              termStartDate = new Date(subjectData.metadata.term_start_date);
             } else {
               // DD-MM-YYYY format: "04-10-2025"
-              termStartDate = parseDDMMYYYYToDate(subjectData.metadata.term_start_date)
+              termStartDate = parseDDMMYYYYToDate(
+                subjectData.metadata.term_start_date
+              );
             }
           }
 
           if (termStartDate) {
-            const cieDate = parseDDMMYYYYToDate(currentCIE.date)
+            const cieDate = parseDDMMYYYYToDate(currentCIE.date);
 
             if (cieDate) {
-              const isWithin10Days = isDateWithinDays(cieDate, termStartDate, 10)
+              const isWithin10Days = isDateWithinDays(
+                cieDate,
+                termStartDate,
+                10
+              );
 
               if (!isWithin10Days) {
-                const daysDiff = getDaysDifference(cieDate, termStartDate)
+                const daysDiff = getDaysDifference(cieDate, termStartDate);
                 allErrors.push(
-                  `CIE ${activeCIE + 1} (Course Prerequisites CIE): Must be within 10 days of term start date (currently ${daysDiff} days apart)`,
-                )
+                  `CIE ${
+                    activeCIE + 1
+                  } (Course Prerequisites CIE): Must be within 10 days of term start date (currently ${daysDiff} days apart)`
+                );
               }
             }
           }
         }
       } catch (error) {
-        console.error("Error fetching subject metadata for validation:", error)
+        console.error("Error fetching subject metadata for validation:", error);
       }
     }
 
     // Display all errors in the red box and stop execution
     if (allErrors.length > 0) {
-      setValidationErrors(allErrors)
-      setValidationWarnings(warnings)
-      toast.error("Please fix all validation errors before saving")
-      setSaving(false)
-      return
+      setValidationErrors(allErrors);
+      setValidationWarnings(warnings);
+      toast.error("Please fix all validation errors before saving");
+      setSaving(false);
+      return;
     }
 
     if (warnings.length > 0) {
-      setValidationWarnings(warnings)
+      setValidationWarnings(warnings);
     }
 
     // Continue with save logic...
     try {
       // ADDED: Validate that all CIEs are assigned if sharing is enabled
       if (facultySharingData?.isSharing) {
-        const unassignedCIEs = (lessonPlan.cies || []).filter((cie: any) => !cie.assigned_faculty_id)
+        const unassignedCIEs = (lessonPlan.cies || []).filter(
+          (cie: any) => !cie.assigned_faculty_id
+        );
         if (unassignedCIEs.length > 0) {
-          toast.error("Please assign all CIE assessments to a faculty member.")
-          setSaving(false)
-          return
+          toast.error("Please assign all CIE assessments to a faculty member.");
+          setSaving(false);
+          return;
         }
       }
 
@@ -1580,61 +1852,69 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         subject_id: lessonPlan.subject?.id || "",
         cies_count: lessonPlan.cies?.length,
         remarks: lessonPlan.cie_remarks,
-      })
+      });
 
       const result = await saveCIEPlanningForm({
         faculty_id: lessonPlan.faculty?.id || userData?.id || "",
         subject_id: lessonPlan.subject?.id || "",
         cies: lessonPlan.cies,
         remarks: lessonPlan.cie_remarks,
-      })
+      });
 
-      console.log("🔍 FRONTEND: Save result received:", result)
+      console.log("🔍 FRONTEND: Save result received:", result);
 
       if (result.success) {
-        toast.success("CIE details saved successfully")
-        setValidationErrors([])
-        setValidationWarnings([])
+        toast.success("CIE details saved successfully");
+        setValidationErrors([]);
+        setValidationWarnings([]);
 
         setLessonPlan((prev: any) => ({
           ...prev,
           cie_planning_completed: true,
-        }))
+        }));
 
         // Clear the draft after successful submission
-        await clearDraft()
+        await clearDraft();
       } else {
-        console.error("🔍 FRONTEND: Save failed with error:", result.error)
+        console.error("🔍 FRONTEND: Save failed with error:", result.error);
 
         // Display backend validation errors in the red box
         if (result.error) {
           const backendErrors = result.error
             .split(";")
             .map((err) => err.trim())
-            .filter((err) => err.length > 0)
-          setValidationErrors(backendErrors)
+            .filter((err) => err.length > 0);
+          setValidationErrors(backendErrors);
         }
 
-        toast.error("Please fix validation errors before saving")
+        toast.error("Please fix validation errors before saving");
       }
     } catch (error) {
-      console.error("🔍 FRONTEND: === FRONTEND CATCH ERROR ===")
-      console.error("🔍 FRONTEND: Error type:", typeof error)
-      console.error("🔍 FRONTEND: Error constructor:", error?.constructor?.name)
-      console.error("🔍 FRONTEND: Error message:", error?.message)
-      console.error("🔍 FRONTEND: Error stack:", error?.stack)
-      console.error("🔍 FRONTEND: Full error object:", error)
-      console.error("🔍 FRONTEND: JSON stringified error:", JSON.stringify(error, Object.getOwnPropertyNames(error)))
+      console.error("🔍 FRONTEND: === FRONTEND CATCH ERROR ===");
+      console.error("🔍 FRONTEND: Error type:", typeof error);
+      console.error(
+        "🔍 FRONTEND: Error constructor:",
+        error?.constructor?.name
+      );
+      console.error("🔍 FRONTEND: Error message:", error?.message);
+      console.error("🔍 FRONTEND: Error stack:", error?.stack);
+      console.error("🔍 FRONTEND: Full error object:", error);
+      console.error(
+        "🔍 FRONTEND: JSON stringified error:",
+        JSON.stringify(error, Object.getOwnPropertyNames(error))
+      );
 
-      setValidationErrors(["An unexpected error occurred while saving. Please try again."])
-      toast.error("An unexpected error occurred")
+      setValidationErrors([
+        "An unexpected error occurred while saving. Please try again.",
+      ]);
+      toast.error("An unexpected error occurred");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
-  const currentCIEs = lessonPlan.cies || []
-  const currentCIE = currentCIEs[activeCIE]
+  const currentCIEs = lessonPlan.cies || [];
+  const currentCIE = currentCIEs[activeCIE];
 
   // FIXED: Add loading check for userData
   if (!userData) {
@@ -1644,15 +1924,15 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
           <p className="text-lg">Loading user data...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!currentCIE) {
-    return <div>Loading...</div>
+    return <div>Loading...</div>;
   }
 
   if (!currentCIE.skill_mapping || !Array.isArray(currentCIE.skill_mapping)) {
-    currentCIE.skill_mapping = [{ skill: "", details: "" }]
+    currentCIE.skill_mapping = [{ skill: "", details: "" }];
   }
 
   return (
@@ -1706,31 +1986,45 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
                 <Users className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h4 className="font-bold text-blue-800">Shared Subject Detected</h4>
+                <h4 className="font-bold text-blue-800">
+                  Shared Subject Detected
+                </h4>
                 <p className="text-sm text-blue-600">
-                  This subject is shared among multiple faculty members. Please assign each CIE assessment to the
-                  appropriate faculty.
+                  This subject is shared among multiple faculty members. Please
+                  assign each CIE assessment to the appropriate faculty.
                 </p>
               </div>
             </div>
-            <Badge variant="default" className="bg-blue-600 text-white px-3 py-1">
+            <Badge
+              variant="default"
+              className="bg-blue-600 text-white px-3 py-1"
+            >
               {facultySharingData.allFaculty?.length || 0} Faculty Sharing
             </Badge>
           </div>
 
           <div className="mt-3 grid grid-cols-2 gap-4">
             <div className="bg-white rounded p-3 border border-blue-200">
-              <span className="text-sm font-medium text-gray-700">Primary Faculty:</span>
+              <span className="text-sm font-medium text-gray-700">
+                Primary Faculty:
+              </span>
               <p className="font-semibold text-blue-800">
                 {String(facultySharingData.primaryFaculty || "Not assigned")}
               </p>
             </div>
             <div className="bg-white rounded p-3 border border-blue-200">
-              <span className="text-sm font-medium text-gray-700">Secondary Faculty:</span>
+              <span className="text-sm font-medium text-gray-700">
+                Secondary Faculty:
+              </span>
               <p className="font-semibold text-blue-800">
-                {facultySharingData.allFaculty && facultySharingData.allFaculty.length > 1
+                {facultySharingData.allFaculty &&
+                facultySharingData.allFaculty.length > 1
                   ? facultySharingData.allFaculty
-                      .filter((f: any) => getFacultyName(f) !== facultySharingData.primaryFaculty)
+                      .filter(
+                        (f: any) =>
+                          getFacultyName(f) !==
+                          facultySharingData.primaryFaculty
+                      )
                       .map((f: any) => getFacultyName(f))
                       .join(", ")
                   : "Not assigned"}
@@ -1748,8 +2042,10 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
             <div className="text-blue-800">
               <h4 className="font-semibold mb-1">First Semester Information</h4>
               <p className="text-sm">
-                For 1st semester subjects, <strong>Course Prerequisites CIE is optional</strong>. If you don't include
-                Prerequisites CIE, CO coverage will be validated across Theory CIEs and Mid-term/Internal Exam only.
+                For 1st semester subjects,{" "}
+                <strong>Course Prerequisites CIE is optional</strong>. If you
+                don't include Prerequisites CIE, CO coverage will be validated
+                across Theory CIEs and Mid-term/Internal Exam only.
               </p>
             </div>
           </div>
@@ -1771,7 +2067,9 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
               title={
                 facultySharingData?.isSharing && cie.assigned_faculty_id
                   ? `Assigned to: ${getFacultyName(
-                      facultySharingData.allFaculty?.find((f: any) => f.id === cie.assigned_faculty_id),
+                      facultySharingData.allFaculty?.find(
+                        (f: any) => f.id === cie.assigned_faculty_id
+                      )
                     )}`
                   : undefined
               }
@@ -1792,13 +2090,20 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
               {facultySharingData?.isSharing && cie.assigned_faculty_id && (
                 <Badge variant="outline" className="text-xs bg-white ml-1">
                   {getFacultyInitials(
-                    facultySharingData.allFaculty?.find((f: any) => f.id === cie.assigned_faculty_id),
+                    facultySharingData.allFaculty?.find(
+                      (f: any) => f.id === cie.assigned_faculty_id
+                    )
                   )}
                 </Badge>
               )}
             </Button>
           ))}
-          <Button type="button" variant="outline" onClick={addCIE} className="whitespace-nowrap">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addCIE}
+            className="whitespace-nowrap"
+          >
             <Plus className="h-4 w-4 mr-1" />
             Add CIE
           </Button>
@@ -1825,18 +2130,28 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
           </h4>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
             {currentCIEs.map((cie: any, index: number) => {
-              const assignedFacultyId = cie.assigned_faculty_id
+              const assignedFacultyId = cie.assigned_faculty_id;
               const facultyName = assignedFacultyId
-                ? getFacultyName(facultySharingData.allFaculty?.find((f: any) => f.id === assignedFacultyId))
-                : "Unassigned"
+                ? getFacultyName(
+                    facultySharingData.allFaculty?.find(
+                      (f: any) => f.id === assignedFacultyId
+                    )
+                  )
+                : "Unassigned";
               return (
-                <div key={cie.id} className="flex items-center justify-between bg-white rounded p-1.5 border text-sm">
+                <div
+                  key={cie.id}
+                  className="flex items-center justify-between bg-white rounded p-1.5 border text-sm"
+                >
                   <span className="font-medium">CIE {index + 1}</span>
-                  <Badge variant={assignedFacultyId ? "default" : "secondary"} className="text-xs">
+                  <Badge
+                    variant={assignedFacultyId ? "default" : "secondary"}
+                    className="text-xs"
+                  >
                     {facultyName}
                   </Badge>
                 </div>
-              )
+              );
             })}
           </div>
         </div>
@@ -1851,10 +2166,14 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         {facultySharingData?.isSharing && (
           <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
             <Users className="h-5 w-5 text-blue-600" />
-            <span className="text-sm font-semibold text-blue-800">Faculty Assignment:</span>
+            <span className="text-sm font-semibold text-blue-800">
+              Faculty Assignment:
+            </span>
             <Select
               value={currentCIE.assigned_faculty_id || ""}
-              onValueChange={(value) => handleCIEChange(activeCIE, "assigned_faculty_id", value)}
+              onValueChange={(value) =>
+                handleCIEChange(activeCIE, "assigned_faculty_id", value)
+              }
             >
               <SelectTrigger className="w-[200px] bg-white border-blue-300">
                 <SelectValue placeholder="Select Faculty" />
@@ -1877,7 +2196,12 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         <div className="grid grid-cols-2 gap-6">
           <div>
             <Label htmlFor="type-of-evaluation">Type of Evaluation *</Label>
-            <Select value={currentCIE.type || ""} onValueChange={(value) => handleCIEChange(activeCIE, "type", value)}>
+            <Select
+              value={currentCIE.type || ""}
+              onValueChange={(value) =>
+                handleCIEChange(activeCIE, "type", value)
+              }
+            >
               <SelectTrigger id="type-of-evaluation" className="mt-1">
                 <SelectValue placeholder="Select Type" />
               </SelectTrigger>
@@ -1894,26 +2218,36 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
           {/* Units/Practicals Covered */}
           <div>
             <Label htmlFor="units-covered">
-              {currentCIE.type === "Practical CIE" || currentCIE.type === "Internal Practical"
+              {currentCIE.type === "Practical CIE" ||
+              currentCIE.type === "Internal Practical"
                 ? "Practicals Covered *"
                 : "Units Covered *"}
             </Label>
             <Select
-              value={currentCIE.type === "Course Prerequisites CIE" ? "disabled" : ""}
+              value={
+                currentCIE.type === "Course Prerequisites CIE" ? "disabled" : ""
+              }
               disabled={currentCIE.type === "Course Prerequisites CIE"}
               onValueChange={(value) => {
-                if (currentCIE.type === "Practical CIE" || currentCIE.type === "Internal Practical") {
-                  const currentPracticals = currentCIE.practicals_covered || []
+                if (
+                  currentCIE.type === "Practical CIE" ||
+                  currentCIE.type === "Internal Practical"
+                ) {
+                  const currentPracticals = currentCIE.practicals_covered || [];
                   const updatedPracticals = currentPracticals.includes(value)
                     ? currentPracticals.filter((id) => id !== value)
-                    : [...currentPracticals, value]
-                  handleCIEChange(activeCIE, "practicals_covered", updatedPracticals)
+                    : [...currentPracticals, value];
+                  handleCIEChange(
+                    activeCIE,
+                    "practicals_covered",
+                    updatedPracticals
+                  );
                 } else {
-                  const currentUnits = currentCIE.units_covered || []
+                  const currentUnits = currentCIE.units_covered || [];
                   const updatedUnits = currentUnits.includes(value)
                     ? currentUnits.filter((id) => id !== value)
-                    : [...currentUnits, value]
-                  handleCIEChange(activeCIE, "units_covered", updatedUnits)
+                    : [...currentUnits, value];
+                  handleCIEChange(activeCIE, "units_covered", updatedUnits);
                 }
               }}
             >
@@ -1922,42 +2256,57 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
                   placeholder={
                     currentCIE.type === "Course Prerequisites CIE"
                       ? "N/A for Prerequisites CIE"
-                      : currentCIE.type === "Practical CIE" || currentCIE.type === "Internal Practical"
-                        ? `${(currentCIE.practicals_covered || []).length} practical(s) selected`
-                        : `${(currentCIE.units_covered || []).length} unit(s) selected`
+                      : currentCIE.type === "Practical CIE" ||
+                        currentCIE.type === "Internal Practical"
+                      ? `${
+                          (currentCIE.practicals_covered || []).length
+                        } practical(s) selected`
+                      : `${
+                          (currentCIE.units_covered || []).length
+                        } unit(s) selected`
                   }
                 />
               </SelectTrigger>
               <SelectContent>
-                {currentCIE.type === "Practical CIE" || currentCIE.type === "Internal Practical"
-                  ? lessonPlan.practicals?.map((practical: any, index: number) => (
+                {currentCIE.type === "Practical CIE" ||
+                currentCIE.type === "Internal Practical"
+                  ? lessonPlan.practicals?.map(
+                      (practical: any, index: number) => (
+                        <SelectItem
+                          key={practical.id || `practical-${index}`}
+                          value={practical.id || `practical-${index}`}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={(
+                                currentCIE.practicals_covered || []
+                              ).includes(practical.id || `practical-${index}`)}
+                              onChange={() => {}}
+                              className="mr-2"
+                            />
+                            Practical {index + 1}:{" "}
+                            {practical.practical_aim || "No aim specified"}
+                          </div>
+                        </SelectItem>
+                      )
+                    )
+                  : lessonPlan.units?.map((unit: any, index: number) => (
                       <SelectItem
-                        key={practical.id || `practical-${index}`}
-                        value={practical.id || `practical-${index}`}
+                        key={unit.id || `unit-${index}`}
+                        value={unit.id || `unit-${index}`}
                       >
                         <div className="flex items-center space-x-2">
                           <input
                             type="checkbox"
-                            checked={(currentCIE.practicals_covered || []).includes(
-                              practical.id || `practical-${index}`,
+                            checked={(currentCIE.units_covered || []).includes(
+                              unit.id || `unit-${index}`
                             )}
                             onChange={() => {}}
                             className="mr-2"
                           />
-                          Practical {index + 1}: {practical.practical_aim || "No aim specified"}
-                        </div>
-                      </SelectItem>
-                    ))
-                  : lessonPlan.units?.map((unit: any, index: number) => (
-                      <SelectItem key={unit.id || `unit-${index}`} value={unit.id || `unit-${index}`}>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={(currentCIE.units_covered || []).includes(unit.id || `unit-${index}`)}
-                            onChange={() => {}}
-                            className="mr-2"
-                          />
-                          Unit {index + 1}: {unit.unit_name || "No name specified"}
+                          Unit {index + 1}:{" "}
+                          {unit.unit_name || "No name specified"}
                         </div>
                       </SelectItem>
                     ))}
@@ -1965,50 +2314,84 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
             </Select>
 
             {/* Display selected items */}
-            {currentCIE.type === "Practical CIE" || currentCIE.type === "Internal Practical"
+            {currentCIE.type === "Practical CIE" ||
+            currentCIE.type === "Internal Practical"
               ? currentCIE.practicals_covered &&
                 currentCIE.practicals_covered.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {currentCIE.practicals_covered.map((practicalId: string) => {
-                      const practical = lessonPlan.practicals?.find((p: any) => p.id === practicalId)
-                      const practicalIndex = lessonPlan.practicals?.findIndex((p: any) => p.id === practicalId)
-                      return (
-                        <Badge key={practicalId} variant="secondary" className="text-xs">
-                          Practical {(practicalIndex || 0) + 1}: {practical?.practical_aim || "Unknown"}
-                          <button
-                            onClick={() => {
-                              const updated = currentCIE.practicals_covered.filter((id: string) => id !== practicalId)
-                              handleCIEChange(activeCIE, "practicals_covered", updated)
-                            }}
-                            className="ml-1 text-red-500 hover:text-red-700"
+                    {currentCIE.practicals_covered.map(
+                      (practicalId: string) => {
+                        const practical = lessonPlan.practicals?.find(
+                          (p: any) => p.id === practicalId
+                        );
+                        const practicalIndex = lessonPlan.practicals?.findIndex(
+                          (p: any) => p.id === practicalId
+                        );
+                        return (
+                          <Badge
+                            key={practicalId}
+                            variant="secondary"
+                            className="text-xs"
                           >
-                            ×
-                          </button>
-                        </Badge>
-                      )
-                    })}
+                            Practical {(practicalIndex || 0) + 1}:{" "}
+                            {practical?.practical_aim || "Unknown"}
+                            <button
+                              onClick={() => {
+                                const updated =
+                                  currentCIE.practicals_covered.filter(
+                                    (id: string) => id !== practicalId
+                                  );
+                                handleCIEChange(
+                                  activeCIE,
+                                  "practicals_covered",
+                                  updated
+                                );
+                              }}
+                              className="ml-1 text-red-500 hover:text-red-700"
+                            >
+                              ×
+                            </button>
+                          </Badge>
+                        );
+                      }
+                    )}
                   </div>
                 )
               : currentCIE.units_covered &&
                 currentCIE.units_covered.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {currentCIE.units_covered.map((unitId: string) => {
-                      const unit = lessonPlan.units?.find((u: any) => u.id === unitId)
-                      const unitIndex = lessonPlan.units?.findIndex((u: any) => u.id === unitId)
+                      const unit = lessonPlan.units?.find(
+                        (u: any) => u.id === unitId
+                      );
+                      const unitIndex = lessonPlan.units?.findIndex(
+                        (u: any) => u.id === unitId
+                      );
                       return (
-                        <Badge key={unitId} variant="secondary" className="text-xs">
-                          Unit {(unitIndex || 0) + 1}: {unit?.unit_name || "Unknown"}
+                        <Badge
+                          key={unitId}
+                          variant="secondary"
+                          className="text-xs"
+                        >
+                          Unit {(unitIndex || 0) + 1}:{" "}
+                          {unit?.unit_name || "Unknown"}
                           <button
                             onClick={() => {
-                              const updated = currentCIE.units_covered.filter((id: string) => id !== unitId)
-                              handleCIEChange(activeCIE, "units_covered", updated)
+                              const updated = currentCIE.units_covered.filter(
+                                (id: string) => id !== unitId
+                              );
+                              handleCIEChange(
+                                activeCIE,
+                                "units_covered",
+                                updated
+                              );
                             }}
                             className="ml-1 text-red-500 hover:text-red-700"
                           >
                             ×
                           </button>
                         </Badge>
-                      )
+                      );
                     })}
                   </div>
                 )}
@@ -2023,11 +2406,15 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
               id="date"
               type="date"
               value={convertDDMMYYYYToYYYYMMDD(currentCIE.date || "")}
-              onChange={(e) => handleCIEChange(activeCIE, "date", e.target.value)}
+              onChange={(e) =>
+                handleCIEChange(activeCIE, "date", e.target.value)
+              }
               className="mt-1"
             />
             {currentCIE.type === "Course Prerequisites CIE" && (
-              <p className="text-xs text-amber-600 mt-1">Must be within 10 days of term start date</p>
+              <p className="text-xs text-amber-600 mt-1">
+                Must be within 10 days of term start date
+              </p>
             )}
           </div>
           <div>
@@ -2037,7 +2424,9 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
               type="number"
               min="1"
               value={currentCIE.marks || ""}
-              onChange={(e) => handleCIEChange(activeCIE, "marks", Number(e.target.value))}
+              onChange={(e) =>
+                handleCIEChange(activeCIE, "marks", Number(e.target.value))
+              }
               className="mt-1"
             />
           </div>
@@ -2047,31 +2436,43 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
               id="duration"
               type="number"
               min="30"
-              max={currentCIE.evaluation_pedagogy === "Objective-Based Assessment (Quiz/MCQ)" ? "50" : undefined}
+              max={
+                currentCIE.evaluation_pedagogy ===
+                "Objective-Based Assessment (Quiz/MCQ)"
+                  ? "50"
+                  : undefined
+              }
               value={currentCIE.duration || ""}
               onChange={(e) => {
-                const value = Number(e.target.value)
-                handleCIEChange(activeCIE, "duration", value)
+                const value = Number(e.target.value);
+                handleCIEChange(activeCIE, "duration", value);
               }}
               onBlur={() => {
                 // Recalculate and validate on blur
-                const marks = currentCIE.marks || 0
-                const blooms = currentCIE.blooms_taxonomy || []
+                const marks = currentCIE.marks || 0;
+                const blooms = currentCIE.blooms_taxonomy || [];
 
                 // For 50 marks, enforce 150 minutes
                 if (marks === 50) {
-                  handleCIEChange(activeCIE, "duration", 150)
+                  handleCIEChange(activeCIE, "duration", 150);
                   if (currentCIE.duration !== 150) {
-                    toast.info("Duration automatically adjusted to 150 minutes for 50 marks")
+                    toast.info(
+                      "Duration automatically adjusted to 150 minutes for 50 marks"
+                    );
                   }
-                  return
+                  return;
                 }
 
-                const minDuration = Math.max(calculateMinimumDuration(marks, blooms), 30)
+                const minDuration = Math.max(
+                  calculateMinimumDuration(marks, blooms),
+                  30
+                );
 
                 if (currentCIE.duration < minDuration) {
-                  handleCIEChange(activeCIE, "duration", minDuration)
-                  toast.info(`Duration automatically adjusted to minimum required: ${minDuration} minutes`)
+                  handleCIEChange(activeCIE, "duration", minDuration);
+                  toast.info(
+                    `Duration automatically adjusted to minimum required: ${minDuration} minutes`
+                  );
                 }
               }}
               className="mt-1"
@@ -2081,11 +2482,19 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
               {currentCIE.marks && currentCIE.blooms_taxonomy?.length > 0 && (
                 <span className="text-blue-600">
                   {" "}
-                  Recommended: {Math.max(calculateMinimumDuration(currentCIE.marks, currentCIE.blooms_taxonomy), 30)}{" "}
+                  Recommended:{" "}
+                  {Math.max(
+                    calculateMinimumDuration(
+                      currentCIE.marks,
+                      currentCIE.blooms_taxonomy
+                    ),
+                    30
+                  )}{" "}
                   minutes based on marks and Bloom's levels.
                 </span>
               )}
-              {currentCIE.evaluation_pedagogy === "Objective-Based Assessment (Quiz/MCQ)" &&
+              {currentCIE.evaluation_pedagogy ===
+                "Objective-Based Assessment (Quiz/MCQ)" &&
                 " Maximum 50 minutes for Quiz/MCQ."}
             </p>
           </div>
@@ -2101,30 +2510,37 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
           </Label>
           <div className="grid grid-cols-3 gap-4 mt-2">
             {bloomsTaxonomyOptions.map((level) => {
-              const semester = lessonPlan.subject?.semester || 1
-              const isDisabled = semester > 2 && level === "Remember"
+              const semester = lessonPlan.subject?.semester || 1;
+              const isDisabled = semester > 2 && level === "Remember";
 
               // Count usage of this level across all CIEs
               const levelUsage = currentCIEs
                 .filter((cie: any, i: number) => i !== activeCIE)
                 .flatMap((cie: any) => cie.blooms_taxonomy || [])
-                .filter((bloom: string) => bloom === level).length
+                .filter((bloom: string) => bloom === level).length;
 
-              const isRememberDisabled = level === "Remember" && levelUsage >= 1
-              const isUnderstandDisabled = level === "Understand" && levelUsage >= 2
+              const isRememberDisabled =
+                level === "Remember" && levelUsage >= 1;
+              const isUnderstandDisabled =
+                level === "Understand" && levelUsage >= 2;
 
-              const finalDisabled = isDisabled || isRememberDisabled || isUnderstandDisabled
+              const finalDisabled =
+                isDisabled || isRememberDisabled || isUnderstandDisabled;
 
               return (
                 <div key={level} className="flex items-center space-x-2">
                   <Checkbox
                     id={`bloom-${level}`}
-                    checked={currentCIE.blooms_taxonomy?.includes(level) || false}
+                    checked={
+                      currentCIE.blooms_taxonomy?.includes(level) || false
+                    }
                     disabled={finalDisabled}
                     onCheckedChange={(checked) => {
-                      const current = currentCIE.blooms_taxonomy || []
-                      const updated = checked ? [...current, level] : current.filter((l: string) => l !== level)
-                      handleCIEChange(activeCIE, "blooms_taxonomy", updated)
+                      const current = currentCIE.blooms_taxonomy || [];
+                      const updated = checked
+                        ? [...current, level]
+                        : current.filter((l: string) => l !== level);
+                      handleCIEChange(activeCIE, "blooms_taxonomy", updated);
                     }}
                   />
                   <Label
@@ -2134,21 +2550,30 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
                       isRememberDisabled
                         ? "Remember can be used maximum once across all CIEs"
                         : isUnderstandDisabled
-                          ? "Understand can be used maximum twice across all CIEs"
-                          : ""
+                        ? "Understand can be used maximum twice across all CIEs"
+                        : ""
                     }
                   >
                     {level}
-                    {level === "Remember" && <span className="text-xs text-amber-600 ml-1">(max 1)</span>}
-                    {level === "Understand" && <span className="text-xs text-amber-600 ml-1">(max 2)</span>}
+                    {level === "Remember" && (
+                      <span className="text-xs text-amber-600 ml-1">
+                        (max 1)
+                      </span>
+                    )}
+                    {level === "Understand" && (
+                      <span className="text-xs text-amber-600 ml-1">
+                        (max 2)
+                      </span>
+                    )}
                   </Label>
                 </div>
-              )
+              );
             })}
           </div>
           {lessonPlan.subject?.semester > 2 && (
             <p className="text-xs text-amber-600 mt-2">
-              'Remember' level is disabled for semester {lessonPlan.subject.semester}
+              'Remember' level is disabled for semester{" "}
+              {lessonPlan.subject.semester}
             </p>
           )}
         </div>
@@ -2158,13 +2583,17 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
           <Label htmlFor="evaluation-pedagogy">Evaluation Pedagogy *</Label>
           <Select
             value={currentCIE.evaluation_pedagogy || ""}
-            onValueChange={(value) => handleCIEChange(activeCIE, "evaluation_pedagogy", value)}
+            onValueChange={(value) =>
+              handleCIEChange(activeCIE, "evaluation_pedagogy", value)
+            }
           >
             <SelectTrigger id="evaluation-pedagogy" className="mt-1">
               <SelectValue placeholder="Select Evaluation Pedagogy" />
             </SelectTrigger>
             <SelectContent>
-              <div className="px-2 py-1 text-sm font-semibold text-gray-700">Traditional Pedagogy</div>
+              <div className="px-2 py-1 text-sm font-semibold text-gray-700">
+                Traditional Pedagogy
+              </div>
               {evaluationPedagogyOptions.traditional.map((pedagogy) => (
                 <SelectItem key={pedagogy} value={pedagogy}>
                   {pedagogy}
@@ -2177,11 +2606,15 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
                 <SelectItem key={pedagogy} value={pedagogy}>
                   {pedagogy}
                   {pedagogy === "Open Book Assessment" && (
-                    <span className="text-xs text-amber-600 ml-1">(only Analyze, Evaluate, Create levels)</span>
+                    <span className="text-xs text-amber-600 ml-1">
+                      (only Analyze, Evaluate, Create levels)
+                    </span>
                   )}
                 </SelectItem>
               ))}
-              <div className="px-2 py-1 text-sm font-semibold text-gray-700 border-t mt-2 pt-2">Other</div>
+              <div className="px-2 py-1 text-sm font-semibold text-gray-700 border-t mt-2 pt-2">
+                Other
+              </div>
               {evaluationPedagogyOptions.other.map((pedagogy) => (
                 <SelectItem key={pedagogy} value={pedagogy}>
                   {pedagogy}
@@ -2191,7 +2624,8 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
           </Select>
           {currentCIE.evaluation_pedagogy === "Open Book Assessment" && (
             <p className="text-xs text-amber-600 mt-1">
-              Open Book Assessment only allows Analyze, Evaluate, and Create levels
+              Open Book Assessment only allows Analyze, Evaluate, and Create
+              levels
             </p>
           )}
 
@@ -2201,9 +2635,15 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
               <Input
                 id="other-pedagogy"
                 value={currentCIE.other_pedagogy || ""}
-                onChange={(e) => handleCIEChange(activeCIE, "other_pedagogy", e.target.value)}
+                onChange={(e) =>
+                  handleCIEChange(activeCIE, "other_pedagogy", e.target.value)
+                }
                 placeholder="Enter custom pedagogy"
-                className={`mt-1 ${!currentCIE.other_pedagogy ? "border-red-300 focus:ring-red-500" : ""}`}
+                className={`mt-1 ${
+                  !currentCIE.other_pedagogy
+                    ? "border-red-300 focus:ring-red-500"
+                    : ""
+                }`}
               />
             </div>
           )}
@@ -2215,17 +2655,21 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
           <div>
             <Label>
               CO Mapping{" "}
-              {["Theory CIE", "Course Prerequisites CIE", "Mid-term/Internal Exam"].includes(currentCIE.type)
+              {[
+                "Theory CIE",
+                "Course Prerequisites CIE",
+                "Mid-term/Internal Exam",
+              ].includes(currentCIE.type)
                 ? "*"
                 : ""}
             </Label>
             <Select
               value=""
               onValueChange={(value) => {
-                const current = currentCIE.co_mapping || []
+                const current = currentCIE.co_mapping || [];
                 if (!current.includes(value)) {
-                  const updated = [...current, value]
-                  handleCIEChange(activeCIE, "co_mapping", updated)
+                  const updated = [...current, value];
+                  handleCIEChange(activeCIE, "co_mapping", updated);
                 }
               }}
             >
@@ -2244,22 +2688,28 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
             {/* Selected COs */}
             <div className="mt-2 flex flex-wrap gap-2">
               {(currentCIE.co_mapping || []).map((coId: string) => {
-                const co = lessonPlan.courseOutcomes?.find((c: any) => c.id === coId)
-                const coIndex = lessonPlan.courseOutcomes?.findIndex((c: any) => c.id === coId)
+                const co = lessonPlan.courseOutcomes?.find(
+                  (c: any) => c.id === coId
+                );
+                const coIndex = lessonPlan.courseOutcomes?.findIndex(
+                  (c: any) => c.id === coId
+                );
                 return (
                   <Badge key={coId} variant="secondary" className="text-xs">
                     CO{(coIndex || 0) + 1}: {co?.text || "Unknown"}
                     <button
                       onClick={() => {
-                        const updated = currentCIE.co_mapping.filter((id: string) => id !== coId)
-                        handleCIEChange(activeCIE, "co_mapping", updated)
+                        const updated = currentCIE.co_mapping.filter(
+                          (id: string) => id !== coId
+                        );
+                        handleCIEChange(activeCIE, "co_mapping", updated);
                       }}
                       className="ml-1 text-red-500 hover:text-red-700"
                     >
                       ×
                     </button>
                   </Badge>
-                )
+                );
               })}
             </div>
           </div>
@@ -2274,10 +2724,10 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
                 <Select
                   value=""
                   onValueChange={(value) => {
-                    const current = currentCIE.pso_mapping || []
+                    const current = currentCIE.pso_mapping || [];
                     if (!current.includes(value)) {
-                      const updated = [...current, value]
-                      handleCIEChange(activeCIE, "pso_mapping", updated)
+                      const updated = [...current, value];
+                      handleCIEChange(activeCIE, "pso_mapping", updated);
                     }
                   }}
                 >
@@ -2296,28 +2746,40 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
                 {/* Selected PSOs */}
                 <div className="mt-2 flex flex-wrap gap-2">
                   {(currentCIE.pso_mapping || []).map((psoId: string) => {
-                    const pso = departmentPsoPeo.pso_data.find((p) => p.id === psoId)
-                    const psoIndex = departmentPsoPeo.pso_data.findIndex((p) => p.id === psoId)
+                    const pso = departmentPsoPeo.pso_data.find(
+                      (p) => p.id === psoId
+                    );
+                    const psoIndex = departmentPsoPeo.pso_data.findIndex(
+                      (p) => p.id === psoId
+                    );
                     return (
-                      <Badge key={psoId} variant="secondary" className="text-xs">
-                        {pso?.label || `PSO${psoIndex + 1}`}: {pso?.description || "Unknown"}
+                      <Badge
+                        key={psoId}
+                        variant="secondary"
+                        className="text-xs"
+                      >
+                        {pso?.label || `PSO${psoIndex + 1}`}:{" "}
+                        {pso?.description || "Unknown"}
                         <button
                           onClick={() => {
-                            const updated = currentCIE.pso_mapping.filter((id: string) => id !== psoId)
-                            handleCIEChange(activeCIE, "pso_mapping", updated)
+                            const updated = currentCIE.pso_mapping.filter(
+                              (id: string) => id !== psoId
+                            );
+                            handleCIEChange(activeCIE, "pso_mapping", updated);
                           }}
                           className="ml-1 text-red-500 hover:text-red-700"
                         >
                           ×
                         </button>
                       </Badge>
-                    )
+                    );
                   })}
                 </div>
               </>
             ) : (
               <p className="text-sm text-gray-500 mt-2">
-                No PSO data configured for this department. Please contact your HOD to set up PSO/PEO data.
+                No PSO data configured for this department. Please contact your
+                HOD to set up PSO/PEO data.
               </p>
             )}
           </div>
@@ -2332,10 +2794,10 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
                 <Select
                   value=""
                   onValueChange={(value) => {
-                    const current = currentCIE.peo_mapping || []
+                    const current = currentCIE.peo_mapping || [];
                     if (!current.includes(value)) {
-                      const updated = [...current, value]
-                      handleCIEChange(activeCIE, "peo_mapping", updated)
+                      const updated = [...current, value];
+                      handleCIEChange(activeCIE, "peo_mapping", updated);
                     }
                   }}
                 >
@@ -2354,28 +2816,40 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
                 {/* Selected PEOs */}
                 <div className="mt-2 flex flex-wrap gap-2">
                   {(currentCIE.peo_mapping || []).map((peoId: string) => {
-                    const peo = departmentPsoPeo.peo_data.find((p) => p.id === peoId)
-                    const peoIndex = departmentPsoPeo.peo_data.findIndex((p) => p.id === peoId)
+                    const peo = departmentPsoPeo.peo_data.find(
+                      (p) => p.id === peoId
+                    );
+                    const peoIndex = departmentPsoPeo.peo_data.findIndex(
+                      (p) => p.id === peoId
+                    );
                     return (
-                      <Badge key={peoId} variant="secondary" className="text-xs">
-                        {peo?.label || `PEO${peoIndex + 1}`}: {peo?.description || "Unknown"}
+                      <Badge
+                        key={peoId}
+                        variant="secondary"
+                        className="text-xs"
+                      >
+                        {peo?.label || `PEO${peoIndex + 1}`}:{" "}
+                        {peo?.description || "Unknown"}
                         <button
                           onClick={() => {
-                            const updated = currentCIE.peo_mapping.filter((id: string) => id !== peoId)
-                            handleCIEChange(activeCIE, "peo_mapping", updated)
+                            const updated = currentCIE.peo_mapping.filter(
+                              (id: string) => id !== peoId
+                            );
+                            handleCIEChange(activeCIE, "peo_mapping", updated);
                           }}
                           className="ml-1 text-red-500 hover:text-red-700"
                         >
                           ×
                         </button>
                       </Badge>
-                    )
+                    );
                   })}
                 </div>
               </>
             ) : (
               <p className="text-sm text-gray-500 mt-2">
-                No PEO data configured for this department. Please contact your HOD to set up PSO/PEO data.
+                No PEO data configured for this department. Please contact your
+                HOD to set up PSO/PEO data.
               </p>
             )}
           </div>
@@ -2385,80 +2859,115 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         <div>
           <div className="flex items-center justify-between mb-3">
             <Label>Skill Mapping *</Label>
-            <Button type="button" variant="outline" size="sm" onClick={() => addSkillMapping(activeCIE)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => addSkillMapping(activeCIE)}
+            >
               <Plus className="h-4 w-4 mr-1" />
               Add Skill
             </Button>
           </div>
 
           <div className="space-y-4">
-            {currentCIE.skill_mapping?.map((skillMap: any, skillIndex: number) => (
-              <Card key={skillIndex} className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor={`skill-${skillIndex}`}>Skill</Label>
-                    <Select
-                      value={skillMap.skill || ""}
-                      onValueChange={(value) => handleSkillMappingChange(activeCIE, skillIndex, "skill", value)}
-                    >
-                      <SelectTrigger id={`skill-${skillIndex}`} className="mt-1">
-                        <SelectValue placeholder="Select Skill" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {skillMappingOptions.map((skill) => (
-                          <SelectItem key={skill} value={skill}>
-                            {skill}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    {/* Add this conditional rendering for "Other" skill option */}
-                    {skillMap.skill === "Other" && (
-                      <div className="mt-2">
-                        <Label htmlFor={`other-skill-${skillIndex}`}>Specify Other Skill</Label>
-                        <Input
-                          id={`other-skill-${skillIndex}`}
-                          value={skillMap.otherSkill || ""}
-                          onChange={(e) =>
-                            handleSkillMappingChange(activeCIE, skillIndex, "otherSkill", e.target.value)
-                          }
-                          placeholder="Enter custom skill"
+            {currentCIE.skill_mapping?.map(
+              (skillMap: any, skillIndex: number) => (
+                <Card key={skillIndex} className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor={`skill-${skillIndex}`}>Skill</Label>
+                      <Select
+                        value={skillMap.skill || ""}
+                        onValueChange={(value) =>
+                          handleSkillMappingChange(
+                            activeCIE,
+                            skillIndex,
+                            "skill",
+                            value
+                          )
+                        }
+                      >
+                        <SelectTrigger
+                          id={`skill-${skillIndex}`}
                           className="mt-1"
-                        />
-                      </div>
-                    )}
+                        >
+                          <SelectValue placeholder="Select Skill" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {skillMappingOptions.map((skill) => (
+                            <SelectItem key={skill} value={skill}>
+                              {skill}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      {/* Add this conditional rendering for "Other" skill option */}
+                      {skillMap.skill === "Other" && (
+                        <div className="mt-2">
+                          <Label htmlFor={`other-skill-${skillIndex}`}>
+                            Specify Other Skill
+                          </Label>
+                          <Input
+                            id={`other-skill-${skillIndex}`}
+                            value={skillMap.otherSkill || ""}
+                            onChange={(e) =>
+                              handleSkillMappingChange(
+                                activeCIE,
+                                skillIndex,
+                                "otherSkill",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Enter custom skill"
+                            className="mt-1"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label htmlFor={`skill-details-${skillIndex}`}>
+                        Details
+                      </Label>
+                      <Textarea
+                        id={`skill-details-${skillIndex}`}
+                        value={skillMap.details || ""}
+                        onChange={(e) =>
+                          handleSkillMappingChange(
+                            activeCIE,
+                            skillIndex,
+                            "details",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Skills should be mentioned in measurable terms"
+                        className="mt-1"
+                        rows={3}
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor={`skill-details-${skillIndex}`}>Details</Label>
-                    <Textarea
-                      id={`skill-details-${skillIndex}`}
-                      value={skillMap.details || ""}
-                      onChange={(e) => handleSkillMappingChange(activeCIE, skillIndex, "details", e.target.value)}
-                      placeholder="Skills should be mentioned in measurable terms"
-                      className="mt-1"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-
-                {currentCIE.skill_mapping.length > 1 && (
-                  <div className="flex justify-end mt-3">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 hover:text-red-700"
-                      onClick={() => removeSkillMapping(activeCIE, skillIndex)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Remove
-                    </Button>
-                  </div>
-                )}
-              </Card>
-            ))}
+                  {currentCIE.skill_mapping.length > 1 && (
+                    <div className="flex justify-end mt-3">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700"
+                        onClick={() =>
+                          removeSkillMapping(activeCIE, skillIndex)
+                        }
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Remove
+                      </Button>
+                    </div>
+                  )}
+                </Card>
+              )
+            )}
           </div>
         </div>
 
@@ -2483,13 +2992,26 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
         {/* Save Button */}
         <div className="flex justify-between items-center pt-6 border-t">
           <div className="flex items-center gap-4">
-            {lastSaved && <span className="text-sm text-gray-500">Last saved: {lastSaved.toLocaleTimeString()}</span>}
+            {lastSaved && (
+              <span className="text-sm text-gray-500">
+                Last saved: {lastSaved.toLocaleTimeString()}
+              </span>
+            )}
           </div>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSavingDraft}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSaveDraft}
+              disabled={isSavingDraft}
+            >
               {isSavingDraft ? "Saving..." : "Save Draft"}
             </Button>
-            <Button onClick={handleSave} className="bg-[#1A5CA1] hover:bg-[#154A80]" disabled={saving}>
+            <Button
+              onClick={handleSave}
+              className="bg-[#1A5CA1] hover:bg-[#154A80]"
+              disabled={saving}
+            >
               <Save className="h-4 w-4" />
               {saving ? "Submitting..." : "Submit CIE Planning"}
             </Button>
@@ -2505,12 +3027,15 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
             <DialogDescription>{currentWarning}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setWarningDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setWarningDialogOpen(false)}
+            >
               OK
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
