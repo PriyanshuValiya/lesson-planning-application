@@ -780,7 +780,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
     if (hasOnlyLowerOrder) {
       duration = marks * 2 // 1 mark = 2 minutes for lower order
     } else if (hasHigherOrder) {
-      duration = marks * 3 // 1 mark = 3 minutes for higher order
+      duration = marks * 2 // 1 mark = 3 minutes for higher order
     } else {
       duration = marks * 2.5 // Mixed levels
     }
@@ -1139,7 +1139,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
     const usedAlternative = allPedagogies.filter((pedagogy: string) => alternativePedagogies.includes(pedagogy))
 
     if (usedAlternative.length === 0) {
-      errors.push("At least one alternative pedagogy is required")
+      errors.push("At least one innovative pedagogy is required")
     }
 
     // VALIDATION 9: CO coverage across relevant CIE types
@@ -2171,7 +2171,7 @@ export default function CIEPlanningForm({ lessonPlan, setLessonPlan }: CIEPlanni
                 </SelectItem>
               ))}
               <div className="px-2 py-1 text-sm font-semibold text-gray-700 border-t mt-2 pt-2">
-                Alternative Pedagogy
+                Innovative Pedagogy
               </div>
               {evaluationPedagogyOptions.alternative.map((pedagogy) => (
                 <SelectItem key={pedagogy} value={pedagogy}>
