@@ -844,7 +844,7 @@ export default function PrintLessonPlanPage() {
                 cies: [],
                 showTotal: false,
               },
-              { type: "Theory CIE", cies: [], showTotal: true },
+              { type: "Lacture CIE", cies: [], showTotal: true },
               { type: "Practical CIE", cies: [], showTotal: true },
               { type: "Mid-term/Internal Exam", cies: [], showTotal: false },
             ];
@@ -1113,7 +1113,7 @@ export default function PrintLessonPlanPage() {
                                 <td
                                   className={`border border-black p-2 text-center break-words ${colClasses.evalType}`}
                                 >
-                                  {cie?.type == "Theory CIE"
+                                  {cie?.type == "Lacture CIE"
                                     ? "Theory CIE"
                                     : cie?.type || "-"}
                                 </td>
