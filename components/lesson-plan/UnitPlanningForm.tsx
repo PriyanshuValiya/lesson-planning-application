@@ -768,7 +768,7 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
 
       if (uniqueAlternativePedagogies.size < 2) {
         errors.push(
-          "Minimum 2 different alternative pedagogies must be selected across all units (items 3-15 or Other options)",
+          "Minimum 2 different innovative pedagogies must be selected across all units (items 3-15 or Other options)",
         )
       }
     }
@@ -815,9 +815,9 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
         "Please ensure the following pedagogy requirements are met:\n\n" +
           pedagogyErrors.map((error) => `• ${error}`).join("\n") +
           "\n\nNote: \n" +
-          "- Each unit needs at least one pedagogy (traditional or alternative)\n" +
-          "- If you have multiple units, you need at least 2 different alternative pedagogies across all units\n" +
-          "- Alternative pedagogies include items 3-15 in the dropdown and any 'Other' options you specify.",
+          "- Each unit needs at least one pedagogy (traditional or innovative)\n" +
+          "- If you have multiple units, you need at least 2 different innovative pedagogies across all units\n" +
+          "- Innovative pedagogies include items 3-15 in the dropdown and any 'Other' options you specify.",
       )
       setIsSaving(false)
       return
@@ -959,7 +959,7 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
                 <div>
                   <h3 className="font-semibold">Teaching Pedagogy Requirements:</h3>
                   <p>
-                    At least two alternative pedagogies (items 3-15) must be selected across different units to ensure
+                    At least two innovative pedagogies (items 3-15) must be selected across different units to ensure
                     diverse teaching methods.
                   </p>
                 </div>
@@ -1369,7 +1369,7 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
 
               {/* Alternative Pedagogy */}
               <div className="mb-4 p-4 border border-blue-200 rounded-lg bg-gray-50">
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">Alternative Pedagogy</Label>
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">Innovative Pedagogy</Label>
                 <Select
                   value=""
                   onValueChange={(value) => {
@@ -1381,7 +1381,7 @@ export default function UnitPlanningForm({ lessonPlan, setLessonPlan }: UnitPlan
                   }}
                 >
                   <SelectTrigger className="w-full bg-white">
-                    <SelectValue placeholder="Select Alternative Pedagogy" />
+                    <SelectValue placeholder="Select Innovative Pedagogy" />
                   </SelectTrigger>
                   <SelectContent>
                     {alternativePedagogyOptions.map((pedagogy) => (
