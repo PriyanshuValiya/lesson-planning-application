@@ -1236,7 +1236,7 @@ export default function EditActualForm({
                                       )
                                     )}
                                     <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50 mt-2">
-                                      Alternative Pedagogy
+                                      Innovative Pedagogy
                                     </div>
                                     {evaluationPedagogyOptions.alternative.map(
                                       (pedagogy) => (
