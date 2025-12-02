@@ -117,8 +117,6 @@ function ViewLessonPlanPage() {
 
   const sections = getSectionNumber();
 
-  console.log(lessonPlan.form);
-
   return (
     <div className="w-full p-5 bg-white text-black font-sans overflow-hidden">
       <style jsx>{`
@@ -698,13 +696,7 @@ function ViewLessonPlanPage() {
             }
 
             if (section.type === "cie") {
-              const evaluationTypeOrder = [
-                "Course Prerequisites CIE",
-                "Thoery CIE",
-                "Practical CIE",
-                "Mid-term/Internal Exam",
-              ];
-
+              // FIXED: Corrected the typo from "Thoery CIE" to "Theory CIE"
               const cieGroups: {
                 type: string;
                 cies: any[];
@@ -715,7 +707,7 @@ function ViewLessonPlanPage() {
                   cies: [],
                   showTotal: false,
                 },
-                { type: "Thoery CIE", cies: [], showTotal: true },
+                { type: "Theory CIE", cies: [], showTotal: true },
                 { type: "Practical CIE", cies: [], showTotal: true },
                 { type: "Mid-term/Internal Exam", cies: [], showTotal: false },
               ];
@@ -723,6 +715,7 @@ function ViewLessonPlanPage() {
               lessonPlan.form?.cies?.forEach((cie: any) => {
                 const type = cie?.type || "Other";
                 if (type === "Internal Practical") {
+                  // Group Internal Practical with Practical CIE
                   cieGroups[2].cies.push({ ...cie, originalType: type });
                 } else {
                   const group = cieGroups.find((g) => g.type === type);
@@ -879,7 +872,9 @@ function ViewLessonPlanPage() {
                                     {(() => {
                                       if (
                                         cie?.type === "Practical CIE" ||
-                                        cie?.type === "Internal Practical"
+                                        cie?.type === "Internal Practical" ||
+                                        cie?.originalType ===
+                                          "Internal Practical"
                                       ) {
                                         if (
                                           cie?.practicals_covered &&
@@ -984,9 +979,7 @@ function ViewLessonPlanPage() {
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.evalType}`}
                                   >
-                                    {cie?.type == "Thoery CIE"
-                                      ? "Theory CIE"
-                                      : cie?.type || "-"}
+                                    {cie?.originalType || cie?.type || "-"}
                                   </td>
                                   <td
                                     className={`border border-black p-2 text-center break-words ${colClasses.blooms}`}
