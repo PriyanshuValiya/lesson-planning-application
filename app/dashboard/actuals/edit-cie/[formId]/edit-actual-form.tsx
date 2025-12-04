@@ -36,6 +36,9 @@ import {
   CheckCircle,
   Calendar,
   Loader2,
+  AlertCircle,
+  Save,
+  Upload,
 } from "lucide-react";
 import { supabase } from "@/utils/supabase/client";
 import { toast } from "sonner";
@@ -257,13 +260,7 @@ export default function EditActualForm({
   userRoleData,
   departmentPsoPeoData,
 }: EditActualFormProps) {
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const savedTab = localStorage.getItem("activeTab");
-      return savedTab || "";
-    }
-    return "";
-  });
+  const [activeTab, setActiveTab] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraftSaving, setIsDraftSaving] = useState(false);
   const [optimisticUpdates, setOptimisticUpdates] = useState<
@@ -280,6 +277,17 @@ export default function EditActualForm({
   const [invalidModerationFields, setInvalidModerationFields] = useState<
     string[]
   >([]);
+  const [draftSaveStatus, setDraftSaveStatus] = useState<
+    Record<string, boolean>
+  >({});
+
+  // FIXED: Custom tab setter that saves to localStorage
+  const setActiveTabWithStorage = useCallback((tab: string) => {
+    setActiveTab(tab);
+    if (tab) {
+      localStorage.setItem("editActualFormActiveTab", tab);
+    }
+  }, []);
 
   // Skill mapping options
   const skillMappingOptions = [
@@ -366,20 +374,26 @@ export default function EditActualForm({
     [formsData, departmentPsoPeoData, evaluationPedagogyOptions, ciesFromForm]
   );
 
-  // Set initial active tab
+  // FIXED: Set initial active tab from localStorage or first CIE
   useEffect(() => {
     if (ciesFromForm.length > 0 && !activeTab) {
-      const firstTab = `cie-${ciesFromForm[0].id}`;
-      setActiveTab(firstTab);
-      localStorage.setItem("activeTab", firstTab);
+      // Try to get stored tab from localStorage
+      const storedTab = localStorage.getItem("editActualFormActiveTab");
+
+      // Check if stored tab exists in current CIE list
+      if (
+        storedTab &&
+        ciesFromForm.some((cie: any) => `cie-${cie.id}` === storedTab)
+      ) {
+        setActiveTab(storedTab);
+      } else {
+        // Otherwise use first CIE tab
+        const firstTab = `cie-${ciesFromForm[0].id}`;
+        setActiveTab(firstTab);
+        localStorage.setItem("editActualFormActiveTab", firstTab);
+      }
     }
   }, [ciesFromForm, activeTab]);
-
-  useEffect(() => {
-    if (activeTab) {
-      localStorage.setItem("activeTab", activeTab);
-    }
-  }, [activeTab]);
 
   // Check if CIE date has passed
   const isCieActive = useCallback((cieDate: string) => {
@@ -405,10 +419,11 @@ export default function EditActualForm({
     [actualCiesData, optimisticUpdates]
   );
 
-  // CHANGE 5: Enhanced validation for Submit button
-  const validateRequiredFields = (values: FormData) => {
+  // UPDATED: Comprehensive validation for Submit button
+  const validateRequiredFields = (values: FormData, existingActual: any) => {
     const missingFields: string[] = [];
 
+    // Required form fields
     if (!values.actual_date) missingFields.push("Actual CIE Date");
     if (!values.actual_duration) missingFields.push("Actual Duration");
     if (!values.actual_marks || values.actual_marks <= 0)
@@ -423,6 +438,39 @@ export default function EditActualForm({
       missingFields.push("PSO Mapping");
     if (!values.actual_blooms || values.actual_blooms.length === 0)
       missingFields.push("Actual Blooms Taxonomy");
+    if (!values.actual_skills || values.actual_skills.length === 0)
+      missingFields.push("Actual Skills");
+
+    // Check for all 4 PDF files - either existing in DB or newly uploaded
+    const pdfFields = [
+      {
+        name: "CIE Paper",
+        field: values.cie_paper_file,
+        dbField: existingActual?.cie_paper_document,
+      },
+      {
+        name: "Evaluation Analysis",
+        field: values.evaluation_analysis_file,
+        dbField: existingActual?.evalution_analysis_document,
+      },
+      {
+        name: "Marks Display",
+        field: values.marks_display_document,
+        dbField: existingActual?.marks_display_document,
+      },
+      {
+        name: "Moderation Report",
+        field: values.moderation_report_document,
+        dbField: existingActual?.moderation_report_document,
+      },
+    ];
+
+    const missingPdfs = pdfFields.filter((pdf) => !pdf.field && !pdf.dbField);
+    if (missingPdfs.length > 0) {
+      missingFields.push(
+        `Missing PDFs: ${missingPdfs.map((p) => p.name).join(", ")}`
+      );
+    }
 
     return missingFields;
   };
@@ -480,95 +528,70 @@ export default function EditActualForm({
     return invalidFieldErrors;
   };
 
-  // FIXED: Fast submit with proper date handling and validation
+  // UPDATED: Submit handler with full validation
   const handleSubmit = useCallback(
     async (values: FormData, cieData: any, form: any) => {
       try {
         setIsSubmitting(true);
+        const cieId = cieData.id;
+        const cieNumber = Number.parseInt(cieId.replace("cie", ""));
+        const existingActual = getExistingActual(cieId);
 
-        // First save all PDF files
-        const cieNumber = Number.parseInt(cieData.id.replace("cie", ""));
-        const existingActual = getExistingActual(cieData.id);
-
-        let actualRecordId = existingActual?.id;
-
-        // If no existing record, create one first to get an ID for file uploads
-        if (!actualRecordId) {
-          const initialData = {
-            faculty_id: userRoleData.users.id,
-            subject_id: userRoleData.subjects.id,
-            cie_number: cieNumber,
-            created_at: new Date().toISOString(),
-            planned_date: cieData.date,
-            is_submitted: false,
-            forms: formsData.id,
-            reason_for_change: values.reason_for_change || "", // Save reason for change with initial data
-            actual_date: values.actual_date || "", // Save actual date with initial data
-            actual_duration: values.actual_duration || "", // Save actual duration with initial data
-            actual_marks: values.actual_marks || 0, // Save actual marks with initial data
-            actual_pedagogy:
-              values.actual_pedagogy === "Other"
-                ? values.custom_pedagogy
-                : values.actual_pedagogy || "", // Save actual pedagogy with initial data
-            actual_units: Array.isArray(values.actual_units)
-              ? values.actual_units.join(", ")
-              : values.actual_units || "", // Save actual units with initial data
-            actual_skills: values.actual_skills?.join(", ") || "", // Save actual skills with initial data
-            co: values.co?.join(", ") || "", // Save CO with initial data
-            pso: values.pso?.join(", ") || "", // Save PSO with initial data
-            actual_blooms: values.actual_blooms?.join(", ") || "", // Save actual blooms with initial data
-            marks_display_date: values.marks_display_date || null, // Save marks display date with initial data
-            quality_review_completed: values.quality_review_completed || false, // Save quality review with initial data
-            moderation_start_date: values.moderation_start_date || null, // Save moderation start date with initial data
-            moderation_end_date: values.moderation_end_date || null, // Save moderation end date with initial data
-          };
-
-          const createResult = await supabase
-            .from("actual_cies")
-            .insert(initialData)
-            .select();
-
-          if (createResult.error) {
-            throw new Error(createResult.error.message);
-          }
-
-          actualRecordId = createResult.data[0].id;
-
-          // Update optimistic state
-          setOptimisticUpdates((prev) => ({
-            ...prev,
-            [cieData.id]: createResult.data[0],
-          }));
-        } else {
-          // Update all entered data in existing record before file uploads
-          await supabase
-            .from("actual_cies")
-            .update({
-              reason_for_change: values.reason_for_change || "",
-              actual_date: values.actual_date || "",
-              actual_duration: values.actual_duration || "",
-              actual_marks: values.actual_marks || 0,
-              actual_pedagogy:
-                values.actual_pedagogy === "Other"
-                  ? values.custom_pedagogy
-                  : values.actual_pedagogy || "",
-              actual_units: Array.isArray(values.actual_units)
-                ? values.actual_units.join(", ")
-                : values.actual_units || "",
-              actual_skills: values.actual_skills?.join(", ") || "",
-              co: values.co?.join(", ") || "",
-              pso: values.pso?.join(", ") || "",
-              actual_blooms: values.actual_blooms?.join(", ") || "",
-              marks_display_date: values.marks_display_date || null,
-              quality_review_completed:
-                values.quality_review_completed || false,
-              moderation_start_date: values.moderation_start_date || null,
-              moderation_end_date: values.moderation_end_date || null,
-            })
-            .eq("id", actualRecordId);
+        // Validate ALL required fields including PDFs
+        const missingFields = validateRequiredFields(values, existingActual);
+        if (missingFields.length > 0) {
+          toast.error(`Can't submit - ${missingFields.join(", ")}`, {
+            duration: 5000,
+          });
+          setIsSubmitting(false);
+          return;
         }
 
-        // Upload files first
+        // Validate moderation fields if quality review is completed
+        if (values.quality_review_completed) {
+          const invalidModerationFields = validateModerationFields(values);
+          if (invalidModerationFields.length > 0) {
+            setInvalidModerationFields(invalidModerationFields);
+            setModerationError(true);
+            setIsSubmitting(false);
+            return;
+          }
+        }
+
+        let actualRecordId = existingActual?.id;
+        const fileUploads = [];
+
+        // Prepare base data
+        const baseData = {
+          faculty_id: userRoleData.users.id,
+          subject_id: userRoleData.subjects.id,
+          cie_number: cieNumber,
+          forms: formsData.id,
+          planned_date: cieData.date,
+          actual_date: values.actual_date,
+          actual_duration: values.actual_duration,
+          actual_marks: values.actual_marks,
+          actual_pedagogy:
+            values.actual_pedagogy === "Other"
+              ? values.custom_pedagogy
+              : values.actual_pedagogy,
+          actual_units: Array.isArray(values.actual_units)
+            ? values.actual_units.join(", ")
+            : values.actual_units,
+          actual_skills: values.actual_skills?.join(", ") || "",
+          co: values.co.join(", "),
+          pso: values.pso.join(", "),
+          actual_blooms: values.actual_blooms.join(", "),
+          reason_for_change: values.reason_for_change || "",
+          marks_display_date: values.marks_display_date || null,
+          quality_review_completed: values.quality_review_completed || false,
+          moderation_start_date: values.moderation_start_date || null,
+          moderation_end_date: values.moderation_end_date || null,
+          is_submitted: true,
+          created_at: existingActual?.created_at || new Date().toISOString(),
+        };
+
+        // Handle file uploads
         const files = [
           {
             file: values.cie_paper_file,
@@ -592,225 +615,239 @@ export default function EditActualForm({
           },
         ];
 
-        const fileUploadResults = [];
+        // Set uploading state
+        setUploadingFiles((prev) => ({ ...prev, [cieId]: true }));
+
+        // Upload files that are new (not already in DB)
         for (const { file, field, type } of files) {
           if (file instanceof File) {
             try {
               const fileExt = file.name.split(".").pop();
-              const filePath = `${type}/${actualRecordId}-${Date.now()}.${fileExt}`;
+              const filePath = `${type}/${
+                actualRecordId || `temp-${Date.now()}`
+              }-${Date.now()}.${fileExt}`;
 
               const uploadResult = await supabase.storage
                 .from("actual-cies")
                 .upload(filePath, file);
 
-              if (!uploadResult.error) {
-                await supabase
-                  .from("actual_cies")
-                  .update({ [field]: filePath })
-                  .eq("id", actualRecordId);
-                fileUploadResults.push({ success: true, type, field });
-              } else {
-                fileUploadResults.push({
-                  success: false,
-                  type,
-                  field,
-                  error: uploadResult.error,
-                });
+              if (uploadResult.error) {
+                throw new Error(
+                  `Failed to upload ${type}: ${uploadResult.error.message}`
+                );
               }
+
+              fileUploads.push({ field, path: filePath });
             } catch (error) {
               console.error(`Failed to upload ${type}:`, error);
-              fileUploadResults.push({ success: false, type, field, error });
+              throw error;
             }
           }
         }
 
-        // Now validate form fields after files are uploaded
-        const missingFields = validateRequiredFields(values);
-        if (missingFields.length > 0) {
-          toast.error(
-            `Please fill the following required fields: ${missingFields.join(
-              ", "
-            )}`,
-            {
-              duration: 5000,
-            }
-          );
-          setIsSubmitting(false);
-          return;
+        // Clear uploading state
+        setUploadingFiles((prev) => ({ ...prev, [cieId]: false }));
+
+        // Add file paths to data
+        const finalData = { ...baseData };
+        fileUploads.forEach(({ field, path }) => {
+          finalData[field] = path;
+        });
+
+        // Also keep existing file paths
+        if (existingActual?.cie_paper_document && !values.cie_paper_file) {
+          finalData.cie_paper_document = existingActual.cie_paper_document;
         }
-
-        if (values.quality_review_completed) {
-          const invalidModerationFields = validateModerationFields(values);
-
-          if (invalidModerationFields.length > 0) {
-            setInvalidModerationFields(invalidModerationFields);
-            setModerationError(true);
-            setIsSubmitting(false);
-            return;
-          }
+        if (
+          existingActual?.evalution_analysis_document &&
+          !values.evaluation_analysis_file
+        ) {
+          finalData.evalution_analysis_document =
+            existingActual.evalution_analysis_document;
         }
-
-        // FIXED: Prepare data with proper date formatting
-        const actualData = {
-          faculty_id: userRoleData.users.id,
-          subject_id: userRoleData.subjects.id,
-          actual_blooms: values.actual_blooms.join(", "), // CHANGED: Join array to string
-          actual_date: values.actual_date, // Already in YYYY-MM-DD format from form
-          actual_duration: values.actual_duration,
-          actual_marks: values.actual_marks,
-          actual_pedagogy:
-            values.actual_pedagogy === "Other"
-              ? values.custom_pedagogy
-              : values.actual_pedagogy,
-          actual_units: Array.isArray(values.actual_units)
-            ? values.actual_units.join(", ")
-            : values.actual_units,
-          actual_skills: values.actual_skills?.join(", ") || "",
-          cie_number: cieNumber,
-          co: values.co.join(", "),
-          pso: values.pso.join(", "),
-          created_at: new Date().toISOString(),
-          planned_date: cieData.date,
-          is_submitted: true,
-          marks_display_date: values.marks_display_date || null,
-          quality_review_completed: values.quality_review_completed || false,
-          moderation_start_date: values.moderation_start_date || null,
-          moderation_end_date: values.moderation_end_date || null,
-          reason_for_change: values.reason_for_change || "", // Reason for change is already saved but update again to be sure
-          forms: formsData.id,
-        };
-
-        console.log("Submitting actual data:", actualData);
+        if (
+          existingActual?.marks_display_document &&
+          !values.marks_display_document
+        ) {
+          finalData.marks_display_document =
+            existingActual.marks_display_document;
+        }
+        if (
+          existingActual?.moderation_report_document &&
+          !values.moderation_report_document
+        ) {
+          finalData.moderation_report_document =
+            existingActual.moderation_report_document;
+        }
 
         let result;
-        if (existingActual?.id) {
+        if (actualRecordId) {
           // Update existing record
           result = await supabase
             .from("actual_cies")
-            .update(actualData)
-            .eq("id", existingActual.id)
+            .update(finalData)
+            .eq("id", actualRecordId)
             .select();
         } else {
-          // Update the record we created earlier
+          // Create new record
           result = await supabase
             .from("actual_cies")
-            .update(actualData)
-            .eq("id", actualRecordId)
+            .insert(finalData)
             .select();
         }
 
         if (result.error) {
-          console.error("Supabase error:", result.error);
-          console.log("Insert Error");
           throw new Error(result.error.message);
-        } else {
-          console.log("Supabase result data:", result.data);
         }
 
         // Update optimistic state
         setOptimisticUpdates((prev) => ({
           ...prev,
-          [cieData.id]: result.data[0],
+          [cieId]: { ...result.data[0], is_submitted: true },
         }));
 
         setIsSubmitting(false);
-        toast.success(`CIE ${cieNumber} data submitted successfully`);
-
-        // Check for failed file uploads
-        const failedUploads = fileUploadResults.filter((r) => !r.success);
-        if (failedUploads.length > 0) {
-          toast.warning("Some files failed to upload, but CIE data was saved");
-        }
+        toast.success(`CIE ${cieNumber} submitted successfully!`);
       } catch (error: any) {
         toast.error("Submission failed: " + error.message);
         console.error("Submission error:", error);
         setIsSubmitting(false);
+        setUploadingFiles((prev) => ({ ...prev, [cieData.id]: false }));
       }
     },
     [formsData, getExistingActual, supabase, userRoleData]
   );
 
-  // CHANGE 5: Fast draft save (no validation, just save)
+  // UPDATED: Draft save handler (no validation, minimal data)
   const handleSaveDraft = useCallback(
-    async (values: FormData, cieData: any) => {
-      const cieNumber = Number.parseInt(cieData.id.replace("cie", ""));
-      const existingActual = getExistingActual(cieData.id);
+    async (values: FormData, cieData: any, form: any) => {
+      const cieId = cieData.id;
+      const cieNumber = Number.parseInt(cieId.replace("cie", ""));
+      const existingActual = getExistingActual(cieId);
 
-      // Optimistic update
-      const optimisticData = {
-        ...existingActual,
-        actual_blooms: values.actual_blooms?.join(", ") || "", // CHANGED: Join array to string
-        actual_date: values.actual_date || "",
-        actual_duration: values.actual_duration || "",
-        actual_marks: values.actual_marks || 0,
-        actual_pedagogy:
-          values.actual_pedagogy === "Other"
-            ? values.custom_pedagogy
-            : values.actual_pedagogy || "",
-        actual_units: values.actual_units.join(", "),
-        actual_skills: values.actual_skills?.join(", ") || "",
-        co: values.co.join(", "),
-        pso: values.pso.join(", "),
-        is_submitted: false,
-        marks_display_date: values.marks_display_date || null,
-        quality_review_completed: values.quality_review_completed || false,
-        moderation_start_date: values.moderation_start_date || null,
-        moderation_end_date: values.moderation_end_date || null,
-        reason_for_change: values.reason_for_change || "",
-      };
-
-      setOptimisticUpdates((prev) => ({
-        ...prev,
-        [cieData.id]: optimisticData,
-      }));
-
-      toast.success("Draft saved..");
+      setIsDraftSaving(true);
+      setDraftSaveStatus((prev) => ({ ...prev, [cieId]: true }));
 
       try {
-        setIsDraftSaving(true);
+        // Prepare draft data - no validation, can be partial
         const draftData = {
-          ...optimisticData,
-          cie_number: cieNumber,
           faculty_id: userRoleData.users.id,
           subject_id: userRoleData.subjects.id,
-          created_at: new Date().toISOString(),
+          cie_number: cieNumber,
           forms: formsData.id,
+          planned_date: cieData.date,
+          actual_date: values.actual_date || null,
+          actual_duration: values.actual_duration || null,
+          actual_marks: values.actual_marks || null,
+          actual_pedagogy:
+            values.actual_pedagogy === "Other"
+              ? values.custom_pedagogy
+              : values.actual_pedagogy || null,
+          actual_units: Array.isArray(values.actual_units)
+            ? values.actual_units.join(", ")
+            : values.actual_units || null,
+          actual_skills: values.actual_skills?.join(", ") || null,
+          co: values.co?.join(", ") || null,
+          pso: values.pso?.join(", ") || null,
+          actual_blooms: values.actual_blooms?.join(", ") || null,
+          reason_for_change: values.reason_for_change || null,
+          marks_display_date: values.marks_display_date || null,
+          quality_review_completed: values.quality_review_completed || false,
+          moderation_start_date: values.moderation_start_date || null,
+          moderation_end_date: values.moderation_end_date || null,
+          is_submitted: false, // MARK AS DRAFT
+          created_at: existingActual?.created_at || new Date().toISOString(),
         };
 
-        let response;
+        console.log("Draft data to be saved:", draftData);
+
+        let result;
         if (existingActual?.id) {
-          response = await supabase
+          // Update existing draft
+          result = await supabase
             .from("actual_cies")
             .update(draftData)
             .eq("id", existingActual.id)
             .select();
         } else {
-          response = await supabase
+          // Create new draft
+          result = await supabase
             .from("actual_cies")
             .insert(draftData)
             .select();
         }
 
-        if (response.error) {
-          throw new Error(response.error.message);
+        console.log("Draft save result:", result);
+
+        if (result.error) {
+          throw new Error(result.error.message);
         }
 
-        if (response.data?.[0]) {
-          setOptimisticUpdates((prev) => ({
-            ...prev,
-            [cieData.id]: response.data[0],
-          }));
+        // Optimistic update
+        setOptimisticUpdates((prev) => ({
+          ...prev,
+          [cieId]: { ...result.data[0], is_submitted: false },
+        }));
+
+        // Handle file uploads in background (optional for draft)
+        if (result.data?.[0]?.id) {
+          const recordId = result.data[0].id;
+          const files = [
+            {
+              file: values.cie_paper_file,
+              field: "cie_paper_document",
+              type: "paper",
+            },
+            {
+              file: values.marks_display_document,
+              field: "marks_display_document",
+              type: "marks",
+            },
+            {
+              file: values.evaluation_analysis_file,
+              field: "evalution_analysis_document",
+              type: "analysis",
+            },
+            {
+              file: values.moderation_report_document,
+              field: "moderation_report_document",
+              type: "moderation",
+            },
+          ].filter((item) => item.file instanceof File);
+
+          console.log("Files to be uploaded in background:", files);
+
+          // Background upload
+          if (files.length > 0) {
+            setTimeout(async () => {
+              try {
+                for (const { file, field, type } of files) {
+                  const fileExt = file.name.split(".").pop();
+                  const filePath = `${type}/${recordId}-${Date.now()}.${fileExt}`;
+
+                  await supabase.storage
+                    .from("actual-cies")
+                    .upload(filePath, file);
+
+                  await supabase
+                    .from("actual_cies")
+                    .update({ [field]: filePath })
+                    .eq("id", recordId);
+                }
+              } catch (error) {
+                console.error("Background file upload error:", error);
+              }
+            }, 0);
+          }
         }
+
+        toast.success("Draft saved successfully!");
+        window.location.reload();
       } catch (error: any) {
-        setOptimisticUpdates((prev) => {
-          const newState = { ...prev };
-          delete newState[cieData.id];
-          return newState;
-        });
-        toast.error("Failed to save draft");
-        console.error("Error saving draft:", error);
+        toast.error("Failed to save draft: " + error.message);
       } finally {
         setIsDraftSaving(false);
+        setDraftSaveStatus((prev) => ({ ...prev, [cieId]: false }));
       }
     },
     [formsData, getExistingActual, supabase, userRoleData]
@@ -821,6 +858,7 @@ export default function EditActualForm({
     const isActive = isCieActive(cieData.date);
     const isUploading = uploadingFiles[cieData.id];
     const cieNumber = Number.parseInt(cieData.id.replace("cie", ""));
+    const isDraftSavingThisCie = draftSaveStatus[cieData.id] || false;
 
     const isPracticalCie = cieData.type?.toLowerCase().includes("practical");
 
@@ -986,7 +1024,6 @@ export default function EditActualForm({
       setModerationError(false);
       setInvalidModerationFields([]);
       // Form data remains unchanged
-      location.reload();
     };
 
     if (!isActive) {
@@ -1003,7 +1040,7 @@ export default function EditActualForm({
     }
 
     const onSubmit = (values: FormData) => handleSubmit(values, cieData, form);
-    const onSaveDraft = () => handleSaveDraft(form.getValues(), cieData);
+    const onSaveDraft = () => handleSaveDraft(form.getValues(), cieData, form);
 
     // File upload handler with real-time preview
     const handleFileUpload = (file: File, fieldName: string, cieId: string) => {
@@ -1860,7 +1897,7 @@ export default function EditActualForm({
                                           side="bottom"
                                           align="center"
                                         >
-                                          <p>Preview Evalution PDF</p>
+                                          <p>Preview Evaluation Analysis</p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
@@ -1952,7 +1989,7 @@ export default function EditActualForm({
                                           side="bottom"
                                           align="center"
                                         >
-                                          <p>Preview Moderation PDF</p>
+                                          <p>Preview Moderation Report</p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
@@ -1970,16 +2007,23 @@ export default function EditActualForm({
                           type="button"
                           variant="outline"
                           onClick={onSaveDraft}
-                          disabled={isDraftSaving || isSubmitting}
+                          disabled={isDraftSavingThisCie || isSubmitting}
                           className="min-w-[120px] bg-transparent"
                         >
-                          {isDraftSaving ? "Saving..." : "Save Draft"}
+                          {isDraftSavingThisCie ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>Save Draft</>
+                          )}
                         </Button>
-                        {/* CHANGE 6: Updated Submit button text */}
+                        {/* Updated Submit button */}
                         <Button
                           type="submit"
-                          disabled={isSubmitting || isDraftSaving}
-                          className="min-w-[160px] relative"
+                          disabled={isSubmitting || isDraftSavingThisCie}
+                          className="min-w-[160px] relative bg-[#1A5CA1] hover:bg-[#1a5390]"
                         >
                           {isSubmitting ? (
                             <>
@@ -1987,22 +2031,10 @@ export default function EditActualForm({
                               Submitting...
                             </>
                           ) : (
-                            `Submit - CIE ${cieNumber}`
+                            `Submit CIE ${cieNumber}`
                           )}
                         </Button>
                       </div>
-
-                      {/* File Upload Status */}
-                      {isUploading && (
-                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-blue-600 animate-spin" />
-                            <span className="text-sm text-blue-700">
-                              Files are uploading in the background...
-                            </span>
-                          </div>
-                        </div>
-                      )}
                     </form>
                   </Form>
                 </CardContent>
@@ -2055,7 +2087,12 @@ export default function EditActualForm({
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      {/* UPDATED: Use custom tab setter */}
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTabWithStorage}
+        className="w-full"
+      >
         <TabsList
           className="grid w-full grid-cols-auto gap-2"
           style={{ gridTemplateColumns: `repeat(${ciesFromForm.length}, 1fr)` }}
@@ -2066,6 +2103,7 @@ export default function EditActualForm({
             const isSubmitted = existingActual?.is_submitted;
             const isDraft = existingActual && !isSubmitted;
             const isUploading = uploadingFiles[cie.id];
+            const cieNumber = cie.id.replace("cie", "");
 
             return (
               <TabsTrigger
@@ -2075,33 +2113,39 @@ export default function EditActualForm({
                 className="relative cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <span>CIE {cie.id.replace("cie", "")}</span>
+                  <span>CIE {cieNumber}</span>
+
+                  {/* Status badges */}
                   {isSubmitted && (
                     <Badge
                       variant="outline"
-                      className="text-xs bg-green-200 border border-green-600"
+                      className="text-xs bg-green-100 text-green-800 border-green-300"
                     >
                       Submitted
                     </Badge>
                   )}
+
                   {isDraft && (
                     <Badge
                       variant="outline"
-                      className="text-xs bg-yellow-200 border border-yellow-600"
+                      className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300"
                     >
                       Draft
                     </Badge>
                   )}
+
                   {isUploading && (
                     <Badge
                       variant="outline"
-                      className="text-xs bg-blue-200 border border-blue-600"
+                      className="text-xs bg-blue-100 text-blue-800 border-blue-300"
                     >
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                       Uploading
                     </Badge>
                   )}
+
                   {!isActive && (
-                    <Badge variant="secondary" className="texto Take-xs">
+                    <Badge variant="secondary" className="text-xs">
                       Yet To Take
                     </Badge>
                   )}
