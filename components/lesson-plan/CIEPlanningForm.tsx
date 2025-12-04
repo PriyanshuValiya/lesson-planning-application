@@ -923,7 +923,7 @@ export default function CIEPlanningForm({
     } else if (hasHigherOrder) {
       duration = marks * 2; // 1 mark = 3 minutes for higher order
     } else {
-      duration = marks * 2.5; // Mixed levels
+      duration = marks * 2; // Mixed levels
     }
 
     // For 100 marks, cap at 100 minutes
