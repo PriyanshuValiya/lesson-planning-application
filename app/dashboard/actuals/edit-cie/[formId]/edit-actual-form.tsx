@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/form";
 import {
   Eye,
+  Trash,
   FileText,
   X,
   ChevronDown,
@@ -280,6 +281,9 @@ export default function EditActualForm({
   const [draftSaveStatus, setDraftSaveStatus] = useState<
     Record<string, boolean>
   >({});
+
+
+  document.body.style.overflow = 'hidden'; // This has been done to fix that weird error where some white blank space appears on scroll
 
   // FIXED: Custom tab setter that saves to localStorage
   const setActiveTabWithStorage = useCallback((tab: string) => {
@@ -623,9 +627,8 @@ export default function EditActualForm({
           if (file instanceof File) {
             try {
               const fileExt = file.name.split(".").pop();
-              const filePath = `${type}/${
-                actualRecordId || `temp-${Date.now()}`
-              }-${Date.now()}.${fileExt}`;
+              const filePath = `${type}/${actualRecordId || `temp-${Date.now()}`
+                }-${Date.now()}.${fileExt}`;
 
               const uploadResult = await supabase.storage
                 .from("actual-cies")
@@ -723,12 +726,14 @@ export default function EditActualForm({
     async (values: FormData, cieData: any, form: any) => {
       const cieId = cieData.id;
       const cieNumber = Number.parseInt(cieId.replace("cie", ""));
+      console.log("Getting existing actual");
       const existingActual = getExistingActual(cieId);
-
+      console.log("Set is draft saving true")
       setIsDraftSaving(true);
       setDraftSaveStatus((prev) => ({ ...prev, [cieId]: true }));
 
       try {
+        console.log("Preparing draft data")
         // Prepare draft data - no validation, can be partial
         const draftData = {
           faculty_id: userRoleData.users.id,
@@ -764,6 +769,7 @@ export default function EditActualForm({
         let result;
         if (existingActual?.id) {
           // Update existing draft
+          console.log("Inserting into supabase")
           result = await supabase
             .from("actual_cies")
             .update(draftData)
@@ -771,6 +777,7 @@ export default function EditActualForm({
             .select();
         } else {
           // Create new draft
+          console.log("Inserting into supabase")
           result = await supabase
             .from("actual_cies")
             .insert(draftData)
@@ -822,6 +829,7 @@ export default function EditActualForm({
             setTimeout(async () => {
               try {
                 for (const { file, field, type } of files) {
+                  form.setValue(field, file);
                   const fileExt = file.name.split(".").pop();
                   const filePath = `${type}/${recordId}-${Date.now()}.${fileExt}`;
 
@@ -839,6 +847,7 @@ export default function EditActualForm({
               }
             }, 0);
           }
+
         }
 
         toast.success("Draft saved successfully!");
@@ -920,13 +929,13 @@ export default function EditActualForm({
       () => ({
         actual_units: existingActual?.actual_units
           ? existingActual.actual_units.split(", ").map((unit: string) => {
-              const unitMatch = unit.match(/Unit (\d+)/);
-              if (unitMatch) {
-                const unitIndex = Number.parseInt(unitMatch[1]) - 1;
-                return extractedOptions.units[unitIndex]?.id || unit;
-              }
-              return unit;
-            })
+            const unitMatch = unit.match(/Unit (\d+)/);
+            if (unitMatch) {
+              const unitIndex = Number.parseInt(unitMatch[1]) - 1;
+              return extractedOptions.units[unitIndex]?.id || unit;
+            }
+            return unit;
+          })
           : cieData.units_covered || [],
         actual_pedagogy:
           existingActual?.actual_pedagogy || cieData.evaluation_pedagogy || "",
@@ -937,29 +946,29 @@ export default function EditActualForm({
         actual_marks: existingActual?.actual_marks || cieData.marks || 0,
         co: existingActual?.co
           ? existingActual.co.split(", ").map((co: string) => {
-              const coMatch = co.match(/CO(\d+)/);
-              if (coMatch) {
-                const coIndex = Number.parseInt(coMatch[1]) - 1;
-                return extractedOptions.courseOutcomes[coIndex]?.id || co;
-              }
-              return co;
-            })
+            const coMatch = co.match(/CO(\d+)/);
+            if (coMatch) {
+              const coIndex = Number.parseInt(coMatch[1]) - 1;
+              return extractedOptions.courseOutcomes[coIndex]?.id || co;
+            }
+            return co;
+          })
           : cieData.co_mapping || [],
         pso: existingActual?.pso
           ? existingActual.pso.split(", ").map((pso: string) => {
-              const psoMatch = pso.match(/PSO(\d+)/);
-              if (psoMatch) {
-                const psoIndex = Number.parseInt(psoMatch[1]) - 1;
-                return extractedOptions.psoOptions[psoIndex]?.id || pso;
-              }
-              return pso;
-            })
+            const psoMatch = pso.match(/PSO(\d+)/);
+            if (psoMatch) {
+              const psoIndex = Number.parseInt(psoMatch[1]) - 1;
+              return extractedOptions.psoOptions[psoIndex]?.id || pso;
+            }
+            return pso;
+          })
           : cieData.pso_mapping || [],
         // CHANGE 2: Actual blooms now array from forms table data
         actual_blooms: existingActual?.actual_blooms
           ? existingActual.actual_blooms
-              .split(", ")
-              .map((bloom: string) => bloom.trim())
+            .split(", ")
+            .map((bloom: string) => bloom.trim())
           : cieData.blooms_taxonomy || [],
         actual_skills: existingActual?.actual_skills
           ? existingActual.actual_skills.split(", ")
@@ -1425,10 +1434,9 @@ export default function EditActualForm({
                                       onChange={field.onChange}
                                       placeholder="Select course outcomes"
                                       getLabel={(co) =>
-                                        `CO${
-                                          extractedOptions.courseOutcomes.findIndex(
-                                            (c) => c.id === co.id
-                                          ) + 1
+                                        `CO${extractedOptions.courseOutcomes.findIndex(
+                                          (c) => c.id === co.id
+                                        ) + 1
                                         }`
                                       }
                                       getValue={(co) => co.id}
@@ -1451,10 +1459,9 @@ export default function EditActualForm({
                                       onChange={field.onChange}
                                       placeholder="Select PSO mapping"
                                       getLabel={(pso) =>
-                                        `PSO${
-                                          extractedOptions.psoOptions.findIndex(
-                                            (p) => p.id === pso.id
-                                          ) + 1
+                                        `PSO${extractedOptions.psoOptions.findIndex(
+                                          (p) => p.id === pso.id
+                                        ) + 1
                                         }`
                                       }
                                       getValue={(pso) => pso.id}
@@ -1489,12 +1496,12 @@ export default function EditActualForm({
                                             onCheckedChange={(checked) => {
                                               const newValue = checked
                                                 ? [
-                                                    ...(field.value || []),
-                                                    bloom,
-                                                  ]
+                                                  ...(field.value || []),
+                                                  bloom,
+                                                ]
                                                 : (field.value || []).filter(
-                                                    (v) => v !== bloom
-                                                  );
+                                                  (v) => v !== bloom
+                                                );
                                               field.onChange(newValue);
                                             }}
                                           />
@@ -1643,39 +1650,57 @@ export default function EditActualForm({
                         </div>
 
                         <div className="space-y-4">
+                          {/* CIE PAPER */}
                           <FormField
                             control={form.control}
                             name="cie_paper_file"
-                            render={({
-                              field: { value, onChange, ...fieldProps },
-                            }) => (
+                            render={({ field: { value, onChange, ...fieldProps } }) => (
                               <FormItem>
-                                <FormLabel>CIE Paper (PDF)</FormLabel>
-                                <div className="flex items-center gap-2">
-                                  <div className="relative flex-1">
-                                    <FormControl>
-                                      <Input
-                                        {...fieldProps}
-                                        type="file"
-                                        accept=".pdf"
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0];
-                                          if (file) {
-                                            onChange(file);
-                                            handleFileUpload(
-                                              file,
-                                              "cie_paper_file",
-                                              cieData.id
-                                            );
-                                          }
-                                        }}
-                                        className="cursor-pointer"
-                                      />
-                                    </FormControl>
+                                <FormLabel className="text-[#1A5CA1] font-bold">CIE Paper (PDF)</FormLabel>
+
+                                {/* STATUS + BUTTONS */}
+                                <div className="mt-1 relative">
+                                  {/* Status text (leave space on right so it doesn't go under buttons) */}
+                                  <div className="pr-48 text-sm font-medium truncate">
+                                    {(() => {
+                                      const watchedFile = form.watch("cie_paper_file") as File | null;
+
+                                      return (
+                                        <>
+                                          File Uploaded:{" "}
+                                          {watchedFile ? (
+                                            <span className="text-green-600">{watchedFile.name}</span>
+                                          ) : existingActual?.cie_paper_document ? (
+                                            <span className="text-blue-600">Existing File</span>
+                                          ) : (
+                                            <span className="text-gray-500">None</span>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
                                   </div>
-                                  {/* Real-time preview for uploaded files */}
-                                  {(existingActual?.cie_paper_document ||
-                                    form.watch("cie_paper_file")) && (
+
+                                  {/* Hidden input */}
+                                  <FormControl>
+                                    <input
+                                      id="cie-file-input"
+                                      type="file"
+                                      accept=".pdf"
+                                      className="hidden"
+                                      {...fieldProps}
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          onChange(file);
+                                          handleFileUpload(file, "cie_paper_file", cieData.id);
+                                        }
+                                      }}
+                                    />
+                                  </FormControl>
+
+                                  {/* Buttons pinned to the right */}
+                                  <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                    {/* Upload */}
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -1684,85 +1709,154 @@ export default function EditActualForm({
                                             variant="outline"
                                             size="sm"
                                             className="bg-blue-100 hover:bg-blue-200 border-blue-300"
-                                            onClick={async () => {
-                                              // If we have a newly uploaded file, create object URL for preview
-                                              if (
-                                                form.watch("cie_paper_file")
-                                              ) {
-                                                const url = URL.createObjectURL(
-                                                  form.watch("cie_paper_file")
-                                                );
-                                                window.open(url, "_blank");
-                                              } else if (
-                                                existingActual?.cie_paper_document
-                                              ) {
-                                                // If we have a stored file, get the URL from Supabase
-                                                const { data } =
-                                                  await supabase.storage
-                                                    .from("actual-cies")
-                                                    .getPublicUrl(
-                                                      existingActual.cie_paper_document
-                                                    );
-                                                window.open(
-                                                  data.publicUrl,
-                                                  "_blank"
-                                                );
-                                              }
+                                            onClick={() => {
+                                              document
+                                                .getElementById("cie-file-input")
+                                                ?.click();
                                             }}
                                           >
-                                            <Eye className="h-4 w-4 text-blue-600" />
+                                            <Upload className="h-4 w-4 text-blue-600" />
                                           </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent
-                                          side="bottom"
-                                          align="center"
-                                        >
-                                          <p>Preview CIE Paper</p>
+                                        <TooltipContent side="bottom" align="center">
+                                          <p>Upload CIE Paper</p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
-                                  )}
+
+                                    {/* Preview */}
+                                    {(existingActual?.cie_paper_document ||
+                                      form.watch("cie_paper_file")) && (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="bg-blue-100 hover:bg-blue-200 border-blue-300"
+                                                onClick={async () => {
+                                                  const watchedFile = form.watch(
+                                                    "cie_paper_file"
+                                                  ) as File | null;
+
+                                                  if (watchedFile) {
+                                                    const url = URL.createObjectURL(watchedFile);
+                                                    window.open(url, "_blank");
+                                                  } else if (existingActual?.cie_paper_document) {
+                                                    const { data } = await supabase.storage
+                                                      .from("actual-cies")
+                                                      .getPublicUrl(
+                                                        existingActual.cie_paper_document
+                                                      );
+                                                    window.open(data.publicUrl, "_blank");
+                                                  }
+                                                }}
+                                              >
+                                                <Eye className="h-4 w-4 text-blue-600" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom" align="center">
+                                              <p>Preview CIE Paper</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      )}
+
+                                    {/* Delete */}
+                                    {(form.watch("cie_paper_file") ||
+                                      existingActual?.cie_paper_document) && (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="bg-red-100 hover:bg-red-200 border-red-300"
+                                                onClick={() => {
+                                                  onChange(null);
+                                                  const input = document.getElementById(
+                                                    "cie-file-input"
+                                                  ) as HTMLInputElement | null;
+                                                  if (input) input.value = "";
+                                                }}
+                                              >
+                                                <Trash className="h-4 w-4 text-red-600" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom" align="center">
+                                              <p>Remove File</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      )}
+                                  </div>
                                 </div>
+
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
 
+                          {/* MARKS SHEET SUBMISSION */}
                           <FormField
                             control={form.control}
                             name="marks_display_document"
-                            render={({
-                              field: { value, onChange, ...fieldProps },
-                            }) => (
+                            render={({ field: { value, onChange, ...fieldProps } }) => (
                               <FormItem>
-                                <FormLabel>
-                                  Marks Sheet Submission (PDF)
-                                </FormLabel>
-                                <div className="flex items-center gap-2">
-                                  <div className="relative flex-1">
-                                    <FormControl>
-                                      <Input
-                                        {...fieldProps}
-                                        type="file"
-                                        accept=".pdf"
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0];
-                                          if (file) {
-                                            onChange(file);
-                                            handleFileUpload(
-                                              file,
-                                              "marks_display_document",
-                                              cieData.id
-                                            );
-                                          }
-                                        }}
-                                        className="cursor-pointer"
-                                      />
-                                    </FormControl>
+                                <FormLabel className="text-[#1A5CA1] font-bold">Marks Sheet Submission (PDF)</FormLabel>
+
+                                <div className="mt-1 relative">
+                                  {/* Status */}
+                                  <div className="pr-48 text-sm font-medium truncate">
+                                    {(() => {
+                                      const watchedFile = form.watch(
+                                        "marks_display_document"
+                                      ) as File | null;
+
+                                      return (
+                                        <>
+                                          File Uploaded:{" "}
+                                          {watchedFile ? (
+                                            <span className="text-green-600">
+                                              {watchedFile.name}
+                                            </span>
+                                          ) : existingActual?.marks_display_document ? (
+                                            <span className="text-blue-600">Existing File</span>
+                                          ) : (
+                                            <span className="text-gray-500">None</span>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
                                   </div>
-                                  {/* Real-time preview for uploaded files */}
-                                  {(existingActual?.marks_display_document ||
-                                    form.watch("marks_display_document")) && (
+
+                                  {/* Hidden input */}
+                                  <FormControl>
+                                    <input
+                                      id="marks-file-input"
+                                      type="file"
+                                      accept=".pdf"
+                                      className="hidden"
+                                      {...fieldProps}
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          onChange(file);
+                                          handleFileUpload(
+                                            file,
+                                            "marks_display_document",
+                                            cieData.id
+                                          );
+                                        }
+                                      }}
+                                    />
+                                  </FormControl>
+
+                                  {/* Buttons (absolute) */}
+                                  <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                    {/* Upload */}
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -1771,87 +1865,156 @@ export default function EditActualForm({
                                             variant="outline"
                                             size="sm"
                                             className="bg-blue-100 hover:bg-blue-200 border-blue-300"
-                                            onClick={async () => {
-                                              // If we have a newly uploaded file, create object URL for preview
-                                              if (
-                                                form.watch(
-                                                  "marks_display_document"
-                                                )
-                                              ) {
-                                                const url = URL.createObjectURL(
-                                                  form.watch(
-                                                    "marks_display_document"
-                                                  )
-                                                );
-                                                window.open(url, "_blank");
-                                              } else if (
-                                                existingActual?.marks_display_document
-                                              ) {
-                                                // If we have a stored file, get the URL from Supabase
-                                                const { data } =
-                                                  await supabase.storage
-                                                    .from("actual-cies")
-                                                    .getPublicUrl(
-                                                      existingActual.marks_display_document
-                                                    );
-                                                window.open(
-                                                  data.publicUrl,
-                                                  "_blank"
-                                                );
-                                              }
+                                            onClick={() => {
+                                              document
+                                                .getElementById("marks-file-input")
+                                                ?.click();
                                             }}
                                           >
-                                            <Eye className="h-4 w-4 text-blue-600" />
+                                            <Upload className="h-4 w-4 text-blue-600" />
                                           </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent
-                                          side="bottom"
-                                          align="center"
-                                        >
-                                          <p>Preview Marks Sheet</p>
+                                        <TooltipContent side="bottom" align="center">
+                                          <p>Upload Marks Sheet</p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
-                                  )}
+
+                                    {/* Preview */}
+                                    {(existingActual?.marks_display_document ||
+                                      form.watch("marks_display_document")) && (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="bg-blue-100 hover:bg-blue-200 border-blue-300"
+                                                onClick={async () => {
+                                                  const watchedFile = form.watch(
+                                                    "marks_display_document"
+                                                  ) as File | null;
+
+                                                  if (watchedFile) {
+                                                    const url = URL.createObjectURL(watchedFile);
+                                                    window.open(url, "_blank");
+                                                  } else if (
+                                                    existingActual?.marks_display_document
+                                                  ) {
+                                                    const { data } = await supabase.storage
+                                                      .from("actual-cies")
+                                                      .getPublicUrl(
+                                                        existingActual.marks_display_document
+                                                      );
+                                                    window.open(data.publicUrl, "_blank");
+                                                  }
+                                                }}
+                                              >
+                                                <Eye className="h-4 w-4 text-blue-600" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom" align="center">
+                                              <p>Preview Marks Sheet</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      )}
+
+                                    {/* Delete */}
+                                    {(form.watch("marks_display_document") ||
+                                      existingActual?.marks_display_document) && (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="bg-red-100 hover:bg-red-200 border-red-300"
+                                                onClick={() => {
+                                                  onChange(null);
+                                                  const input = document.getElementById(
+                                                    "marks-file-input"
+                                                  ) as HTMLInputElement | null;
+                                                  if (input) input.value = "";
+                                                }}
+                                              >
+                                                <Trash className="h-4 w-4 text-red-600" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom" align="center">
+                                              <p>Remove File</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      )}
+                                  </div>
                                 </div>
+
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
 
+                          {/* EVALUATION ANALYSIS */}
                           <FormField
                             control={form.control}
                             name="evaluation_analysis_file"
-                            render={({
-                              field: { value, onChange, ...fieldProps },
-                            }) => (
+                            render={({ field: { value, onChange, ...fieldProps } }) => (
                               <FormItem>
-                                <FormLabel>Evaluation Analysis (PDF)</FormLabel>
-                                <div className="flex items-center gap-2">
-                                  <div className="relative flex-1">
-                                    <FormControl>
-                                      <Input
-                                        {...fieldProps}
-                                        type="file"
-                                        accept=".pdf"
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0];
-                                          if (file) {
-                                            onChange(file);
-                                            handleFileUpload(
-                                              file,
-                                              "evaluation_analysis_file",
-                                              cieData.id
-                                            );
-                                          }
-                                        }}
-                                        className="cursor-pointer"
-                                      />
-                                    </FormControl>
+                                <FormLabel className="text-[#1A5CA1] font-bold">Evaluation Analysis (PDF)</FormLabel>
+
+                                <div className="mt-1 relative">
+                                  {/* Status */}
+                                  <div className="pr-48 text-sm font-medium truncate">
+                                    {(() => {
+                                      const watchedFile = form.watch(
+                                        "evaluation_analysis_file"
+                                      ) as File | null;
+
+                                      return (
+                                        <>
+                                          File Uploaded:{" "}
+                                          {watchedFile ? (
+                                            <span className="text-green-600">
+                                              {watchedFile.name}
+                                            </span>
+                                          ) : existingActual?.evalution_analysis_document ? (
+                                            <span className="text-blue-600">Existing File</span>
+                                          ) : (
+                                            <span className="text-gray-500">None</span>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
                                   </div>
-                                  {/* Real-time preview for uploaded files */}
-                                  {(existingActual?.evalution_analysis_document ||
-                                    form.watch("evaluation_analysis_file")) && (
+
+                                  {/* Hidden input */}
+                                  <FormControl>
+                                    <input
+                                      id="evaluation-file-input"
+                                      type="file"
+                                      accept=".pdf"
+                                      className="hidden"
+                                      {...fieldProps}
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          onChange(file);
+                                          handleFileUpload(
+                                            file,
+                                            "evaluation_analysis_file",
+                                            cieData.id
+                                          );
+                                        }
+                                      }}
+                                    />
+                                  </FormControl>
+
+                                  {/* Buttons (absolute) */}
+                                  <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                    {/* Upload */}
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -1860,89 +2023,156 @@ export default function EditActualForm({
                                             variant="outline"
                                             size="sm"
                                             className="bg-blue-100 hover:bg-blue-200 border-blue-300"
-                                            onClick={async () => {
-                                              // If we have a newly uploaded file, create object URL for preview
-                                              if (
-                                                form.watch(
-                                                  "evaluation_analysis_file"
-                                                )
-                                              ) {
-                                                const url = URL.createObjectURL(
-                                                  form.watch(
-                                                    "evaluation_analysis_file"
-                                                  )
-                                                );
-                                                window.open(url, "_blank");
-                                              } else if (
-                                                existingActual?.evalution_analysis_document
-                                              ) {
-                                                // If we have a stored file, get the URL from Supabase
-                                                const { data } =
-                                                  await supabase.storage
-                                                    .from("actual-cies")
-                                                    .getPublicUrl(
-                                                      existingActual.evalution_analysis_document
-                                                    );
-                                                window.open(
-                                                  data.publicUrl,
-                                                  "_blank"
-                                                );
-                                              }
+                                            onClick={() => {
+                                              document
+                                                .getElementById("evaluation-file-input")
+                                                ?.click();
                                             }}
                                           >
-                                            <Eye className="h-4 w-4 text-blue-600" />
+                                            <Upload className="h-4 w-4 text-blue-600" />
                                           </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent
-                                          side="bottom"
-                                          align="center"
-                                        >
-                                          <p>Preview Evaluation Analysis</p>
+                                        <TooltipContent side="bottom" align="center">
+                                          <p>Upload Evaluation Analysis</p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
-                                  )}
+
+                                    {/* Preview */}
+                                    {(existingActual?.evalution_analysis_document ||
+                                      form.watch("evaluation_analysis_file")) && (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="bg-blue-100 hover:bg-blue-200 border-blue-300"
+                                                onClick={async () => {
+                                                  const watchedFile = form.watch(
+                                                    "evaluation_analysis_file"
+                                                  ) as File | null;
+
+                                                  if (watchedFile) {
+                                                    const url = URL.createObjectURL(watchedFile);
+                                                    window.open(url, "_blank");
+                                                  } else if (
+                                                    existingActual?.evalution_analysis_document
+                                                  ) {
+                                                    const { data } = await supabase.storage
+                                                      .from("actual-cies")
+                                                      .getPublicUrl(
+                                                        existingActual.evalution_analysis_document
+                                                      );
+                                                    window.open(data.publicUrl, "_blank");
+                                                  }
+                                                }}
+                                              >
+                                                <Eye className="h-4 w-4 text-blue-600" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom" align="center">
+                                              <p>Preview Evaluation Analysis</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      )}
+
+                                    {/* Delete */}
+                                    {(form.watch("evaluation_analysis_file") ||
+                                      existingActual?.evalution_analysis_document) && (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="bg-red-100 hover:bg-red-200 border-red-300"
+                                                onClick={() => {
+                                                  onChange(null);
+                                                  const input = document.getElementById(
+                                                    "evaluation-file-input"
+                                                  ) as HTMLInputElement | null;
+                                                  if (input) input.value = "";
+                                                }}
+                                              >
+                                                <Trash className="h-4 w-4 text-red-600" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom" align="center">
+                                              <p>Remove File</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      )}
+                                  </div>
                                 </div>
+
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
 
+                          {/* MODERATION REPORT */}
                           <FormField
                             control={form.control}
                             name="moderation_report_document"
-                            render={({
-                              field: { value, onChange, ...fieldProps },
-                            }) => (
+                            render={({ field: { value, onChange, ...fieldProps } }) => (
                               <FormItem>
-                                <FormLabel>Moderation Report (PDF)</FormLabel>
-                                <div className="flex items-center gap-2">
-                                  <div className="relative flex-1">
-                                    <FormControl>
-                                      <Input
-                                        {...fieldProps}
-                                        type="file"
-                                        accept=".pdf"
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0];
-                                          if (file) {
-                                            onChange(file);
-                                            handleFileUpload(
-                                              file,
-                                              "moderation_report_document",
-                                              cieData.id
-                                            );
-                                          }
-                                        }}
-                                        className="cursor-pointer"
-                                      />
-                                    </FormControl>
+                                <FormLabel className="text-[#1A5CA1] font-bold">Moderation Report (PDF)</FormLabel>
+
+                                <div className="mt-1 relative">
+                                  {/* Status */}
+                                  <div className="pr-48 text-sm font-medium truncate">
+                                    {(() => {
+                                      const watchedFile = form.watch(
+                                        "moderation_report_document"
+                                      ) as File | null;
+
+                                      return (
+                                        <>
+                                          File Uploaded:{" "}
+                                          {watchedFile ? (
+                                            <span className="text-green-600">
+                                              {watchedFile.name}
+                                            </span>
+                                          ) : existingActual?.moderation_report_document ? (
+                                            <span className="text-blue-600">Existing File</span>
+                                          ) : (
+                                            <span className="text-gray-500">None</span>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
                                   </div>
-                                  {/* Real-time preview for uploaded files */}
-                                  {(existingActual?.moderation_report_document ||
-                                    form.watch(
-                                      "moderation_report_document"
-                                    )) && (
+
+                                  {/* Hidden input */}
+                                  <FormControl>
+                                    <input
+                                      id="moderation-file-input"
+                                      type="file"
+                                      accept=".pdf"
+                                      className="hidden"
+                                      {...fieldProps}
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          onChange(file);
+                                          handleFileUpload(
+                                            file,
+                                            "moderation_report_document",
+                                            cieData.id
+                                          );
+                                        }
+                                      }}
+                                    />
+                                  </FormControl>
+
+                                  {/* Buttons */}
+                                  <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                    {/* Upload */}
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -1951,56 +2181,100 @@ export default function EditActualForm({
                                             variant="outline"
                                             size="sm"
                                             className="bg-blue-100 hover:bg-blue-200 border-blue-300"
-                                            onClick={async () => {
-                                              // If we have a newly uploaded file, create object URL for preview
-                                              if (
-                                                form.watch(
-                                                  "moderation_report_document"
-                                                )
-                                              ) {
-                                                const url = URL.createObjectURL(
-                                                  form.watch(
-                                                    "moderation_report_document"
-                                                  )
-                                                );
-                                                window.open(url, "_blank");
-                                              } else if (
-                                                existingActual?.moderation_report_document
-                                              ) {
-                                                // If we have a stored file, get the URL from Supabase
-                                                const {
-                                                  data = { publicUrl: "" },
-                                                } = await supabase.storage
-                                                  .from("actual-cies")
-                                                  .getPublicUrl(
-                                                    existingActual.moderation_report_document
-                                                  );
-                                                window.open(
-                                                  data.publicUrl,
-                                                  "_blank"
-                                                );
-                                              }
+                                            onClick={() => {
+                                              document
+                                                .getElementById("moderation-file-input")
+                                                ?.click();
                                             }}
                                           >
-                                            <Eye className="h-4 w-4 text-blue-600" />
+                                            <Upload className="h-4 w-4 text-blue-600" />
                                           </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent
-                                          side="bottom"
-                                          align="center"
-                                        >
-                                          <p>Preview Moderation Report</p>
+                                        <TooltipContent side="bottom" align="center">
+                                          <p>Upload Moderation Report</p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
-                                  )}
+
+                                    {/* Preview */}
+                                    {(existingActual?.moderation_report_document ||
+                                      form.watch("moderation_report_document")) && (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="bg-blue-100 hover:bg-blue-200 border-blue-300"
+                                                onClick={async () => {
+                                                  const watchedFile = form.watch(
+                                                    "moderation_report_document"
+                                                  ) as File | null;
+
+                                                  if (watchedFile) {
+                                                    const url = URL.createObjectURL(watchedFile);
+                                                    window.open(url, "_blank");
+                                                  } else if (
+                                                    existingActual?.moderation_report_document
+                                                  ) {
+                                                    const { data } = await supabase.storage
+                                                      .from("actual-cies")
+                                                      .getPublicUrl(
+                                                        existingActual.moderation_report_document
+                                                      );
+                                                    window.open(data.publicUrl, "_blank");
+                                                  }
+                                                }}
+                                              >
+                                                <Eye className="h-4 w-4 text-blue-600" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom" align="center">
+                                              <p>Preview Moderation Report</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      )}
+
+                                    {/* Delete */}
+                                    {(form.watch("moderation_report_document") ||
+                                      existingActual?.moderation_report_document) && (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="bg-red-100 hover:bg-red-200 border-red-300"
+                                                onClick={() => {
+                                                  onChange(null);
+                                                  const input = document.getElementById(
+                                                    "moderation-file-input"
+                                                  ) as HTMLInputElement | null;
+                                                  if (input) input.value = "";
+                                                }}
+                                              >
+                                                <Trash className="h-4 w-4 text-red-600" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom" align="center">
+                                              <p>Remove File</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      )}
+                                  </div>
                                 </div>
+
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
                         </div>
                       </div>
+
                       {/* Action Buttons */}
                       <div className="flex justify-between gap-4 mt-6">
                         <Button
