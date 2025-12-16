@@ -22,17 +22,21 @@ export default function SignInPage() {
 
     try {
       // Clear any existing cookies to help with the 431 error
-      document.cookie.split(";").forEach(function(c) {
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      document.cookie.split(";").forEach(function (c) {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
       });
-      
+
       const result = await login(formData);
       if (result?.success) {
         window.location.href = "/dashboard";
       }
     } catch (error) {
       if (error instanceof Error && error.message.includes("431")) {
-        toast.error("Login failed: Header too large. Please clear your browser cookies and try again.");
+        toast.error(
+          "Login failed: Header too large. Please clear your browser cookies and try again."
+        );
       } else {
         toast.error("Invalid Email or Password");
       }
@@ -56,10 +60,10 @@ export default function SignInPage() {
         </div>
         <div className="h-26 relative w-[120px]">
           <Image
-            src="/depstar.png"
-            alt="DEPSTAR"
+            src="/charusat-new-logo.jpg"
+            alt="CHARUSAT"
             fill
-            className="object-contain object-right"
+            className="object-contain object-right mt-5"
           />
         </div>
       </header>
@@ -69,7 +73,7 @@ export default function SignInPage() {
         <div className="w-full md:w-1/2 flex flex-col items-center md:items-start max-w-xl">
           <div className="relative w-full h-[650px]">
             <Image
-              src="/login-page.png"
+              src="/new-login-page.jpg"
               alt="Classroom illustration"
               fill
               className="object-contain"

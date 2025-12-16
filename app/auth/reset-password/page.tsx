@@ -47,10 +47,10 @@ export default function SignInPage() {
         </div>
         <div className="h-26 relative w-[120px]">
           <Image
-            src="/depstar.png"
-            alt="DEPSTAR"
+            src="/charusat-new-logo.jpg"
+            alt="CHARUSAT"
             fill
-            className="object-contain object-right"
+            className="object-contain object-right mt-5"
           />
         </div>
       </header>
@@ -60,7 +60,7 @@ export default function SignInPage() {
         <div className="w-full md:w-1/2 flex flex-col items-center md:items-start max-w-xl">
           <div className="relative w-full h-[650px]">
             <Image
-              src="/login-page.png"
+              src="/new-login-page.jpg"
               alt="Classroom illustration"
               fill
               className="object-contain"

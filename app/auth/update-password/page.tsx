@@ -97,10 +97,10 @@ export default function UpdatePasswordPage() {
         </div>
         <div className="h-26 relative w-[120px]">
           <Image
-            src="/depstar.png"
-            alt="DEPSTAR"
+            src="/charusat-new-logo.jpg"
+            alt="CHARUSAT"
             fill
-            className="object-contain object-right"
+            className="object-contain object-right mt-5"
           />
         </div>
       </header>
@@ -111,7 +111,7 @@ export default function UpdatePasswordPage() {
         <div className="w-full md:w-1/2 flex flex-col items-center md:items-start max-w-xl">
           <div className="relative w-full h-[650px]">
             <Image
-              src="/login-page.png"
+              src="/new-login-page.jpg"
               alt="Classroom illustration"
               fill
               className="object-contain"
@@ -198,8 +198,7 @@ export default function UpdatePasswordPage() {
                   <div
                     className="absolute top-2.5 right-3 text-gray-500 cursor-pointer"
                     onClick={() => setView1(!view1)}
-                  >
-                  </div>
+                  ></div>
                 </div>
               </div>
 
@@ -221,8 +220,7 @@ export default function UpdatePasswordPage() {
                   <div
                     className="absolute top-2.5 right-1 text-gray-500 cursor-pointer"
                     onClick={() => setView2(!view2)}
-                  >
-                  </div>
+                  ></div>
                 </div>
               </div>
 
