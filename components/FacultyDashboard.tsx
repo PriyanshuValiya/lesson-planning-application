@@ -90,7 +90,10 @@ export default function FacultyDashboard() {
           Subject Teacher, {department || ""}
         </p>
         <p className="text-xl text-gray-900 font-semibold uppercase tracking-wide">
-          {currentRole?.departments?.institutes?.name || "Institute"}
+          {currentRole?.departments?.institutes?.name || "Institute"},
+        </p>
+        <p className="text-xl text-gray-900 font-semibold uppercase tracking-wide">
+          Charotar University of Science and Technology (CHARUSAT)
         </p>
       </div>
     </div>

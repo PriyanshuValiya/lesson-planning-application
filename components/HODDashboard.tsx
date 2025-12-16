@@ -742,7 +742,8 @@ export default function HODDashboard() {
           <div>
             <div className="flex flex-col justify-around pl-5 py-2 bg-[#EBF5FF] h-[77px] rounded-[10px] border border-gray-400 mt-3">
               <p className="text-[#1A5CA1] font-manrope font-bold text-[20px] leading-[100%] tracking-[0em]">
-                {currentRole.departments?.institutes?.name || "Institute Name"}
+                {currentRole.departments?.institutes?.name || "Institute Name"},
+                Charotar University of Science and Technology
               </p>
               <h2 className="font-manrope font-medium text-[18px] leading-[100%] tracking-[0em]">
                 {currentRole.departments?.name || "Department Name"}
