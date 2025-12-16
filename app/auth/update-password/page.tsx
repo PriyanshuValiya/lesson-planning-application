@@ -95,14 +95,14 @@ export default function UpdatePasswordPage() {
             className="object-contain object-left"
           />
         </div>
-        <div className="h-26 relative w-[120px]">
+        {/* <div className="h-26 relative w-[120px]">
           <Image
             src="/charusat-new-logo.jpg"
             alt="CHARUSAT"
             fill
             className="object-contain object-right mt-5"
           />
-        </div>
+        </div> */}
       </header>
 
       {/* Main */}
