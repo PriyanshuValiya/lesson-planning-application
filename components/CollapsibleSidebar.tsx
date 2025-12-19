@@ -250,7 +250,7 @@ export default function CollapsibleSidebar({
                   </Link>
 
                   {userData.email === "kirtimakwana.mba@charusat.ac.in" && (
-                    <Link href="/dashboard/list-cie-forms">
+                    <Link href="/dashboard/extended-cies">
                       <button
                         className={`cursor-pointer group flex items-center px-3 py-3 text-base leading-6 font-medium rounded-md transition ease-in-out duration-150 mb-2 w-full text-left text-gray-600 hover:text-[#1A5CA1] hover:bg-blue-50`}
                       >
