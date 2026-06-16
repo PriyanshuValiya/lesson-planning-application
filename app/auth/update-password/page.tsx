@@ -6,6 +6,7 @@ import Image from "next/image";
 import { supabase } from "@/utils/supabase/client";
 import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
+import Footer from "@/components/Footer";
 
 export default function UpdatePasswordPage() {
   const [isOtpVerified, setIsOtpVerified] = useState(false);
@@ -252,6 +253,9 @@ export default function UpdatePasswordPage() {
           )}
         </div>
       </main>
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
