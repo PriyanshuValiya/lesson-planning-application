@@ -6,6 +6,7 @@ import Link from "next/link";
 import { User, LoaderCircle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { resetPassword } from "./action";
+import Footer from "@/components/Footer";
 
 export default function SignInPage() {
   const [load, setLoad] = useState(false);
@@ -123,6 +124,9 @@ export default function SignInPage() {
           </div>
         </div>
       </main>
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

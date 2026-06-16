@@ -6,6 +6,7 @@ import Link from "next/link";
 import { User, EyeOff, Eye, LoaderCircle } from "lucide-react";
 import { login } from "./action";
 import { toast } from "sonner";
+import Footer from "@/components/Footer";
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -35,7 +36,7 @@ export default function SignInPage() {
     } catch (error) {
       if (error instanceof Error && error.message.includes("431")) {
         toast.error(
-          "Login failed: Header too large. Please clear your browser cookies and try again."
+          "Login failed: Header too large. Please clear your browser cookies and try again.",
         );
       } else {
         toast.error("Invalid Email or Password");
@@ -67,7 +68,6 @@ export default function SignInPage() {
           />
         </div> */}
       </header>
-
       {/* Main content */}
       <main className="flex-1 flex items-top justify-around px-24 pt-5">
         <div className="w-full md:w-1/2 flex flex-col items-center md:items-start max-w-xl">
@@ -183,6 +183,8 @@ export default function SignInPage() {
           </div>
         </div>
       </main>
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
