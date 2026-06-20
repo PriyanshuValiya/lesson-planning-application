@@ -71,7 +71,7 @@ export async function saveActualCieDraft(draftData: any) {
 				throw new Error(`Insert failed: ${error.message}`);
 			}
 
-			result = data;
+			result = data; 
 		}
 
 		return {
